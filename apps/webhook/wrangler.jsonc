@@ -1,0 +1,19 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "whasap-webhook",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-05",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "<HYPERDRIVE_ID>"
+    }
+  ],
+  "secrets": {
+    "required": ["WEBHOOK_SECRET", "ASAAS_WEBHOOK_TOKEN", "ASAAS_API_KEY"]
+  }
+}

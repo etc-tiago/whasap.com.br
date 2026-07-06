@@ -1,0 +1,13 @@
+---
+description: Cloudflare Workers best practices
+globs: apps/**
+alwaysApply: false
+---
+
+# Cloudflare Workers
+
+- Use `wrangler.jsonc` with recent `compatibility_date` and `nodejs_compat`
+- Run `wrangler types` after binding changes; never hand-write `Env`
+- Secrets via `wrangler secret put`, never in source
+- Use Hyperdrive for Postgres: `createDb(env.HYPERDRIVE.connectionString)`
+- No module-level request state; await all promises or use `ctx.waitUntil()`

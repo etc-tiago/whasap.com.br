@@ -1,0 +1,25 @@
+---
+description: Drizzle ORM and Neon Postgres conventions
+globs: packages/db/**
+alwaysApply: true
+---
+
+# Database
+
+## Proibido para o agente
+
+**Nunca** rode migrations nem gere SQL. Isso é exclusivamente do desenvolvedor:
+
+- Não executar `bun run db:generate`, `bun run db:migrate`, `drizzle-kit generate` ou `drizzle-kit migrate`
+- Não criar, editar ou deletar arquivos em `packages/db/migrations/`
+- Não escrever SQL de migration manualmente
+
+Se o schema mudar, altere apenas `packages/db/src/schema/` e informe o desenvolvedor para gerar/aplicar migrations.
+
+## Convenções
+
+- Schema em `packages/db/src/schema/`; acesso em runtime via `createDb()` → `{ db, client }`
+- **Preferir `client.*`** (better-drizzle) para CRUD e lookups por `uuid`; plugins timestamps (`criadoEm`/`atualizadoEm`) e soft-delete (`excluidoEm`)
+- **`db` cru** só para agregações pesadas (relatórios, counts admin) ou SQL explícito
+- Workers usam Hyperdrive: `createDb(env.HYPERDRIVE.connectionString)`
+- Frontends nunca importam `@whasap/db`

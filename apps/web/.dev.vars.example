@@ -1,0 +1,5 @@
+AUTH_SECRET=dev-secret-change-me
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+ASAAS_API_KEY=$aact_placeholder
+ASAAS_SANDBOX=true
+# DATABASE_URL fica no .env da raiz do monorepo — não coloque Hyperdrive aqui

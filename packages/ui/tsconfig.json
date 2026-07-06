@@ -1,0 +1,11 @@
+{
+  "extends": "@whasap/typescript-config/react.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "compilerOptions": {
+    "paths": {
+      "#components/*": ["./src/components/*"],
+      "#lib/*": ["./src/lib/*"],
+      "#hooks/*": ["./src/hooks/*"]
+    }
+  }
+}

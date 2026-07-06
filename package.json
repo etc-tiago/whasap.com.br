@@ -1,0 +1,24 @@
+{
+  "name": "whasap",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "deploy": "turbo deploy",
+    "cf-typegen": "turbo cf-typegen",
+    "db:generate": "bun run --filter @whasap/db db:generate",
+    "db:migrate": "bun run --filter @whasap/db db:migrate",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "format": "oxfmt --check .",
+    "format:fix": "oxfmt ."
+  },
+  "devDependencies": {
+    "oxfmt": "^0.16.0",
+    "oxlint": "^1.16.0",
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.54.0"
+  }
+}

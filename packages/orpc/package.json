@@ -1,0 +1,19 @@
+{
+  "name": "@whasap/orpc",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./web": "./src/web-contract.ts",
+    "./office": "./src/office-contract.ts"
+  },
+  "dependencies": {
+    "@orpc/contract": "^1.9.3",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@whasap/typescript-config": "workspace:*",
+    "typescript": "^5.8.3"
+  }
+}

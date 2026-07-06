@@ -1,0 +1,17 @@
+{
+  "name": "@whasap/meta",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@whasap/config": "workspace:*",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@whasap/typescript-config": "workspace:*",
+    "typescript": "^5.8.3"
+  }
+}

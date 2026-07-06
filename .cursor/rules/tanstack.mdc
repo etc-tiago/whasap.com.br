@@ -1,0 +1,18 @@
+---
+description: TanStack Router, Query and Start conventions
+globs: apps/web/**,apps/office/**
+alwaysApply: false
+---
+
+# TanStack
+
+- UI routes: file-based in `src/routes/` via TanStack Router
+- Data fetching: TanStack Query via `orpc` from `src/lib/orpc.ts` (`createTanstackQueryUtils`)
+- Queries: `useQuery(orpc.autenticacao.eu.queryOptions({ retry: false }))`
+- Mutations: `useMutation(orpc.instancia.criarCheckout.mutationOptions({ onSuccess, ... }))`
+- Invalidação: `queryClient.invalidateQueries({ queryKey: orpc.autenticacao.eu.key() })`
+- Queries condicionais: `skipToken` no `input` em vez de `enabled` + `input!`
+- Hook em `lib/` somente se o mesmo procedimento for usado em **2+ componentes**; caso contrário, `orpc` direto no componente
+- **`apps/web`**: SPA client-first; dados via ORPC em `/rpc` (`@whasap/api-web` in-process, contrato `@whasap/orpc/web`)
+- **`apps/office`**: SSR via TanStack Start + Cloudflare worker; dados via `/rpc` (`@whasap/api-office`, contrato `@whasap/orpc/office`)
+- No raw `fetch` or `useEffect` for server data when ORPC is available

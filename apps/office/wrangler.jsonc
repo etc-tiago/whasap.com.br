@@ -1,0 +1,35 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "whasap-office",
+  "main": "@tanstack/react-start/server-entry",
+  "compatibility_date": "2026-07-05",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "WEB_URL": "http://localhost:3000",
+    "OFFICE_URL": "http://localhost:3001",
+    "EMAIL_FROM": "noreply@localhost"
+  },
+  "secrets": {
+    "required": ["AUTH_SECRET", "TURNSTILE_SECRET_KEY"]
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "<HYPERDRIVE_ID>"
+    }
+  ],
+  // Mesmo namespace_id que web — limite compartilhado por email
+  "ratelimits": [
+    {
+      "name": "AUTH_RATE_LIMIT",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 3,
+        "period": 60
+      }
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

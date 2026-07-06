@@ -1,0 +1,44 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "whasap-web",
+  "main": "@tanstack/react-start/server-entry",
+  "compatibility_date": "2026-07-05",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "WEB_URL": "http://localhost:3000",
+    "OFFICE_URL": "http://localhost:3001",
+    "WEBHOOK_URL": "http://localhost:8788",
+    "EMAIL_FROM": "noreply@localhost"
+  },
+  "secrets": {
+    "required": [
+      "AUTH_SECRET",
+      "ASAAS_API_KEY",
+      "TURNSTILE_SECRET_KEY"
+    ]
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "<HYPERDRIVE_ID>"
+    }
+  ],
+  // Alinhado com mvpDefaults.auth.attemptRateLimit / attemptRateLimitWindowSeconds
+  "ratelimits": [
+    {
+      "name": "AUTH_RATE_LIMIT",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 3,
+        "period": 60
+      }
+    }
+  ],
+  "assets": {
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application"
+  }
+}

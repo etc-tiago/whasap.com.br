@@ -1,0 +1,19 @@
+import type { Client, Db } from "@whasap/db";
+
+export type AuthRateLimiter = {
+  limit(options: { key: string }): Promise<{ success: boolean }>;
+};
+
+export type BaseEnv = {
+  HYPERDRIVE: { connectionString: string };
+  AUTH_RATE_LIMIT?: AuthRateLimiter;
+  TURNSTILE_SECRET_KEY: string;
+  EMAIL_FROM: string;
+};
+
+export type DbContext = {
+  db: Db;
+  client: Client;
+  env: BaseEnv;
+  clientIp?: string;
+};

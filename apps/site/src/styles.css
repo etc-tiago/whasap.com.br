@@ -1,0 +1,14 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@source "../../../packages/ui/src";
+@import "@whasap/ui/globals.css";
+
+@theme inline {
+  --color-wa-green: var(--wa-green);
+  --color-wa-green-dark: var(--wa-green-dark);
+}
+
+:root {
+  --wa-green: oklch(0.72 0.15 155);
+  --wa-green-dark: oklch(0.5 0.11 165);
+}

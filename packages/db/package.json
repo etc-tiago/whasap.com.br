@@ -1,0 +1,25 @@
+{
+  "name": "@whasap/db",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@better-drizzle/soft-delete": "^0.1.1",
+    "@better-drizzle/timestamps": "^0.1.1",
+    "@neondatabase/serverless": "^1.0.1",
+    "better-drizzle": "^0.1.1",
+    "drizzle-orm": "^0.44.2"
+  },
+  "devDependencies": {
+    "@whasap/typescript-config": "workspace:*",
+    "drizzle-kit": "^0.31.4",
+    "typescript": "^5.8.3"
+  }
+}

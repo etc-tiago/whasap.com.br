@@ -1,0 +1,4 @@
+WEBHOOK_SECRET=change-me
+ASAAS_WEBHOOK_TOKEN=whsec_placeholder
+ASAAS_API_KEY=$aact_placeholder
+ASAAS_SANDBOX=true

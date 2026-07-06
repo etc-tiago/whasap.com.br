@@ -1,0 +1,15 @@
+---
+description: Monorepo boundaries and workspace conventions
+alwaysApply: true
+---
+
+# Monorepo
+
+- Apps live in `apps/`: `site` (marketing), `web` (painel cliente), `office`, `webhook`
+- Use `@whasap/ui` for shadcn components, `@whasap/orpc/web` ou `/office` para contratos, `@whasap/db` for database
+- ORPC: `@whasap/api-web` (painel cliente) e `@whasap/api-office` (admin); utilitários em `@whasap/api-core`
+- `web` e `office` têm APIs ORPC separadas — não compartilhar handlers entre painéis
+- Domain logic (WhatsApp UI) stays in `apps/web`, not in shared packages
+- Marketing pages stay in `apps/site` only — not in `apps/web`
+- Run `bun install` from root; use `bun run dev` via turbo
+- Migrations Drizzle (`db:generate`, `db:migrate`) são exclusivas do desenvolvedor — o agente nunca executa nem gera SQL

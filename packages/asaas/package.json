@@ -1,0 +1,16 @@
+{
+  "name": "@whasap/asaas",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@whasap/config": "workspace:*"
+  },
+  "devDependencies": {
+    "@whasap/typescript-config": "workspace:*",
+    "typescript": "^5.8.3"
+  }
+}

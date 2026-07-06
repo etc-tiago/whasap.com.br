@@ -1,0 +1,81 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@source "../../../packages/ui/src";
+@import "@whasap/ui/globals.css";
+
+@theme inline {
+  --color-wa-sidebar: var(--wa-sidebar);
+  --color-wa-panel: var(--wa-panel);
+  --color-wa-panel-header: var(--wa-panel-header);
+  --color-wa-chat-bg: var(--wa-chat-bg);
+  --color-wa-bubble-in: var(--wa-bubble-in);
+  --color-wa-bubble-out: var(--wa-bubble-out);
+  --color-wa-green: var(--wa-green);
+  --color-wa-green-dark: var(--wa-green-dark);
+  --color-wa-tick: var(--wa-tick);
+  --color-wa-reply: var(--wa-reply);
+  --color-wa-badge: var(--wa-badge);
+  --color-wa-divider: var(--wa-divider);
+  --color-wa-icon: var(--wa-icon);
+  --color-wa-text: var(--wa-text);
+  --color-wa-text-muted: var(--wa-text-muted);
+}
+
+:root {
+  --wa-sidebar: oklch(0.97 0.005 155);
+  --wa-panel: oklch(1 0 0);
+  --wa-panel-header: oklch(0.97 0.003 155);
+  --wa-chat-bg: oklch(0.955 0.012 90);
+  --wa-bubble-in: oklch(1 0 0);
+  --wa-bubble-out: oklch(0.92 0.06 145);
+  --wa-green: oklch(0.72 0.15 155);
+  --wa-green-dark: oklch(0.5 0.11 165);
+  --wa-tick: oklch(0.62 0.13 230);
+  --wa-reply: oklch(0.55 0.13 165);
+  --wa-badge: oklch(0.68 0.16 155);
+  --wa-divider: oklch(0.9 0.006 155);
+  --wa-icon: oklch(0.5 0.01 155);
+  --wa-text: oklch(0.2 0.005 155);
+  --wa-text-muted: oklch(0.5 0.01 155);
+}
+
+.dark {
+  --wa-sidebar: oklch(0.2 0.01 155);
+  --wa-panel: oklch(0.18 0.008 155);
+  --wa-panel-header: oklch(0.23 0.008 155);
+  --wa-chat-bg: oklch(0.16 0.008 155);
+  --wa-bubble-in: oklch(0.24 0.008 155);
+  --wa-bubble-out: oklch(0.38 0.06 155);
+  --wa-green: oklch(0.72 0.15 155);
+  --wa-green-dark: oklch(0.62 0.13 165);
+  --wa-tick: oklch(0.68 0.14 230);
+  --wa-reply: oklch(0.75 0.13 165);
+  --wa-badge: oklch(0.72 0.16 155);
+  --wa-divider: oklch(0.3 0.008 155);
+  --wa-icon: oklch(0.7 0.01 155);
+  --wa-text: oklch(0.95 0 0);
+  --wa-text-muted: oklch(0.7 0.01 155);
+}
+
+@utility wa-wallpaper {
+  background-color: var(--wa-chat-bg);
+  background-image:
+    radial-gradient(circle at 15% 20%, oklch(0.88 0.02 90 / 0.4) 0, transparent 2px),
+    radial-gradient(circle at 70% 60%, oklch(0.88 0.02 90 / 0.4) 0, transparent 2px),
+    radial-gradient(circle at 40% 85%, oklch(0.88 0.02 90 / 0.4) 0, transparent 2px),
+    radial-gradient(circle at 85% 15%, oklch(0.88 0.02 90 / 0.35) 0, transparent 3px),
+    radial-gradient(circle at 25% 65%, oklch(0.88 0.02 90 / 0.35) 0, transparent 2.5px);
+  background-size: 180px 180px, 220px 220px, 260px 260px, 200px 200px, 240px 240px;
+}
+
+@utility wa-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.75 0.01 155 / 0.5) transparent;
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: oklch(0.75 0.01 155 / 0.5);
+    border-radius: 3px;
+  }
+}

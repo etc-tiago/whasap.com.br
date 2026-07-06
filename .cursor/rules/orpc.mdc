@@ -1,0 +1,18 @@
+---
+description: ORPC contract-first API conventions
+globs: packages/api-web/**,packages/api-office/**,packages/api-core/**,apps/web/src/routes/rpc/**,apps/office/src/routes/rpc/**,packages/orpc/**
+alwaysApply: false
+---
+
+# ORPC
+
+- Contratos em `packages/orpc`: `@whasap/orpc/web` (`webContract`) e `@whasap/orpc/office` (`officeContract`)
+- **Nomes em pt-BR** nos domínios, procedimentos e campos de I/O do contrato (ex.: `autenticacao.entrar`, `organizacaoId`, `urlCheckout`)
+- Mutações com verbos (`enviarOtp`, `cadastrar`, `atualizar`); leituras com substantivos (`lista`, `obter`, `eu`)
+- Implementação: `@whasap/api-web` (painel cliente) e `@whasap/api-office` (admin interno)
+- Router modular: `lib/os.ts` + `procedures/<dominio>/<procedimento>.ts` + `router.ts` fino com `os.router({...})`
+- Utilitários compartilhados (OTP, Turnstile, rate-limit, factory RPC): `@whasap/api-core`
+- Apps montam ORPC em `/rpc` via server routes → `handleRpc()` do pacote API correspondente
+- `apps/webhook` é independente — Asaas, Evolution, Meta
+- Never duplicate Zod schemas in frontend apps
+- Identificadores de integrações externas permanecem técnicos (`turnstileToken`, `asaasCustomerId`, enums de status/provider)
