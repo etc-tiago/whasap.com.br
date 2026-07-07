@@ -3,7 +3,7 @@
 // Runtime types generated with workerd@1.20260701.1 2026-07-05 nodejs_compat
 interface __BaseEnv_Env {
 	HYPERDRIVE: Hyperdrive;
-	ASSAS_API_KEY_ETC: SecretsStoreSecret;
+	ASSAS_API_KEY: SecretsStoreSecret;
 	AUTH_RATE_LIMIT: RateLimit;
 	WEB_URL: "http://localhost:3000";
 	OFFICE_URL: "http://localhost:3001";

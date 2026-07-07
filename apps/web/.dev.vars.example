@@ -1,5 +1,5 @@
 AUTH_SECRET=dev-secret-change-me
-ASSAS_API_KEY_ETC=$aact_placeholder
+ASSAS_API_KEY=$aact_placeholder
 ASAAS_SANDBOX=true
 EVOLUTION_BASE_URL=http://localhost:8080
 EVOLUTION_API_KEY=dev-key

@@ -3,20 +3,17 @@ export type SecretsStoreSecretBinding = {
 };
 
 export type AsaasSecretsEnv = {
-  /** Secrets Store (produção) — store `ASSAS_API_KEY_ETC` */
-  ASSAS_API_KEY_ETC?: SecretsStoreSecretBinding | string;
-  /** Fallback local (.dev.vars) */
-  ASAAS_API_KEY?: string;
+  /** Secrets Store (produção) ou string em `.dev.vars` */
+  ASSAS_API_KEY?: SecretsStoreSecretBinding | string;
   ASAAS_SANDBOX?: string;
 };
 
 export async function getAsaasApiKey(env: AsaasSecretsEnv): Promise<string> {
-  if (env.ASSAS_API_KEY_ETC) {
-    if (typeof env.ASSAS_API_KEY_ETC === "string") return env.ASSAS_API_KEY_ETC;
-    return env.ASSAS_API_KEY_ETC.get();
+  if (env.ASSAS_API_KEY) {
+    if (typeof env.ASSAS_API_KEY === "string") return env.ASSAS_API_KEY;
+    return env.ASSAS_API_KEY.get();
   }
-  if (env.ASAAS_API_KEY) return env.ASAAS_API_KEY;
-  throw new Error("Asaas API key not configured (ASSAS_API_KEY_ETC)");
+  throw new Error("Asaas API key not configured (ASSAS_API_KEY)");
 }
 
 export function isAsaasSandbox(env: AsaasSecretsEnv): boolean {

@@ -17,7 +17,7 @@ Guia para configurar Asaas, Evolution API e Meta Cloud API.
 
    | Tipo | Nome | Workers |
    |------|------|---------|
-   | Secrets Store | `ASSAS_API_KEY_ETC` → secret `ASAAS_API_KEY` | `web`, `webhook` |
+   | Secrets Store | `ASSAS_API_KEY` → secret `ASSAS_API_KEY_ETC` no store `ASSAS_API_KEY_ETC` | `web`, `webhook` |
 
    ```bash
    wrangler secrets-store store list   # anote o store_id do store Asaas
@@ -27,7 +27,7 @@ Guia para configurar Asaas, Evolution API e Meta Cloud API.
 
    Secrets Worker clássicos (`wrangler secret put`): `AUTH_SECRET` (`web`/`office`), `WEBHOOK_SECRET` e `ASAAS_WEBHOOK_TOKEN` (`webhook`).
 
-7. Em desenvolvimento local, defina `ASSAS_API_KEY_ETC` e `ASAAS_SANDBOX=true` em `.dev.vars`.
+7. Em desenvolvimento local, defina `ASSAS_API_KEY` e `ASAAS_SANDBOX=true` em `.dev.vars`.
 
 Fluxo no painel: onboarding → QR Code → trial → checkout Asaas (PIX ou cartão).
 

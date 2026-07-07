@@ -1,6 +1,6 @@
 WEBHOOK_SECRET=change-me
 ASAAS_WEBHOOK_TOKEN=whsec_placeholder
-ASSAS_API_KEY_ETC=$aact_placeholder
+ASSAS_API_KEY=$aact_placeholder
 ASAAS_SANDBOX=true
 CDN_URL=http://localhost:8789
 EVOLUTION_BASE_URL=http://localhost:8080

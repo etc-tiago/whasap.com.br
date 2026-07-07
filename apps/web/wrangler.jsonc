@@ -30,9 +30,9 @@
   // Secrets Store (produção): substitua store_id pelo ID real (`wrangler secrets-store store list`)
   "secrets_store_secrets": [
     {
-      "binding": "ASSAS_API_KEY_ETC",
-      "store_id": "ASSAS_API_KEY_ETC",
-      "secret_name": "ASAAS_API_KEY"
+      "binding": "ASSAS_API_KEY",
+      "store_id": "76b096bc6b03460dabd7744ba277a1ee",
+      "secret_name": "ASSAS_API_KEY_ETC"
     }
   ],
   "hyperdrive": [

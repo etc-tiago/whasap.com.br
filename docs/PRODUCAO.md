@@ -88,14 +88,14 @@ wrangler secrets-store store list
 
 | Store (nome) | Secret no store | Binding no worker | Workers |
 |--------------|-----------------|-------------------|---------|
-| `ASSAS_API_KEY_ETC` | `ASAAS_API_KEY` | `ASSAS_API_KEY_ETC` | `web`, `webhook` |
+| `ASSAS_API_KEY_ETC` | `ASSAS_API_KEY_ETC` | `ASSAS_API_KEY` | `web`, `webhook` |
 
 Inserir valor:
 
 ```bash
-STORE_ASSAS=<uuid-do-store-ASSAS_API_KEY_ETC>
+STORE_ASSAS=76b096bc6b03460dabd7744ba277a1ee
 
-wrangler secrets-store secret put $STORE_ASSAS ASAAS_API_KEY    # cola a API key do Asaas
+wrangler secrets-store secret put $STORE_ASSAS ASSAS_API_KEY_ETC    # cola a API key do Asaas
 ```
 
 Em cada `wrangler.jsonc`, substitua `store_id` pelo **UUID** real (não o nome do store).
@@ -163,7 +163,7 @@ Nenhum.
 |------|---------|---------|
 | Hyperdrive | `HYPERDRIVE` | ID `c8f9852b6dc748489154722036fb4e48` |
 | Rate Limit | `AUTH_RATE_LIMIT` | namespace `1001` |
-| Secrets Store | `ASSAS_API_KEY_ETC` | store `ASSAS_API_KEY_ETC` → secret `ASAAS_API_KEY` |
+| Secrets Store | `ASSAS_API_KEY` | store `ASSAS_API_KEY_ETC` → secret `ASSAS_API_KEY_ETC` |
 | Assets | `./dist/client` | SPA estática |
 
 #### Vars (`wrangler.jsonc` → `vars`) — valores de produção
@@ -264,7 +264,7 @@ Inserir ao menos um usuário em `office_usuario` (ver [README.md](../README.md))
 | Hyperdrive | `HYPERDRIVE` | mesmo ID |
 | R2 | `R2` | bucket `whasap` |
 | R2 | `CDN_R2` | bucket `whasap-cdn` |
-| Secrets Store | `ASSAS_API_KEY_ETC` | store `ASSAS_API_KEY_ETC` → `ASAAS_API_KEY` |
+| Secrets Store | `ASSAS_API_KEY` | store `ASSAS_API_KEY_ETC` → secret `ASSAS_API_KEY_ETC` |
 
 #### Vars — produção
 
@@ -361,7 +361,7 @@ Ou na raiz: `bun run deploy` (Turbo), desde que as vars de build estejam no ambi
 - [ ] Hyperdrive `c8f9852b6dc748489154722036fb4e48` apontando para Neon produção
 - [ ] R2 `whasap` criado
 - [ ] R2 `whasap-cdn` criado
-- [ ] Secrets Store `ASSAS_API_KEY_ETC` com secret `ASAAS_API_KEY`
+- [ ] Secrets Store `ASSAS_API_KEY_ETC` com secret `ASSAS_API_KEY_ETC`
 - [ ] Rate limit namespace `1001` existe
 - [ ] `store_id` nos `wrangler.jsonc` atualizados com UUIDs reais
 
@@ -398,7 +398,7 @@ Ou na raiz: `bun run deploy` (Turbo), desde que as vars de build estejam no ambi
 | Valor | Onde configurar |
 |-------|-----------------|
 | URLs públicas dos apps | `vars` no `wrangler.jsonc` de cada app |
-| API key Asaas | Secrets Store → binding `ASSAS_API_KEY_ETC` |
+| API key Asaas | Secrets Store → binding `ASSAS_API_KEY` |
 | Token webhook Asaas | `wrangler secret` → `ASAAS_WEBHOOK_TOKEN` no webhook |
 | Sessão usuário / office | `wrangler secret` → `AUTH_SECRET` em cada app |
 | Verify token Meta | `wrangler secret` → `WEBHOOK_SECRET` no webhook |
@@ -415,7 +415,7 @@ Ou na raiz: `bun run deploy` (Turbo), desde que as vars de build estejam no ambi
 | Produção | Local |
 |----------|-------|
 | Hyperdrive remoto | `DATABASE_URL` na raiz + Hyperdrive local (`localConnectionString`) |
-| Secrets Store | `.dev.vars` por app (`ASSAS_API_KEY_ETC`, etc.) |
+| Secrets Store | `.dev.vars` por app (`ASSAS_API_KEY`, etc.) |
 | R2 remoto | Simulação local do Wrangler ou `remote: true` |
 | `VITE_*` | `.env` / `.env.example` na raiz e em `apps/web` |
 

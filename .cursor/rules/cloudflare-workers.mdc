@@ -14,23 +14,23 @@ alwaysApply: false
 
 ## Secrets Store (produção)
 
-| Binding | Store (nome) | Uso |
-|---------|--------------|-----|
-| `ASSAS_API_KEY_ETC` | `ASSAS_API_KEY_ETC` | API key Asaas (`web`, `webhook`) |
+| Binding | Store (nome) | Secret no store | Uso |
+|---------|--------------|-----------------|-----|
+| `ASSAS_API_KEY` | `ASSAS_API_KEY_ETC` | `ASSAS_API_KEY_ETC` | API key Asaas (`web`, `webhook`) |
 
 ```jsonc
 "secrets_store_secrets": [
   {
-    "binding": "ASSAS_API_KEY_ETC",
+    "binding": "ASSAS_API_KEY",
     "store_id": "<uuid-do-store-ASSAS_API_KEY_ETC>",
-    "secret_name": "ASAAS_API_KEY"
+    "secret_name": "ASSAS_API_KEY_ETC"
   }
 ]
 ```
 
 Secrets Worker clássicos (`wrangler secret put`): `AUTH_SECRET` (`web`, `office`).
 
-Local: `.dev.vars` com os mesmos nomes. Código aceita `ASAAS_API_KEY` como fallback legado.
+Local: `.dev.vars` com `ASSAS_API_KEY` (string).
 
 ## Hyperdrive (sempre igual)
 
