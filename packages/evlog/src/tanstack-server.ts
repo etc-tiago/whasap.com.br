@@ -10,12 +10,12 @@ export function criarServerTanstackEvlog<TEnv>(
   servico: ServicoEvlog,
   handler: HandlerTanstack,
 ) {
-  return envolverWorkerFetch<TEnv>(async (request, env, ctx, log) => {
+  return envolverWorkerFetch<TEnv>(servico, async (request, _env, _ctx, log) => {
     const url = new URL(request.url);
     log.set({ rota: url.pathname, metodo: request.method });
 
     try {
-      const response = await handler.fetch(request, env, ctx);
+      const response = await handler.fetch(request);
       log.emit({ status: response.status });
       return response;
     } catch (err) {
