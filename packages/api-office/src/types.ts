@@ -15,6 +15,7 @@ export type OfficeContext = {
   clientIp: string | undefined;
   officeUsuario: OfficeUsuario | null;
   sessionToken: string | null;
+  fecharDb: () => Promise<void>;
 };
 
 export type OfficeEnv = BaseEnv & {

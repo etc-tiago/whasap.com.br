@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { log } from "@whasap/evlog";
 import { env } from "cloudflare:workers";
 
 import type { OrcamentoRegistro } from "@/lib/orcamento";
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/api/orcamento")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        log.info({ api: "orcamento" });
         let body: unknown;
         try {
           body = await request.json();
@@ -50,11 +52,15 @@ export const Route = createFileRoute("/api/orcamento")({
             await env.R2.put(key, JSON.stringify(registro), {
               httpMetadata: { contentType: "application/json" },
             });
+            log.info({ orcamento: { id: registro.id, r2Key: key, persistido: true } });
           } else {
-            console.log("[orcamento] dev (sem R2):", registro);
+            log.info({ orcamento: { id: registro.id, devSemR2: true } });
           }
         } catch (err) {
-          console.error("[orcamento] falha ao persistir:", err);
+          log.error({
+            orcamento: { persistenciaFalhou: true, id: registro.id },
+            erro: err instanceof Error ? err.message : String(err),
+          });
         }
 
         return new Response(JSON.stringify({ ok: true, id: registro.id }), {

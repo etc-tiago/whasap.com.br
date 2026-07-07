@@ -5,6 +5,8 @@
  * - Asaas: persiste em `asaasWebhookRegistro` (idempotente por `asaasIdEvento`), sem R2 nem `processadoEm`.
  *   Checkout é criado no api-web; ativação de instância/pacote ocorre aqui via `handleAsaasWebhook`.
  */
+import type { RequestLogger } from "@whasap/evlog";
+import { envolverWorkerFetch } from "@whasap/evlog/workers";
 import { eq } from "drizzle-orm";
 import { asaasWebhookRegistro, comCriadoEm, criarDb, webhookEvento } from "@whasap/db";
 
@@ -32,104 +34,144 @@ async function processarWebhookProvedor(
   env: Env,
   source: "evo" | "cloud",
   body: string,
+  log: RequestLogger,
 ): Promise<Response> {
-  const { db } = criarDb(env.HYPERDRIVE.connectionString);
-  const r2Key = source === "evo" ? evolutionLogKeyFromBody(body) : cloudLogKeyFromBody(body);
-
-  ctx.waitUntil(
-    putWebhookLog(env, r2Key, body, { source, path: r2Key }).catch((err) => {
-      console.error(`[webhook] R2 log failed (${source}):`, err);
-    }),
-  );
-
-  const [event] = await db
-    .insert(webhookEvento)
-    .values(
-      comCriadoEm({
-        origem: source,
-        idEvento: r2Key,
-        payload: body,
-      }),
-    )
-    .returning({ id: webhookEvento.id });
+  const { db, sql } = criarDb(env.HYPERDRIVE.connectionString);
 
   try {
-    if (source === "cloud") {
-      await processMetaWebhook(db, env, ctx, body);
-    } else {
-      await processEvolutionWebhook(db, env, ctx, body);
-    }
-    await db
-      .update(webhookEvento)
-      .set({ processadoEm: new Date() })
-      .where(eq(webhookEvento.id, event!.id));
-  } catch (err) {
-    console.error(`[webhook] processor error (${source}):`, err);
-  }
+    const r2Key = source === "evo" ? evolutionLogKeyFromBody(body) : cloudLogKeyFromBody(body);
+    log.set({ webhook: { source, r2Key } });
 
-  return new Response(JSON.stringify({ received: true }), {
-    status: 200,
-    headers: { "content-type": "application/json" },
-  });
+    ctx.waitUntil(
+      putWebhookLog(env, r2Key, body, { source, path: r2Key }).catch((err) => {
+        log.error(err instanceof Error ? err : new Error(String(err)));
+        log.set({ webhook: { r2Falhou: true, source } });
+      }),
+    );
+
+    const [event] = await db
+      .insert(webhookEvento)
+      .values(
+        comCriadoEm({
+          origem: source,
+          idEvento: r2Key,
+          payload: body,
+        }),
+      )
+      .returning({ id: webhookEvento.id });
+
+    try {
+      if (source === "cloud") {
+        await processMetaWebhook(db, env, ctx, body);
+      } else {
+        await processEvolutionWebhook(db, env, ctx, body);
+      }
+      await db
+        .update(webhookEvento)
+        .set({ processadoEm: new Date() })
+        .where(eq(webhookEvento.id, event!.id));
+      log.set({ webhook: { processado: true, eventoId: event!.id } });
+    } catch (err) {
+      log.error(err instanceof Error ? err : new Error(String(err)));
+      log.set({ webhook: { processadorFalhou: true, source } });
+    }
+
+    return new Response(JSON.stringify({ received: true }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
 }
 
-export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
+export default envolverWorkerFetch<Env>("webhook", async (request, env, ctx, log) => {
+  const url = new URL(request.url);
+  log.set({ rota: url.pathname, metodo: request.method });
 
+  try {
     if (request.method === "GET" && url.pathname === "/cloud") {
       const mode = url.searchParams.get("hub.mode");
       const token = url.searchParams.get("hub.verify_token");
       const challenge = url.searchParams.get("hub.challenge");
       if (mode === "subscribe" && token === env.WHATSAPP_CLOUD_WEBHOOK_SECRET && challenge) {
-        return new Response(challenge, { status: 200 });
+        const response = new Response(challenge, { status: 200 });
+        log.emit({ status: response.status });
+        return response;
       }
-      return new Response("Forbidden", { status: 403 });
+      const response = new Response("Forbidden", { status: 403 });
+      log.emit({ status: response.status });
+      return response;
     }
 
     if (request.method !== "POST") {
-      return new Response("Method not allowed", { status: 405 });
+      const response = new Response("Method not allowed", { status: 405 });
+      log.emit({ status: response.status });
+      return response;
     }
 
     const body = await request.text();
 
     if (url.pathname === "/asaas") {
-      const { db } = criarDb(env.HYPERDRIVE.connectionString);
-      const token = request.headers.get("asaas-access-token") ?? "";
-      const valid = await timingSafeEqual(token, env.ASAAS_WEBHOOK_TOKEN);
-      if (!valid) {
-        return new Response("Invalid signature", { status: 401 });
-      }
-      const event = JSON.parse(body) as { id: string; event: string };
+      const { db, sql } = criarDb(env.HYPERDRIVE.connectionString);
       try {
-        await db.insert(asaasWebhookRegistro).values(
-          comCriadoEm({
-            asaasIdEvento: event.id,
-            tipo: event.event,
-            payload: body,
-          }),
-        );
-      } catch {
-        return new Response(JSON.stringify({ received: true }), {
+        const token = request.headers.get("asaas-access-token") ?? "";
+        const valid = await timingSafeEqual(token, env.ASAAS_WEBHOOK_TOKEN);
+        if (!valid) {
+          log.set({ webhook: { asaas: { assinaturaInvalida: true } } });
+          const response = new Response("Invalid signature", { status: 401 });
+          log.emit({ status: response.status });
+          return response;
+        }
+        const event = JSON.parse(body) as { id: string; event: string };
+        log.set({ webhook: { asaas: { id: event.id, tipo: event.event } } });
+        try {
+          await db.insert(asaasWebhookRegistro).values(
+            comCriadoEm({
+              asaasIdEvento: event.id,
+              tipo: event.event,
+              payload: body,
+            }),
+          );
+        } catch {
+          const response = new Response(JSON.stringify({ received: true }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
+          log.set({ webhook: { asaas: { duplicado: true } } });
+          log.emit({ status: response.status });
+          return response;
+        }
+        await handleAsaasWebhook(db, body, env);
+        const response = new Response(JSON.stringify({ received: true }), {
           status: 200,
           headers: { "content-type": "application/json" },
         });
+        log.emit({ status: response.status });
+        return response;
+      } finally {
+        await sql.end({ timeout: 5 });
       }
-      await handleAsaasWebhook(db, body, env);
-      return new Response(JSON.stringify({ received: true }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
     }
 
     if (url.pathname === "/evo") {
-      return processarWebhookProvedor(ctx, env, "evo", body);
+      const response = await processarWebhookProvedor(ctx, env, "evo", body, log);
+      log.emit({ status: response.status });
+      return response;
     }
 
     if (url.pathname === "/cloud") {
-      return processarWebhookProvedor(ctx, env, "cloud", body);
+      const response = await processarWebhookProvedor(ctx, env, "cloud", body, log);
+      log.emit({ status: response.status });
+      return response;
     }
 
-    return new Response("Not found", { status: 404 });
-  },
-};
+    const response = new Response("Not found", { status: 404 });
+    log.emit({ status: response.status });
+    return response;
+  } catch (err) {
+    log.error(err instanceof Error ? err : new Error(String(err)));
+    log.emit({ status: 500 });
+    throw err;
+  }
+});

@@ -1,0 +1,19 @@
+{
+  "name": "@whasap/evlog",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./nitro": "./src/nitro.ts",
+    "./tanstack-server": "./src/tanstack-server.ts",
+    "./workers": "./src/workers.ts"
+  },
+  "dependencies": {
+    "evlog": "^2.20.0"
+  },
+  "devDependencies": {
+    "@whasap/typescript-config": "workspace:*",
+    "typescript": "^5.8.3"
+  }
+}

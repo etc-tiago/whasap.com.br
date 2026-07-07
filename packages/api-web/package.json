@@ -12,6 +12,7 @@
     "@whasap/asaas": "workspace:*",
     "@whasap/config": "workspace:*",
     "@whasap/db": "workspace:*",
+    "@whasap/evlog": "workspace:*",
     "@whasap/evolution": "workspace:*",
     "@whasap/meta": "workspace:*",
     "@whasap/orpc": "workspace:*",

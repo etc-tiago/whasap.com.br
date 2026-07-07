@@ -1,6 +1,8 @@
 import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 
+import { registrarErro } from "@whasap/evlog";
+
 export type RpcSessionConfig = {
   cookieName: string;
   maxAgeSeconds: number;
@@ -29,7 +31,7 @@ export function createSessionCookieHelpers(cookieName: string) {
  * Monta handler HTTP `/rpc` com contexto, cookies de sessão e interceptors.
  * Usado por `apps/web` e `apps/office`.
  */
-export function createRpcHandler<TContext extends { sessionToken: string | null }>(options: {
+export function createRpcHandler<TContext extends { sessionToken: string | null; fecharDb?: () => Promise<void> }>(options: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   router: any;
   session: RpcSessionConfig;
@@ -37,7 +39,7 @@ export function createRpcHandler<TContext extends { sessionToken: string | null 
 }) {
   const cookieHelpers = createSessionCookieHelpers(options.session.cookieName);
   const rpcHandler = new RPCHandler(options.router, {
-    interceptors: [onError((error) => console.error(error))],
+    interceptors: [onError((error) => registrarErro("rpc", error))],
   });
 
   return async function handleRpc(request: Request, env: unknown): Promise<Response> {
@@ -45,29 +47,33 @@ export function createRpcHandler<TContext extends { sessionToken: string | null 
     const ctx = await options.buildContext(env, request, sessionToken);
     const path = new URL(request.url).pathname;
 
-    const { matched, response } = await rpcHandler.handle(request, {
-      prefix: "/rpc",
-      context: ctx,
-    });
+    try {
+      const { matched, response } = await rpcHandler.handle(request, {
+        prefix: "/rpc",
+        context: ctx,
+      });
 
-    if (!matched) {
-      return new Response("Not Found", { status: 404 });
-    }
+      if (!matched) {
+        return new Response("Not Found", { status: 404 });
+      }
 
-    const headers = new Headers(response.headers);
-    if (
-      ctx.sessionToken &&
-      options.session.loginPaths.some((loginPath) => path.endsWith(loginPath))
-    ) {
-      headers.append(
-        "Set-Cookie",
-        cookieHelpers.sessionCookieHeader(ctx.sessionToken, options.session.maxAgeSeconds),
-      );
-    }
-    if (path.endsWith(options.session.logoutPath)) {
-      headers.append("Set-Cookie", cookieHelpers.clearSessionCookieHeader());
-    }
+      const headers = new Headers(response.headers);
+      if (
+        ctx.sessionToken &&
+        options.session.loginPaths.some((loginPath) => path.endsWith(loginPath))
+      ) {
+        headers.append(
+          "Set-Cookie",
+          cookieHelpers.sessionCookieHeader(ctx.sessionToken, options.session.maxAgeSeconds),
+        );
+      }
+      if (path.endsWith(options.session.logoutPath)) {
+        headers.append("Set-Cookie", cookieHelpers.clearSessionCookieHeader());
+      }
 
-    return new Response(response.body, { status: response.status, headers });
+      return new Response(response.body, { status: response.status, headers });
+    } finally {
+      await ctx.fecharDb?.();
+    }
   };
 }

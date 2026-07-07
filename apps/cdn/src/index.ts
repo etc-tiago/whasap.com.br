@@ -1,22 +1,33 @@
+import { envolverWorkerFetch } from "@whasap/evlog/workers";
+
 export type Env = {
   R2: R2Bucket;
 };
 
-export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+export default envolverWorkerFetch<Env>("cdn", async (request, env, _ctx, log) => {
+  const url = new URL(request.url);
+  log.set({ rota: url.pathname, metodo: request.method });
+
+  try {
     if (request.method !== "GET" && request.method !== "HEAD") {
-      return new Response("Method not allowed", { status: 405 });
+      const response = new Response("Method not allowed", { status: 405 });
+      log.emit({ status: response.status });
+      return response;
     }
 
-    const url = new URL(request.url);
     const key = decodeURIComponent(url.pathname.replace(/^\//, ""));
     if (!key || key.includes("..")) {
-      return new Response("Not found", { status: 404 });
+      const response = new Response("Not found", { status: 404 });
+      log.emit({ status: response.status });
+      return response;
     }
 
+    log.set({ cdn: { key } });
     const object = await env.R2.get(key);
     if (!object) {
-      return new Response("Not found", { status: 404 });
+      const response = new Response("Not found", { status: 404 });
+      log.emit({ status: response.status });
+      return response;
     }
 
     const headers = new Headers();
@@ -25,9 +36,17 @@ export default {
     headers.set("cache-control", "public, max-age=31536000, immutable");
 
     if (request.method === "HEAD") {
-      return new Response(null, { status: 200, headers });
+      const response = new Response(null, { status: 200, headers });
+      log.emit({ status: response.status });
+      return response;
     }
 
-    return new Response(object.body, { headers });
-  },
-};
+    const response = new Response(object.body, { headers });
+    log.emit({ status: response.status });
+    return response;
+  } catch (err) {
+    log.error(err instanceof Error ? err : new Error(String(err)));
+    log.emit({ status: 500 });
+    throw err;
+  }
+});

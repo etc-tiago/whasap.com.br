@@ -7,6 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { log } from "evlog";
 import { type ReactNode } from "react";
 
 import { appIcons } from "@whasap/config";
@@ -33,7 +34,7 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
+  log.error({ boundary: "tanstack_root_error_component", erro: error.message });
   const router = useRouter();
 
   return (

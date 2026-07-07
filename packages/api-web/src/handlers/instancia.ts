@@ -1,5 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { notFound, preconditionFailed } from "@whasap/api-core";
+import { log } from "@whasap/evlog";
 import { isEvolutionProvider } from "@whasap/config";
 import { createEvolutionGoClient, parseGoConnectionState } from "@whasap/evolution";
 import { createMetaClient } from "@whasap/meta";
@@ -166,7 +167,12 @@ export const instanciaHandlers = {
       const client = createEvolutionGoClient({ baseUrl, apiKey }, { instanceToken });
       await client.connect(webhookUrl);
     } catch (err) {
-      console.warn("[evolution] provision skipped or failed:", err);
+      log.warn({
+        evolution: {
+          provisionFalhou: true,
+          erro: err instanceof Error ? err.message : String(err),
+        },
+      });
     }
 
     await ctx.db
@@ -270,7 +276,9 @@ export const instanciaHandlers = {
       });
       await meta.listTemplates();
     } catch (err) {
-      console.warn("[meta] token validation failed:", err);
+      log.warn({
+        meta: { validacaoTokenFalhou: true, erro: err instanceof Error ? err.message : String(err) },
+      });
     }
 
     await ctx.db
@@ -433,7 +441,12 @@ export const cobrancaHandlers = {
                 status: p.status,
               }));
           } catch (err) {
-            console.warn("[asaas] assinaturas lookup failed:", err);
+            log.warn({
+              asaas: {
+                assinaturasLookupFalhou: true,
+                erro: err instanceof Error ? err.message : String(err),
+              },
+            });
           }
 
           return {

@@ -14,7 +14,9 @@
     "@tanstack/react-router": "^1.170.16",
     "@tanstack/react-start": "^1.168.26",
     "@whasap/config": "workspace:*",
+    "@whasap/evlog": "workspace:*",
     "@whasap/ui": "workspace:*",
+    "evlog": "^2.20.0",
     "lucide-react": "^0.575.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

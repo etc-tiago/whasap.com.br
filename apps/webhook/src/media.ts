@@ -1,3 +1,4 @@
+import { log } from "@whasap/evlog";
 import { eq } from "drizzle-orm";
 import { buildMediaR2Key, mimeToExtension } from "@whasap/config";
 import { mensagem, type Db } from "@whasap/db";
@@ -51,7 +52,12 @@ export function scheduleInboundMedia(
   if (!job) return;
   ctx.waitUntil(
     storeInboundMedia(env, db, job).catch((err) => {
-      console.error("[webhook] media store failed:", err);
+      log.error({
+        contexto: "webhook.media",
+        erro: err instanceof Error ? err.message : String(err),
+        messageId: job.messageId,
+        provider: job.provider,
+      });
     }),
   );
 }
@@ -68,7 +74,7 @@ export async function storeInboundMedia(env: Env, db: Db, job: InboundMediaJob):
       const baseUrl = env.EVOLUTION_BASE_URL;
       const apiKey = env.EVOLUTION_API_KEY;
       if (!baseUrl || !apiKey) {
-        console.error("[webhook] Evolution API não configurada no worker");
+        log.error({ contexto: "webhook.media", erro: "Evolution API não configurada no worker" });
         return;
       }
 
@@ -79,7 +85,7 @@ export async function storeInboundMedia(env: Env, db: Db, job: InboundMediaJob):
       const result = await client.downloadMedia(job.waMessage ?? { key: job.messageKey });
       const b64 = result.base64 ?? result.data;
       if (!b64) {
-        console.error("[webhook] Evolution downloadmedia sem base64");
+        log.error({ contexto: "webhook.media", erro: "Evolution downloadmedia sem base64", externalId: job.externalId });
         return;
       }
       mimeType = result.mimetype ?? job.mimeType ?? "application/octet-stream";

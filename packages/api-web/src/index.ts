@@ -25,8 +25,9 @@ const handleRpc = createRpcHandler<WebContext>({
   },
   buildContext: async (env, request, sessionToken) => {
     const webEnv = env as WebEnv;
-    const { db } = criarDb(webEnv.HYPERDRIVE.connectionString);
-    const partialCtx = { db, env: webEnv, request, clientIp: undefined } as WebContext;
+    const { db, sql } = criarDb(webEnv.HYPERDRIVE.connectionString);
+    const fecharDb = () => sql.end({ timeout: 5 });
+    const partialCtx = { db, env: webEnv, request, clientIp: undefined, fecharDb } as WebContext;
     const session = await resolveSession(partialCtx, sessionToken);
 
     return {
@@ -38,6 +39,7 @@ const handleRpc = createRpcHandler<WebContext>({
       organizationId: session.organizationId,
       role: session.role,
       sessionToken,
+      fecharDb,
     };
   },
 });

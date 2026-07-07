@@ -1,7 +1,7 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "whasap-site",
-  "main": "@tanstack/react-start/server-entry",
+  "main": "src/server.ts",
   "routes": [
     {
       "pattern": "whasap.com.br",

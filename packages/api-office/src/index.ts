@@ -15,8 +15,9 @@ const handleRpc = createRpcHandler<OfficeContext>({
   },
   buildContext: async (env, request, sessionToken) => {
     const officeEnv = env as OfficeEnv;
-    const { db } = criarDb(officeEnv.HYPERDRIVE.connectionString);
-    const partialCtx = { db, env: officeEnv, request, clientIp: undefined } as OfficeContext;
+    const { db, sql } = criarDb(officeEnv.HYPERDRIVE.connectionString);
+    const fecharDb = () => sql.end({ timeout: 5 });
+    const partialCtx = { db, env: officeEnv, request, clientIp: undefined, fecharDb } as OfficeContext;
     const session = await resolveSession(partialCtx, sessionToken);
 
     return {
@@ -26,6 +27,7 @@ const handleRpc = createRpcHandler<OfficeContext>({
       clientIp: getClientIp(request),
       officeUsuario: session.officeUsuario,
       sessionToken,
+      fecharDb,
     };
   },
 });

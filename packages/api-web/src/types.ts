@@ -20,6 +20,7 @@ export type WebContext = {
   organizationId: number | null;
   role: MemberRole | null;
   sessionToken: string | null;
+  fecharDb: () => Promise<void>;
 };
 
 export type WebEnv = BaseEnv & {

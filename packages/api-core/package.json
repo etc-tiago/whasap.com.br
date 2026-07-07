@@ -10,7 +10,8 @@
     "@orpc/server": "^1.9.3",
     "@whasap/config": "workspace:*",
     "@whasap/db": "workspace:*",
-    "drizzle-orm": "^0.44.2"
+    "drizzle-orm": "^0.44.2",
+    "@whasap/evlog": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250705.0",

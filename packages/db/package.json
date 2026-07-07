@@ -11,8 +11,8 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.0.1",
-    "drizzle-orm": "^0.44.2"
+    "drizzle-orm": "^0.44.2",
+    "postgres": "^3.4.7"
   },
   "devDependencies": {
     "@types/node": "^22.16.5",

@@ -1,13 +1,13 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Button } from "@whasap/ui/components/button";
 import { Input } from "@whasap/ui/components/input";
 import { Label } from "@whasap/ui/components/label";
+import { useState } from "react";
 
 import { EntradaShell } from "@/components/entrada-shell";
-import { getOrpcErrorMessage } from "@/lib/orpc-error";
 import { orpc } from "@/lib/orpc";
+import { getOrpcErrorMessage } from "@/lib/orpc-error";
 
 export const Route = createFileRoute("/~")({
   component: EntradaEmailPage,
@@ -58,9 +58,6 @@ function EntradaEmailPage() {
           </p>
         )}
       </form>
-      <p className="text-center text-xs text-muted-foreground">
-        Limite de 3 tentativas por minuto.
-      </p>
     </EntradaShell>
   );
 }

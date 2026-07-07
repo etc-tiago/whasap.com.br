@@ -8,6 +8,10 @@
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types"
   },
+  "dependencies": {
+    "@whasap/evlog": "workspace:*",
+    "evlog": "^2.20.0"
+  },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250705.0",
     "@whasap/typescript-config": "workspace:*",
