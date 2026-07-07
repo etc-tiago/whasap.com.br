@@ -1,28 +1,28 @@
 export function toOrganizacaoOutput(org: {
   uuid: string;
-  name: string;
+  nome: string;
   slug: string;
-  taxId: string | null;
-  taxIdType: string | null;
-  legalName: string | null;
-  asaasCustomerId: string | null;
+  documentoFiscal: string | null;
+  tipoDocumento: string | null;
+  razaoSocial: string | null;
+  asaasIdCliente: string | null;
 }) {
   return {
     id: org.uuid,
-    nome: org.name,
+    nome: org.nome,
     slug: org.slug,
-    documento: org.taxId,
-    tipoDocumento: org.taxIdType,
-    razaoSocial: org.legalName,
-    asaasCustomerId: org.asaasCustomerId,
+    documento: org.documentoFiscal,
+    tipoDocumento: org.tipoDocumento,
+    razaoSocial: org.razaoSocial,
+    asaasCustomerId: org.asaasIdCliente,
   };
 }
 
 export function toInstanciaOutput(
   instance: {
     uuid: string;
-    name: string;
-    provider: "cloud_api" | "evolution";
+    nome: string;
+    provedor: "cloud_api" | "evolution";
     status:
       | "pending_connection"
       | "pending_payment"
@@ -30,12 +30,11 @@ export function toInstanciaOutput(
       | "disconnected"
       | "connected"
       | "deactivated";
-    conversationLimit: number;
-    asaasSubscriptionId: string | null;
-    evolutionSecretName: string | null;
-    cloudPhoneNumberId: string | null;
-    trialEndsAt: Date | null;
-    connectedAt: Date | null;
+    limiteConversas: number;
+    asaasIdAssinatura: string | null;
+    nuvemIdNumeroTelefone: string | null;
+    trialTerminaEm: Date | null;
+    conectadoEm: Date | null;
     criadoEm: Date;
   },
   organizacaoUuid: string,
@@ -43,15 +42,14 @@ export function toInstanciaOutput(
   return {
     id: instance.uuid,
     organizacaoId: organizacaoUuid,
-    nome: instance.name,
-    provider: instance.provider,
+    nome: instance.nome,
+    provider: instance.provedor,
     status: instance.status,
-    limiteConversas: instance.conversationLimit,
-    asaasSubscriptionId: instance.asaasSubscriptionId,
-    evolutionSecretName: instance.evolutionSecretName,
-    cloudPhoneNumberId: instance.cloudPhoneNumberId,
-    trialEndsAt: instance.trialEndsAt?.toISOString() ?? null,
-    connectedAt: instance.connectedAt?.toISOString() ?? null,
+    limiteConversas: instance.limiteConversas,
+    asaasSubscriptionId: instance.asaasIdAssinatura,
+    cloudPhoneNumberId: instance.nuvemIdNumeroTelefone,
+    trialEndsAt: instance.trialTerminaEm?.toISOString() ?? null,
+    connectedAt: instance.conectadoEm?.toISOString() ?? null,
     criadoEm: instance.criadoEm.toISOString(),
   };
 }

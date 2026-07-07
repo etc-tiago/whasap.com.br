@@ -1,18 +1,78 @@
 import { appCreateData, type Client } from "@whasap/db";
 
+import type { Env } from "./env";
+import { type InboundMediaJob, scheduleInboundMedia } from "./media";
+
 type EvolutionPayload = {
   event?: string;
   instance?: string;
   data?: {
     state?: string;
-    key?: { remoteJid?: string; id?: string };
+    key?: { remoteJid?: string; fromMe?: boolean; id?: string };
     message?: Record<string, unknown>;
     pushName?: string;
   };
 };
 
+type EvolutionMediaPart = {
+  caption?: string;
+  mimetype?: string;
+  fileName?: string;
+  base64?: string;
+};
+
+const MEDIA_TYPES = new Set(["image", "audio", "document", "video"]);
+
+function evolutionMediaFromMessage(messageObj: Record<string, unknown>) {
+  const msgBase64 = typeof messageObj.base64 === "string" ? messageObj.base64 : undefined;
+
+  if (messageObj.imageMessage) {
+    const part = messageObj.imageMessage as EvolutionMediaPart;
+    return {
+      type: "image" as const,
+      body: part.caption ?? "[imagem]",
+      mimeType: part.mimetype,
+      base64: part.base64 ?? msgBase64,
+      fileName: part.fileName,
+    };
+  }
+  if (messageObj.audioMessage) {
+    const part = messageObj.audioMessage as EvolutionMediaPart;
+    return {
+      type: "audio" as const,
+      body: "[áudio]",
+      mimeType: part.mimetype,
+      base64: part.base64 ?? msgBase64,
+      fileName: part.fileName,
+    };
+  }
+  if (messageObj.documentMessage) {
+    const part = messageObj.documentMessage as EvolutionMediaPart;
+    return {
+      type: "document" as const,
+      body: part.fileName ?? part.caption ?? "[documento]",
+      mimeType: part.mimetype,
+      base64: part.base64 ?? msgBase64,
+      fileName: part.fileName,
+    };
+  }
+  if (messageObj.videoMessage) {
+    const part = messageObj.videoMessage as EvolutionMediaPart;
+    return {
+      type: "video" as const,
+      body: part.caption ?? "[vídeo]",
+      mimeType: part.mimetype,
+      base64: part.base64 ?? msgBase64,
+      fileName: part.fileName,
+    };
+  }
+  return null;
+}
+
 export async function processEvolutionWebhook(
   client: Client,
+  env: Env,
+  ctx: ExecutionContext,
   body: string,
 ): Promise<void> {
   const payload = JSON.parse(body) as EvolutionPayload;
@@ -21,19 +81,19 @@ export async function processEvolutionWebhook(
 
   if (!instanceName) return;
 
-  const instance = await client.instances.findFirst({
-    where: { evolutionInstanceName: instanceName },
+  const instance = await client.instancia.findFirst({
+    where: { evolucaoNomeInstancia: instanceName },
   });
   if (!instance) return;
 
   if (event === "connection.update") {
     const state = payload.data?.state;
     if (state === "open") {
-      await client.instances.update({
+      await client.instancia.update({
         where: { id: instance.id },
         data: {
-          status: instance.asaasSubscriptionId ? "connected" : "pending_payment",
-          connectedAt: new Date(),
+          status: instance.asaasIdAssinatura ? "connected" : "pending_payment",
+          conectadoEm: new Date(),
         },
       });
     }
@@ -43,44 +103,78 @@ export async function processEvolutionWebhook(
   if (event !== "messages.upsert" && event !== "MESSAGES_UPSERT") return;
 
   const remoteJid = payload.data?.key?.remoteJid;
-  if (!remoteJid) return;
+  const messageId = payload.data?.key?.id;
+  if (!remoteJid || !messageId) return;
 
   const phone = remoteJid.replace(/@.*/, "").replace(/\D/g, "");
   const pushName = payload.data?.pushName;
   const messageObj = payload.data?.message as Record<string, unknown> | undefined;
+  if (!messageObj) return;
 
   let bodyText: string | null = null;
   let type = "text";
-  if (messageObj?.conversation) {
+  let mediaInfo: ReturnType<typeof evolutionMediaFromMessage> = null;
+
+  if (messageObj.conversation) {
     bodyText = String(messageObj.conversation);
-  } else if (messageObj?.extendedTextMessage) {
+  } else if (messageObj.extendedTextMessage) {
     bodyText = String((messageObj.extendedTextMessage as { text?: string }).text ?? "");
-  } else if (messageObj?.imageMessage) {
-    type = "image";
-    bodyText = String((messageObj.imageMessage as { caption?: string }).caption ?? "[imagem]");
-  } else if (messageObj?.audioMessage) {
-    type = "audio";
-    bodyText = "[áudio]";
-  } else if (messageObj?.documentMessage) {
-    type = "document";
-    bodyText = String((messageObj.documentMessage as { fileName?: string }).fileName ?? "[documento]");
-  } else if (messageObj?.locationMessage) {
+  } else if (messageObj.locationMessage) {
     type = "location";
     bodyText = "[localização]";
+  } else {
+    mediaInfo = evolutionMediaFromMessage(messageObj);
+    if (mediaInfo) {
+      type = mediaInfo.type;
+      bodyText = mediaInfo.body;
+    }
   }
 
   if (!bodyText) return;
 
-  await ingestInboundMessage(client, {
-    instanceId: instance.id,
+  const messageKey = {
+    remoteJid,
+    fromMe: payload.data?.key?.fromMe ?? false,
+    id: messageId,
+  };
+
+  const result = await ingestInboundMessage(client, {
+    instanciaId: instance.id,
     phone,
     contactName: pushName ?? null,
     body: bodyText,
     type,
-    externalId: payload.data?.key?.id ?? null,
+    externalId: messageId,
     isCloud: false,
   });
+  if (!result) return;
+
+  if (mediaInfo && MEDIA_TYPES.has(type)) {
+    scheduleInboundMedia(ctx, env, client, {
+      provider: "evolution",
+      instanceUuid: instance.uuid,
+      messageId: result.messageId,
+      externalId: messageId,
+      type,
+      instanceName,
+      messageKey,
+      mimeType: mediaInfo.mimeType,
+      base64: mediaInfo.base64,
+      fileName: mediaInfo.fileName,
+    });
+  }
 }
+
+type MetaMessage = {
+  from: string;
+  id: string;
+  type: string;
+  text?: { body: string };
+  image?: { id: string; caption?: string; mime_type?: string };
+  audio?: { id: string; mime_type?: string };
+  document?: { id: string; filename?: string; mime_type?: string };
+  video?: { id: string; caption?: string; mime_type?: string };
+};
 
 type MetaPayload = {
   object?: string;
@@ -88,21 +182,56 @@ type MetaPayload = {
     changes?: Array<{
       value?: {
         metadata?: { phone_number_id?: string };
-        messages?: Array<{
-          from: string;
-          id: string;
-          type: string;
-          text?: { body: string };
-          image?: { caption?: string };
-          document?: { filename?: string };
-        }>;
+        messages?: MetaMessage[];
         statuses?: Array<{ id: string; status: string }>;
       };
     }>;
   }>;
 };
 
-export async function processMetaWebhook(client: Client, body: string): Promise<void> {
+function metaMediaFromMessage(msg: MetaMessage) {
+  if (msg.type === "image" && msg.image) {
+    return {
+      type: "image" as const,
+      body: msg.image.caption ?? "[imagem]",
+      mediaId: msg.image.id,
+      mimeType: msg.image.mime_type,
+    };
+  }
+  if (msg.type === "audio" && msg.audio) {
+    return {
+      type: "audio" as const,
+      body: "[áudio]",
+      mediaId: msg.audio.id,
+      mimeType: msg.audio.mime_type,
+    };
+  }
+  if (msg.type === "document" && msg.document) {
+    return {
+      type: "document" as const,
+      body: msg.document.filename ?? "[documento]",
+      mediaId: msg.document.id,
+      mimeType: msg.document.mime_type,
+      fileName: msg.document.filename,
+    };
+  }
+  if (msg.type === "video" && msg.video) {
+    return {
+      type: "video" as const,
+      body: msg.video.caption ?? "[vídeo]",
+      mediaId: msg.video.id,
+      mimeType: msg.video.mime_type,
+    };
+  }
+  return null;
+}
+
+export async function processMetaWebhook(
+  client: Client,
+  env: Env,
+  ctx: ExecutionContext,
+  body: string,
+): Promise<void> {
   const payload = JSON.parse(body) as MetaPayload;
   if (payload.object !== "whatsapp_business_account") return;
 
@@ -114,35 +243,66 @@ export async function processMetaWebhook(client: Client, body: string): Promise<
       const phoneNumberId = value.metadata?.phone_number_id;
       if (!phoneNumberId) continue;
 
-      const instance = await client.instances.findFirst({
-        where: { cloudPhoneNumberId: phoneNumberId },
+      const instance = await client.instancia.findFirst({
+        where: { nuvemIdNumeroTelefone: phoneNumberId },
       });
       if (!instance) continue;
 
       for (const msg of value.messages ?? []) {
         let bodyText: string | null = null;
-        if (msg.type === "text" && msg.text) bodyText = msg.text.body;
-        else if (msg.type === "image") bodyText = msg.image?.caption ?? "[imagem]";
-        else if (msg.type === "document") bodyText = msg.document?.filename ?? "[documento]";
-        else bodyText = `[${msg.type}]`;
+        let type = msg.type;
+        const mediaInfo = metaMediaFromMessage(msg);
 
-        await ingestInboundMessage(client, {
-          instanceId: instance.id,
+        if (msg.type === "text" && msg.text) {
+          bodyText = msg.text.body;
+        } else if (mediaInfo) {
+          type = mediaInfo.type;
+          bodyText = mediaInfo.body;
+        } else {
+          bodyText = `[${msg.type}]`;
+        }
+        if (!bodyText) continue;
+
+        const result = await ingestInboundMessage(client, {
+          instanciaId: instance.id,
           phone: msg.from,
           contactName: null,
           body: bodyText,
-          type: msg.type,
+          type,
           externalId: msg.id,
           isCloud: true,
         });
+        if (!result) continue;
+
+        if (
+          mediaInfo &&
+          MEDIA_TYPES.has(type) &&
+          instance.nuvemTokenAcesso &&
+          instance.nuvemIdNumeroTelefone &&
+          instance.nuvemIdWaba
+        ) {
+          scheduleInboundMedia(ctx, env, client, {
+            provider: "meta",
+            instanceUuid: instance.uuid,
+            messageId: result.messageId,
+            externalId: msg.id,
+            type,
+            accessToken: instance.nuvemTokenAcesso,
+            phoneNumberId: instance.nuvemIdNumeroTelefone,
+            wabaId: instance.nuvemIdWaba,
+            mediaId: mediaInfo.mediaId,
+            mimeType: mediaInfo.mimeType,
+            fileName: mediaInfo.fileName,
+          });
+        }
       }
 
       for (const status of value.statuses ?? []) {
-        const message = await client.messages.findFirst({
-          where: { externalId: status.id },
+        const message = await client.mensagem.findFirst({
+          where: { idExterno: status.id },
         });
         if (message) {
-          await client.messages.update({
+          await client.mensagem.update({
             where: { id: message.id },
             data: { status: status.status },
           });
@@ -155,7 +315,7 @@ export async function processMetaWebhook(client: Client, body: string): Promise<
 async function ingestInboundMessage(
   client: Client,
   params: {
-    instanceId: number;
+    instanciaId: number;
     phone: string;
     contactName: string | null;
     body: string;
@@ -163,91 +323,93 @@ async function ingestInboundMessage(
     externalId: string | null;
     isCloud: boolean;
   },
-) {
-  let contact = await client.contacts.findFirst({
-    where: { instanceId: params.instanceId, phone: params.phone },
+): Promise<{ messageId: number } | null> {
+  let contact = await client.contato.findFirst({
+    where: { instanciaId: params.instanciaId, telefone: params.phone },
   });
   if (!contact) {
-    contact = await client.contacts.create({
+    contact = await client.contato.create({
       data: appCreateData({
-        instanceId: params.instanceId,
-        phone: params.phone,
-        name: params.contactName,
+        instanciaId: params.instanciaId,
+        telefone: params.phone,
+        nome: params.contactName,
       }),
     });
   }
 
-  let conversation = await client.conversations.findFirst({
-    where: { instanceId: params.instanceId, contactId: contact.id, status: "open" },
+  let conversation = await client.conversa.findFirst({
+    where: { instanciaId: params.instanciaId, contatoId: contact.id, status: "open" },
   });
   if (!conversation) {
-    conversation = await client.conversations.create({
+    conversation = await client.conversa.create({
       data: appCreateData({
-        instanceId: params.instanceId,
-        contactId: contact.id,
-        lastMessageAt: new Date(),
+        instanciaId: params.instanciaId,
+        contatoId: contact.id,
+        ultimaMensagemEm: new Date(),
         ...(params.isCloud
-          ? { cloudWindowExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) }
+          ? { nuvemJanelaExpiraEm: new Date(Date.now() + 24 * 60 * 60 * 1000) }
           : {}),
       }),
     });
   } else if (params.isCloud) {
-    await client.conversations.update({
+    await client.conversa.update({
       where: { id: conversation.id },
-      data: { cloudWindowExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+      data: { nuvemJanelaExpiraEm: new Date(Date.now() + 24 * 60 * 60 * 1000) },
     });
   }
 
   const existing = params.externalId
-    ? await client.messages.findFirst({ where: { externalId: params.externalId } })
+    ? await client.mensagem.findFirst({ where: { idExterno: params.externalId } })
     : null;
-  if (existing) return;
+  if (existing) return null;
 
-  await client.messages.create({
+  const message = await client.mensagem.create({
     data: appCreateData({
-      conversationId: conversation.id,
-      direction: "inbound",
-      type: params.type,
-      body: params.body,
-      externalId: params.externalId,
+      conversaId: conversation.id,
+      direcao: "inbound",
+      tipo: params.type,
+      corpo: params.body,
+      idExterno: params.externalId,
       status: "delivered",
     }),
   });
 
-  await client.conversations.update({
+  await client.conversa.update({
     where: { id: conversation.id },
-    data: { lastMessageAt: new Date() },
+    data: { ultimaMensagemEm: new Date() },
   });
 
-  const yearMonth = new Date().toISOString().slice(0, 7);
-  const usageContact = await client.monthlyUsageContacts.findFirst({
-    where: { instanceId: params.instanceId, contactId: contact.id, yearMonth },
+  const anoMes = new Date().toISOString().slice(0, 7);
+  const usageContact = await client.usoMensalContato.findFirst({
+    where: { instanciaId: params.instanciaId, contatoId: contact.id, anoMes },
   });
   if (!usageContact) {
-    await client.monthlyUsageContacts.create({
+    await client.usoMensalContato.create({
       data: appCreateData({
-        instanceId: params.instanceId,
-        contactId: contact.id,
-        yearMonth,
-        countedAt: new Date(),
+        instanciaId: params.instanciaId,
+        contatoId: contact.id,
+        anoMes,
+        contadoEm: new Date(),
       }),
     });
-    const usage = await client.monthlyUsage.findFirst({
-      where: { instanceId: params.instanceId, yearMonth },
+    const usage = await client.usoMensal.findFirst({
+      where: { instanciaId: params.instanciaId, anoMes },
     });
     if (usage) {
-      await client.monthlyUsage.update({
+      await client.usoMensal.update({
         where: { id: usage.id },
-        data: { uniqueContactsCount: usage.uniqueContactsCount + 1 },
+        data: { contatosUnicosContagem: usage.contatosUnicosContagem + 1 },
       });
     } else {
-      await client.monthlyUsage.create({
+      await client.usoMensal.create({
         data: appCreateData({
-          instanceId: params.instanceId,
-          yearMonth,
-          uniqueContactsCount: 1,
+          instanciaId: params.instanciaId,
+          anoMes,
+          contatosUnicosContagem: 1,
         }),
       });
     }
   }
+
+  return { messageId: message.id };
 }

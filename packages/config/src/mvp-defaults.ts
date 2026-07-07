@@ -25,13 +25,14 @@ export const mvpDefaults = {
     apiVersion: "v21.0",
     customerOwnsNumber: true,
     customerPaysMeta: true,
-    webhookPath: "/meta",
+    webhookPath: "/cloud",
   },
   evolution: {
     version: "v2",
     hostRegion: "br",
     redisPerContainer: true,
     provisionMaxRetries: 3,
+    webhookPath: "/evo",
   },
   inbox: {
     autoCloseInactivityHours: 72,
@@ -62,5 +63,10 @@ export const mvpDefaults = {
   legal: {
     lgpdConsentRequired: true,
     termsPlaceholder: true,
+  },
+  cdn: {
+    baseUrl: "https://cdn.whasap.com.br",
+    bucket: "whasap-cdn",
+    mediaPrefix: "media",
   },
 } as const;

@@ -2,6 +2,12 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "whasap-site",
   "main": "@tanstack/react-start/server-entry",
+  "routes": [
+    {
+      "pattern": "whasap.com.br",
+      "custom_domain": true
+    }
+  ],
   "compatibility_date": "2026-07-05",
   "compatibility_flags": ["nodejs_compat"],
   "observability": {

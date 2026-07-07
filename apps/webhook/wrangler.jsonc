@@ -2,18 +2,50 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "whasap-webhook",
   "main": "src/index.ts",
+  "routes": [
+    {
+      "pattern": "webhook.whasap.com.br",
+      "custom_domain": true
+    }
+  ],
   "compatibility_date": "2026-07-05",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "observability": {
     "enabled": true
   },
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "<HYPERDRIVE_ID>"
+      "id": "c8f9852b6dc748489154722036fb4e48",
+      "localConnectionString": "postgres://postgres:postgres@db.localtest.me:5432/whasap"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "whasap"
+    },
+    {
+      "binding": "CDN_R2",
+      "bucket_name": "whasap-cdn"
+    }
+  ],
+  "vars": {
+    "CDN_URL": "https://cdn.whasap.com.br"
+  },
   "secrets": {
-    "required": ["WEBHOOK_SECRET", "ASAAS_WEBHOOK_TOKEN", "ASAAS_API_KEY"]
-  }
+    "required": [
+      "WEBHOOK_SECRET",
+      "ASAAS_WEBHOOK_TOKEN"
+    ]
+  },
+  "secrets_store_secrets": [
+    {
+      "binding": "ASSAS_API_KEY_ETC",
+      "store_id": "ASSAS_API_KEY_ETC",
+      "secret_name": "ASAAS_API_KEY"
+    }
+  ]
 }

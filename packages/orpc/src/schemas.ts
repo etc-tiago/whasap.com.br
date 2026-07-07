@@ -1,9 +1,5 @@
 import { z } from "zod";
 
-export const turnstileTokenSchema = z.object({
-  turnstileToken: z.string().min(1, "Verificação de segurança obrigatória"),
-});
-
 export const officeUsuarioSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
@@ -32,6 +28,8 @@ export const usuarioSchema = z.object({
   emailVerificadoEm: z.string().datetime().nullable(),
 });
 
+export const organizacaoHashSchema = z.string().uuid();
+
 export const organizacaoSchema = z.object({
   id: z.string().uuid(),
   nome: z.string(),
@@ -40,6 +38,10 @@ export const organizacaoSchema = z.object({
   tipoDocumento: z.string().nullable(),
   razaoSocial: z.string().nullable(),
   asaasCustomerId: z.string().nullable(),
+});
+
+export const organizacaoComPapelSchema = organizacaoSchema.extend({
+  meuPapel: memberRoleSchema,
 });
 
 export const organizacaoMembroSchema = z.object({
@@ -59,7 +61,6 @@ export const instanciaSchema = z.object({
   status: instanceStatusSchema,
   limiteConversas: z.number().int(),
   asaasSubscriptionId: z.string().nullable(),
-  evolutionSecretName: z.string().nullable(),
   cloudPhoneNumberId: z.string().nullable(),
   trialEndsAt: z.string().datetime().nullable(),
   connectedAt: z.string().datetime().nullable(),

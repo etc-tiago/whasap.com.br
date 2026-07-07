@@ -1,63 +1,71 @@
 import {
+  index,
   integer,
   pgTable,
   serial,
   text,
   timestamp,
   unique,
-  uuid as pgUuid,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 import { papelMembroEnum, usuario } from "./autenticacao";
 
-export const organizations = pgTable("organizations", {
-  id: serial("id").primaryKey(),
-  uuid: pgUuid("uuid").notNull().unique().defaultRandom(),
-  name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
-  taxId: text("tax_id"),
-  taxIdType: text("tax_id_type"),
-  legalName: text("legal_name"),
-  asaasCustomerId: text("asaas_customer_id"),
-  autoCloseInactivityHours: text("auto_close_inactivity_hours").default("72"),
-  excluidoEm: timestamp("excluido_em"),
-  criadoEm: timestamp("criado_em").notNull(),
-  atualizadoEm: timestamp("atualizado_em").notNull(),
+export const organizacao = pgTable("organizacao", {
+  id: serial().primaryKey(),
+  uuid: uuid().notNull().unique().defaultRandom(),
+  nome: text().notNull(),
+  slug: text().notNull().unique(),
+  documentoFiscal: text(),
+  tipoDocumento: text(),
+  razaoSocial: text(),
+  asaasIdCliente: text().unique(),
+  horasAutoFecharInatividade: text().default("72"),
+  excluidoEm: timestamp(),
+  criadoEm: timestamp().notNull(),
+  atualizadoEm: timestamp().notNull(),
 });
 
-export const organizationMembers = pgTable(
-  "organization_members",
+export const organizacaoMembro = pgTable(
+  "organizacao_membro",
   {
-    id: serial("id").primaryKey(),
-    uuid: pgUuid("uuid").notNull().unique().defaultRandom(),
-    organizationId: integer("organization_id")
+    id: serial().primaryKey(),
+    uuid: uuid().notNull().unique().defaultRandom(),
+    organizacaoId: integer()
       .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
-    usuarioId: integer("usuario_id")
+      .references(() => organizacao.id, { onDelete: "cascade" }),
+    usuarioId: integer()
       .notNull()
       .references(() => usuario.id, { onDelete: "cascade" }),
-    role: papelMembroEnum("role").notNull().default("usuario"),
-    invitedAt: timestamp("invited_at"),
-    joinedAt: timestamp("joined_at").notNull(),
-    excluidoEm: timestamp("excluido_em"),
-    criadoEm: timestamp("criado_em").notNull(),
+    papel: papelMembroEnum().notNull().default("usuario"),
+    convidadoEm: timestamp(),
+    ingressouEm: timestamp().notNull(),
+    excluidoEm: timestamp(),
+    criadoEm: timestamp().notNull(),
   },
-  (t) => [unique().on(t.organizationId, t.usuarioId)],
+  (t) => [
+    unique().on(t.organizacaoId, t.usuarioId),
+    index("organizacao_membro_usuario_id_idx").on(t.usuarioId),
+  ],
 );
 
-export const organizationInvites = pgTable("organization_invites", {
-  id: serial("id").primaryKey(),
-  uuid: pgUuid("uuid").notNull().unique().defaultRandom(),
-  organizationId: integer("organization_id")
-    .notNull()
-    .references(() => organizations.id, { onDelete: "cascade" }),
-  email: text("email").notNull(),
-  name: text("name"),
-  role: papelMembroEnum("role").notNull().default("usuario"),
-  token: text("token").notNull().unique(),
-  expiresAt: timestamp("expires_at").notNull(),
-  acceptedAt: timestamp("accepted_at"),
-  createdByUsuarioId: integer("created_by_usuario_id").references(() => usuario.id),
-  excluidoEm: timestamp("excluido_em"),
-  criadoEm: timestamp("criado_em").notNull(),
-});
+export const organizacaoConvite = pgTable(
+  "organizacao_convite",
+  {
+    id: serial().primaryKey(),
+    uuid: uuid().notNull().unique().defaultRandom(),
+    organizacaoId: integer()
+      .notNull()
+      .references(() => organizacao.id, { onDelete: "cascade" }),
+    email: text().notNull(),
+    nome: text(),
+    papel: papelMembroEnum().notNull().default("usuario"),
+    token: text().notNull().unique(),
+    expiraEm: timestamp().notNull(),
+    aceitoEm: timestamp(),
+    criadoPorUsuarioId: integer().references(() => usuario.id),
+    excluidoEm: timestamp(),
+    criadoEm: timestamp().notNull(),
+  },
+  (t) => [index("organizacao_convite_organizacao_id_idx").on(t.organizacaoId)],
+);

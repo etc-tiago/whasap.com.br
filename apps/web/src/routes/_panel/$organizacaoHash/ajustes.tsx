@@ -1,36 +1,42 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@whasap/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/card";
 
-import { useSession } from "@/lib/auth";
+import { orgInput } from "@/lib/org-input";
 import { orpc } from "@/lib/orpc";
+import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
-export const Route = createFileRoute("/_panel/ajustes")({
+export const Route = createFileRoute("/_panel/$organizacaoHash/ajustes")({
   component: AjustesPage,
 });
 
 function AjustesPage() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
-  const orgId = session?.organizacao?.id;
+  const organizacaoHash = useOrganizacaoHash();
+
+  const org = useQuery(
+    orpc.organizacao.obter.queryOptions({
+      input: orgInput(organizacaoHash),
+    }),
+  );
 
   const assinaturas = useQuery(
     orpc.cobranca.assinaturas.queryOptions({
-      input: orgId ? { organizacaoId: orgId } : skipToken,
-      enabled: session?.role === "admin" && Boolean(orgId),
+      input: orgInput(organizacaoHash),
+      enabled: org.data?.meuPapel === "admin" && Boolean(organizacaoHash),
     }),
   );
 
   const cancelar = useMutation(
     orpc.cobranca.cancelarAssinatura.mutationOptions({
       onSuccess: () => {
-        if (orgId) {
+        if (organizacaoHash) {
           queryClient.invalidateQueries({
-            queryKey: orpc.cobranca.assinaturas.key({ input: { organizacaoId: orgId } }),
+            queryKey: orpc.cobranca.assinaturas.key({ input: { organizacaoHash } }),
           });
           queryClient.invalidateQueries({
-            queryKey: orpc.instancia.lista.key({ input: { organizacaoId: orgId } }),
+            queryKey: orpc.instancia.lista.key({ input: { organizacaoHash } }),
           });
         }
       },
@@ -46,20 +52,19 @@ function AjustesPage() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p>
-            <span className="text-muted-foreground">Nome:</span> {session?.organizacao?.nome}
+            <span className="text-muted-foreground">Nome:</span> {org.data?.nome}
           </p>
           <p>
-            <span className="text-muted-foreground">Papel:</span> {session?.role}
+            <span className="text-muted-foreground">Papel:</span> {org.data?.meuPapel}
           </p>
-          {session?.organizacao?.documento && (
+          {org.data?.documento && (
             <p>
-              <span className="text-muted-foreground">CPF/CNPJ:</span>{" "}
-              {session.organizacao.documento}
+              <span className="text-muted-foreground">CPF/CNPJ:</span> {org.data.documento}
             </p>
           )}
         </CardContent>
       </Card>
-      {session?.role === "admin" && orgId && (
+      {org.data?.meuPapel === "admin" && organizacaoHash && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Cobrança (Asaas)</CardTitle>

@@ -1,12 +1,12 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-import { officeSessaoSchema, turnstileTokenSchema } from "../../schemas";
+import { officeSessaoSchema } from "../../schemas";
 
 export const officeAutenticacaoContract = {
   enviarOtp: oc
     .input(
-      turnstileTokenSchema.extend({
+      z.object({
         email: z.string().email(),
       }),
     )
@@ -14,7 +14,7 @@ export const officeAutenticacaoContract = {
 
   entrar: oc
     .input(
-      turnstileTokenSchema.extend({
+      z.object({
         email: z.string().email(),
         otp: z.string().length(6),
       }),

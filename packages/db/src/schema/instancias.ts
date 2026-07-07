@@ -1,18 +1,20 @@
 import {
   boolean,
+  index,
   integer,
   pgEnum,
   pgTable,
   serial,
   text,
   timestamp,
-  uuid as pgUuid,
+  unique,
+  uuid,
 } from "drizzle-orm/pg-core";
 
-import { organizations } from "./organizacoes";
+import { organizacao } from "./organizacoes";
 
-export const instanceProviderEnum = pgEnum("instance_provider", ["cloud_api", "evolution"]);
-export const instanceStatusEnum = pgEnum("instance_status", [
+export const instanciaProvedorEnum = pgEnum("instancia_provedor", ["cloud_api", "evolution"]);
+export const instanciaStatusEnum = pgEnum("instancia_status", [
   "pending_connection",
   "pending_payment",
   "provisioning",
@@ -21,38 +23,48 @@ export const instanceStatusEnum = pgEnum("instance_status", [
   "deactivated",
 ]);
 
-export const instances = pgTable("instances", {
-  id: serial("id").primaryKey(),
-  uuid: pgUuid("uuid").notNull().unique().defaultRandom(),
-  organizationId: integer("organization_id")
-    .notNull()
-    .references(() => organizations.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  provider: instanceProviderEnum("provider").notNull(),
-  status: instanceStatusEnum("status").notNull().default("pending_connection"),
-  asaasSubscriptionId: text("asaas_subscription_id"),
-  conversationLimit: integer("conversation_limit").notNull().default(1000),
-  evolutionSecretName: text("evolution_secret_name"),
-  evolutionInstanceName: text("evolution_instance_name"),
-  cloudPhoneNumberId: text("cloud_phone_number_id"),
-  cloudWabaId: text("cloud_waba_id"),
-  cloudAccessTokenSecretName: text("cloud_access_token_secret_name"),
-  provisionAttempts: integer("provision_attempts").notNull().default(0),
-  connectedAt: timestamp("connected_at"),
-  trialEndsAt: timestamp("trial_ends_at"),
-  deactivatedAt: timestamp("deactivated_at"),
-  excluidoEm: timestamp("excluido_em"),
-  criadoEm: timestamp("criado_em").notNull(),
-  atualizadoEm: timestamp("atualizado_em").notNull(),
-});
+export const instancia = pgTable(
+  "instancia",
+  {
+    id: serial().primaryKey(),
+    uuid: uuid().notNull().unique().defaultRandom(),
+    organizacaoId: integer()
+      .notNull()
+      .references(() => organizacao.id, { onDelete: "cascade" }),
+    nome: text().notNull(),
+    provedor: instanciaProvedorEnum().notNull(),
+    status: instanciaStatusEnum().notNull().default("pending_connection"),
+    asaasIdAssinatura: text().unique(),
+    limiteConversas: integer().notNull().default(1000),
+    evolucaoNomeInstancia: text().unique(),
+    nuvemIdNumeroTelefone: text().unique(),
+    nuvemIdWaba: text(),
+    nuvemTokenAcesso: text(),
+    tentativasProvisionamento: integer().notNull().default(0),
+    conectadoEm: timestamp(),
+    trialTerminaEm: timestamp(),
+    desativadoEm: timestamp(),
+    excluidoEm: timestamp(),
+    criadoEm: timestamp().notNull(),
+    atualizadoEm: timestamp().notNull(),
+  },
+  (t) => [index("instancia_organizacao_id_idx").on(t.organizacaoId)],
+);
 
-export const instanceAddons = pgTable("instance_addons", {
-  id: serial("id").primaryKey(),
-  instanceId: integer("instance_id")
-    .notNull()
-    .references(() => instances.id, { onDelete: "cascade" }),
-  asaasSubscriptionId: text("asaas_subscription_id").notNull(),
-  conversationPackSize: integer("conversation_pack_size").notNull().default(1000),
-  active: boolean("active").notNull().default(true),
-  criadoEm: timestamp("criado_em").notNull(),
-});
+export const instanciaAddon = pgTable(
+  "instancia_addon",
+  {
+    id: serial().primaryKey(),
+    instanciaId: integer()
+      .notNull()
+      .references(() => instancia.id, { onDelete: "cascade" }),
+    asaasIdAssinatura: text().notNull(),
+    tamanhoPacoteConversas: integer().notNull().default(1000),
+    ativo: boolean().notNull().default(true),
+    criadoEm: timestamp().notNull(),
+  },
+  (t) => [
+    index("instancia_addon_instancia_id_idx").on(t.instanciaId),
+    unique().on(t.instanciaId, t.asaasIdAssinatura),
+  ],
+);

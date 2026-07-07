@@ -1,7 +1,7 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-import { instanciaSchema, organizacaoSchema } from "../../schemas";
+import { instanciaSchema, organizacaoHashSchema, organizacaoSchema } from "../../schemas";
 
 const paginacaoInput = z.object({
   limite: z.number().int().min(1).max(100).default(50),
@@ -20,7 +20,7 @@ export const officeAdministracaoContract = {
       ),
 
     obter: oc
-      .input(z.object({ organizacaoId: z.string().uuid() }))
+      .input(z.object({ organizacaoHash: organizacaoHashSchema }))
       .output(organizacaoSchema),
   },
 
@@ -29,7 +29,7 @@ export const officeAdministracaoContract = {
       .input(
         paginacaoInput
           .extend({
-            organizacaoId: z.string().uuid().optional(),
+            organizacaoHash: organizacaoHashSchema.optional(),
           })
           .optional(),
       )

@@ -100,5 +100,24 @@ export function createMetaClient(credentials: MetaCredentials) {
         `/${credentials.wabaId}/message_templates?limit=100`,
       );
     },
+
+    getMediaInfo(mediaId: string) {
+      return graph<{ url: string; mime_type: string; file_size?: number }>("GET", `/${mediaId}`);
+    },
+
+    async downloadMedia(mediaId: string) {
+      const info = await graph<{ url: string; mime_type: string }>("GET", `/${mediaId}`);
+      const res = await fetch(info.url, {
+        headers: { Authorization: `Bearer ${credentials.accessToken}` },
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Meta media download error (${res.status}): ${err}`);
+      }
+      return {
+        buffer: await res.arrayBuffer(),
+        mimeType: info.mime_type,
+      };
+    },
   };
 }

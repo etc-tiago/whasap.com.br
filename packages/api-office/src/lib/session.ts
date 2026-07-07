@@ -19,14 +19,14 @@ export async function createSession(
 ): Promise<string> {
   const token = crypto.randomUUID();
   const expiraEm = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
-  await ctx.client.sessaoOffice.create({
+  await ctx.client.officeSessao.create({
     data: appCreateData({ officeUsuarioId: officeUsuarioInternalId, token, expiraEm }),
   });
   return token;
 }
 
 export async function deleteSession(ctx: OfficeContext, token: string): Promise<void> {
-  await ctx.client.sessaoOffice.delete({ where: { token } });
+  await ctx.client.officeSessao.delete({ where: { token } });
 }
 
 export async function resolveSession(
@@ -36,7 +36,7 @@ export async function resolveSession(
   if (!token) return { officeUsuario: null };
 
   const now = new Date();
-  const session = await ctx.client.sessaoOffice.findFirst({
+  const session = await ctx.client.officeSessao.findFirst({
     where: { token, expiraEm: { gt: now } },
   });
 

@@ -2,20 +2,31 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "whasap-office",
   "main": "@tanstack/react-start/server-entry",
+  "routes": [
+    {
+      "pattern": "office.whasap.com.br",
+      "custom_domain": true
+    }
+  ],
   "compatibility_date": "2026-07-05",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "vars": {
     "WEB_URL": "http://localhost:3000",
     "OFFICE_URL": "http://localhost:3001",
     "EMAIL_FROM": "noreply@localhost"
   },
   "secrets": {
-    "required": ["AUTH_SECRET", "TURNSTILE_SECRET_KEY"]
+    "required": [
+      "AUTH_SECRET"
+    ]
   },
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "<HYPERDRIVE_ID>"
+      "id": "c8f9852b6dc748489154722036fb4e48",
+      "localConnectionString": "postgres://postgres:postgres@db.localtest.me:5432/whasap"
     }
   ],
   // Mesmo namespace_id que web — limite compartilhado por email
@@ -31,5 +42,5 @@
   ],
   "observability": {
     "enabled": true
-  }
+  },
 }

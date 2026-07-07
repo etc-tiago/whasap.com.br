@@ -1,4 +1,5 @@
 import {
+  index,
   integer,
   jsonb,
   pgTable,
@@ -6,169 +7,206 @@ import {
   text,
   timestamp,
   unique,
-  uuid as pgUuid,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 import { usuario } from "./autenticacao";
-import { instances } from "./instancias";
-import { organizations } from "./organizacoes";
+import { instancia } from "./instancias";
+import { organizacao } from "./organizacoes";
 
-export const contacts = pgTable(
-  "contacts",
+export const contato = pgTable(
+  "contato",
   {
-    id: serial("id").primaryKey(),
-    uuid: pgUuid("uuid").notNull().unique().defaultRandom(),
-    instanceId: integer("instance_id")
+    id: serial().primaryKey(),
+    uuid: uuid().notNull().unique().defaultRandom(),
+    instanciaId: integer()
       .notNull()
-      .references(() => instances.id, { onDelete: "cascade" }),
-    phone: text("phone").notNull(),
-    name: text("name"),
-    externalId: text("external_id"),
-    excluidoEm: timestamp("excluido_em"),
-    criadoEm: timestamp("criado_em").notNull(),
-    atualizadoEm: timestamp("atualizado_em").notNull(),
+      .references(() => instancia.id, { onDelete: "cascade" }),
+    telefone: text().notNull(),
+    nome: text(),
+    idExterno: text(),
+    excluidoEm: timestamp(),
+    criadoEm: timestamp().notNull(),
+    atualizadoEm: timestamp().notNull(),
   },
-  (t) => [unique().on(t.instanceId, t.phone)],
+  (t) => [unique().on(t.instanciaId, t.telefone)],
 );
 
-export const contactTags = pgTable("contact_tags", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id")
-    .notNull()
-    .references(() => organizations.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  color: text("color"),
-  criadoEm: timestamp("criado_em").notNull(),
-});
-
-export const contactTagAssignments = pgTable(
-  "contact_tag_assignments",
+export const contatoTag = pgTable(
+  "contato_tag",
   {
-    id: serial("id").primaryKey(),
-    contactId: integer("contact_id")
+    id: serial().primaryKey(),
+    organizacaoId: integer()
       .notNull()
-      .references(() => contacts.id, { onDelete: "cascade" }),
-    tagId: integer("tag_id")
-      .notNull()
-      .references(() => contactTags.id, { onDelete: "cascade" }),
-    criadoEm: timestamp("criado_em").notNull(),
+      .references(() => organizacao.id, { onDelete: "cascade" }),
+    nome: text().notNull(),
+    cor: text(),
+    criadoEm: timestamp().notNull(),
   },
-  (t) => [unique().on(t.contactId, t.tagId)],
+  (t) => [index("contato_tag_organizacao_id_idx").on(t.organizacaoId)],
 );
 
-export const conversations = pgTable("conversations", {
-  id: serial("id").primaryKey(),
-  uuid: pgUuid("uuid").notNull().unique().defaultRandom(),
-  instanceId: integer("instance_id")
-    .notNull()
-    .references(() => instances.id, { onDelete: "cascade" }),
-  contactId: integer("contact_id")
-    .notNull()
-    .references(() => contacts.id, { onDelete: "cascade" }),
-  assignedUsuarioId: integer("assigned_usuario_id").references(() => usuario.id),
-  status: text("status").notNull().default("open"),
-  cloudWindowExpiresAt: timestamp("cloud_window_expires_at"),
-  lastMessageAt: timestamp("last_message_at"),
-  closedAt: timestamp("closed_at"),
-  excluidoEm: timestamp("excluido_em"),
-  criadoEm: timestamp("criado_em").notNull(),
-  atualizadoEm: timestamp("atualizado_em").notNull(),
-});
-
-export const messages = pgTable("messages", {
-  id: serial("id").primaryKey(),
-  uuid: pgUuid("uuid").notNull().unique().defaultRandom(),
-  conversationId: integer("conversation_id")
-    .notNull()
-    .references(() => conversations.id, { onDelete: "cascade" }),
-  direction: text("direction").notNull(),
-  type: text("type").notNull().default("text"),
-  body: text("body"),
-  mediaR2Key: text("media_r2_key"),
-  templateName: text("template_name"),
-  templateLanguage: text("template_language"),
-  templateVariables: jsonb("template_variables"),
-  metadata: jsonb("metadata"),
-  externalId: text("external_id"),
-  sentByUsuarioId: integer("sent_by_usuario_id").references(() => usuario.id),
-  status: text("status").notNull().default("sent"),
-  excluidoEm: timestamp("excluido_em"),
-  criadoEm: timestamp("criado_em").notNull(),
-});
-
-export const messageTemplates = pgTable(
-  "message_templates",
+export const contatoTagAtribuicao = pgTable(
+  "contato_tag_atribuicao",
   {
-    id: serial("id").primaryKey(),
-    uuid: pgUuid("uuid").notNull().unique().defaultRandom(),
-    instanceId: integer("instance_id")
+    id: serial().primaryKey(),
+    contatoId: integer()
       .notNull()
-      .references(() => instances.id, { onDelete: "cascade" }),
-    name: text("name").notNull(),
-    language: text("language").notNull().default("pt_BR"),
-    category: text("category"),
-    status: text("status").notNull().default("approved"),
-    components: jsonb("components"),
-    externalId: text("external_id"),
-    syncedAt: timestamp("synced_at"),
-    excluidoEm: timestamp("excluido_em"),
-    criadoEm: timestamp("criado_em").notNull(),
-    atualizadoEm: timestamp("atualizado_em").notNull(),
+      .references(() => contato.id, { onDelete: "cascade" }),
+    tagId: integer()
+      .notNull()
+      .references(() => contatoTag.id, { onDelete: "cascade" }),
+    criadoEm: timestamp().notNull(),
   },
-  (t) => [unique().on(t.instanceId, t.name, t.language)],
+  (t) => [unique().on(t.contatoId, t.tagId)],
 );
 
-export const conversationNotes = pgTable("conversation_notes", {
-  id: serial("id").primaryKey(),
-  uuid: pgUuid("uuid").notNull().unique().defaultRandom(),
-  conversationId: integer("conversation_id")
-    .notNull()
-    .references(() => conversations.id, { onDelete: "cascade" }),
-  authorUsuarioId: integer("author_usuario_id")
-    .notNull()
-    .references(() => usuario.id),
-  body: text("body").notNull(),
-  excluidoEm: timestamp("excluido_em"),
-  criadoEm: timestamp("criado_em").notNull(),
-  atualizadoEm: timestamp("atualizado_em").notNull(),
-});
-
-export const quickReplies = pgTable("quick_replies", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id")
-    .notNull()
-    .references(() => organizations.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  body: text("body").notNull(),
-  criadoEm: timestamp("criado_em").notNull(),
-});
-
-export const monthlyUsage = pgTable(
-  "monthly_usage",
+export const conversa = pgTable(
+  "conversa",
   {
-    id: serial("id").primaryKey(),
-    instanceId: integer("instance_id")
+    id: serial().primaryKey(),
+    uuid: uuid().notNull().unique().defaultRandom(),
+    instanciaId: integer()
       .notNull()
-      .references(() => instances.id, { onDelete: "cascade" }),
-    yearMonth: text("year_month").notNull(),
-    uniqueContactsCount: integer("unique_contacts_count").notNull().default(0),
-    atualizadoEm: timestamp("atualizado_em").notNull(),
+      .references(() => instancia.id, { onDelete: "cascade" }),
+    contatoId: integer()
+      .notNull()
+      .references(() => contato.id, { onDelete: "cascade" }),
+    atribuidoUsuarioId: integer().references(() => usuario.id),
+    status: text().notNull().default("open"),
+    nuvemJanelaExpiraEm: timestamp(),
+    ultimaMensagemEm: timestamp(),
+    fechadoEm: timestamp(),
+    excluidoEm: timestamp(),
+    criadoEm: timestamp().notNull(),
+    atualizadoEm: timestamp().notNull(),
   },
-  (t) => [unique().on(t.instanceId, t.yearMonth)],
+  (t) => [
+    index("conversa_instancia_ultima_mensagem_idx").on(t.instanciaId, t.ultimaMensagemEm),
+    index("conversa_instancia_contato_status_idx").on(t.instanciaId, t.contatoId, t.status),
+    index("conversa_instancia_criado_em_idx").on(t.instanciaId, t.criadoEm),
+    index("conversa_atribuido_usuario_id_idx").on(t.atribuidoUsuarioId),
+  ],
 );
 
-export const monthlyUsageContacts = pgTable(
-  "monthly_usage_contacts",
+export const mensagem = pgTable(
+  "mensagem",
   {
-    id: serial("id").primaryKey(),
-    instanceId: integer("instance_id")
+    id: serial().primaryKey(),
+    uuid: uuid().notNull().unique().defaultRandom(),
+    conversaId: integer()
       .notNull()
-      .references(() => instances.id, { onDelete: "cascade" }),
-    contactId: integer("contact_id")
-      .notNull()
-      .references(() => contacts.id, { onDelete: "cascade" }),
-    yearMonth: text("year_month").notNull(),
-    countedAt: timestamp("counted_at").notNull(),
+      .references(() => conversa.id, { onDelete: "cascade" }),
+    direcao: text().notNull(),
+    tipo: text().notNull().default("text"),
+    corpo: text(),
+    midiaR2Chave: text(),
+    templateNome: text(),
+    templateIdioma: text(),
+    templateVariaveis: jsonb(),
+    metadados: jsonb(),
+    idExterno: text(),
+    enviadoPorUsuarioId: integer().references(() => usuario.id),
+    status: text().notNull().default("sent"),
+    excluidoEm: timestamp(),
+    criadoEm: timestamp().notNull(),
   },
-  (t) => [unique().on(t.instanceId, t.contactId, t.yearMonth)],
+  (t) => [
+    index("mensagem_conversa_criado_em_idx").on(t.conversaId, t.criadoEm),
+    index("mensagem_conversa_direcao_criado_em_idx").on(t.conversaId, t.direcao, t.criadoEm),
+    index("mensagem_id_externo_idx").on(t.idExterno),
+    index("mensagem_enviado_por_usuario_direcao_criado_em_idx").on(
+      t.enviadoPorUsuarioId,
+      t.direcao,
+      t.criadoEm,
+    ),
+  ],
+);
+
+export const mensagemTemplate = pgTable(
+  "mensagem_template",
+  {
+    id: serial().primaryKey(),
+    uuid: uuid().notNull().unique().defaultRandom(),
+    instanciaId: integer()
+      .notNull()
+      .references(() => instancia.id, { onDelete: "cascade" }),
+    nome: text().notNull(),
+    idioma: text().notNull().default("pt_BR"),
+    categoria: text(),
+    status: text().notNull().default("approved"),
+    componentes: jsonb(),
+    idExterno: text(),
+    sincronizadoEm: timestamp(),
+    excluidoEm: timestamp(),
+    criadoEm: timestamp().notNull(),
+    atualizadoEm: timestamp().notNull(),
+  },
+  (t) => [
+    unique().on(t.instanciaId, t.nome, t.idioma),
+    index("mensagem_template_instancia_id_idx").on(t.instanciaId),
+  ],
+);
+
+export const conversaAnotacao = pgTable(
+  "conversa_anotacao",
+  {
+    id: serial().primaryKey(),
+    uuid: uuid().notNull().unique().defaultRandom(),
+    conversaId: integer()
+      .notNull()
+      .references(() => conversa.id, { onDelete: "cascade" }),
+    autorUsuarioId: integer()
+      .notNull()
+      .references(() => usuario.id),
+    corpo: text().notNull(),
+    excluidoEm: timestamp(),
+    criadoEm: timestamp().notNull(),
+    atualizadoEm: timestamp().notNull(),
+  },
+  (t) => [index("conversa_anotacao_conversa_id_idx").on(t.conversaId)],
+);
+
+export const respostaRapida = pgTable(
+  "resposta_rapida",
+  {
+    id: serial().primaryKey(),
+    organizacaoId: integer()
+      .notNull()
+      .references(() => organizacao.id, { onDelete: "cascade" }),
+    titulo: text().notNull(),
+    corpo: text().notNull(),
+    criadoEm: timestamp().notNull(),
+  },
+  (t) => [index("resposta_rapida_organizacao_id_idx").on(t.organizacaoId)],
+);
+
+export const usoMensal = pgTable(
+  "uso_mensal",
+  {
+    id: serial().primaryKey(),
+    instanciaId: integer()
+      .notNull()
+      .references(() => instancia.id, { onDelete: "cascade" }),
+    anoMes: text().notNull(),
+    contatosUnicosContagem: integer().notNull().default(0),
+    atualizadoEm: timestamp().notNull(),
+  },
+  (t) => [unique().on(t.instanciaId, t.anoMes)],
+);
+
+export const usoMensalContato = pgTable(
+  "uso_mensal_contato",
+  {
+    id: serial().primaryKey(),
+    instanciaId: integer()
+      .notNull()
+      .references(() => instancia.id, { onDelete: "cascade" }),
+    contatoId: integer()
+      .notNull()
+      .references(() => contato.id, { onDelete: "cascade" }),
+    anoMes: text().notNull(),
+    contadoEm: timestamp().notNull(),
+  },
+  (t) => [unique().on(t.instanciaId, t.contatoId, t.anoMes)],
 );

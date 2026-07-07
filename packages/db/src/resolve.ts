@@ -1,22 +1,22 @@
 import type { Client } from "./client";
 import {
-  contacts,
-  conversations,
-  instances,
-  organizationInvites,
-  organizationMembers,
-  organizations,
+  contato,
+  conversa,
+  instancia,
+  organizacao,
+  organizacaoConvite,
+  organizacaoMembro,
   usuario,
 } from "./schema";
 
 export type ExportableTableName =
   | "usuario"
-  | "organizations"
-  | "organizationMembers"
-  | "organizationInvites"
-  | "instances"
-  | "contacts"
-  | "conversations";
+  | "organizacao"
+  | "organizacaoMembro"
+  | "organizacaoConvite"
+  | "instancia"
+  | "contato"
+  | "conversa";
 
 export async function resolveInternalId(
   client: Client,
@@ -30,34 +30,34 @@ export async function resolveInternalId(
       const row = await client.usuario.findFirst({ where: { uuid: publicUuid }, select });
       return row?.id ?? null;
     }
-    case "organizations": {
-      const row = await client.organizations.findFirst({ where: { uuid: publicUuid }, select });
+    case "organizacao": {
+      const row = await client.organizacao.findFirst({ where: { uuid: publicUuid }, select });
       return row?.id ?? null;
     }
-    case "organizationMembers": {
-      const row = await client.organizationMembers.findFirst({
+    case "organizacaoMembro": {
+      const row = await client.organizacaoMembro.findFirst({
         where: { uuid: publicUuid },
         select,
       });
       return row?.id ?? null;
     }
-    case "organizationInvites": {
-      const row = await client.organizationInvites.findFirst({
+    case "organizacaoConvite": {
+      const row = await client.organizacaoConvite.findFirst({
         where: { uuid: publicUuid },
         select,
       });
       return row?.id ?? null;
     }
-    case "instances": {
-      const row = await client.instances.findFirst({ where: { uuid: publicUuid }, select });
+    case "instancia": {
+      const row = await client.instancia.findFirst({ where: { uuid: publicUuid }, select });
       return row?.id ?? null;
     }
-    case "contacts": {
-      const row = await client.contacts.findFirst({ where: { uuid: publicUuid }, select });
+    case "contato": {
+      const row = await client.contato.findFirst({ where: { uuid: publicUuid }, select });
       return row?.id ?? null;
     }
-    case "conversations": {
-      const row = await client.conversations.findFirst({ where: { uuid: publicUuid }, select });
+    case "conversa": {
+      const row = await client.conversa.findFirst({ where: { uuid: publicUuid }, select });
       return row?.id ?? null;
     }
   }
@@ -78,34 +78,34 @@ export async function resolveInternalIds(
       const rows = await client.usuario.findMany({ where: { uuid: { in: unique } }, select });
       return new Map(rows.map((row) => [row.uuid, row.id]));
     }
-    case "organizations": {
-      const rows = await client.organizations.findMany({ where: { uuid: { in: unique } }, select });
+    case "organizacao": {
+      const rows = await client.organizacao.findMany({ where: { uuid: { in: unique } }, select });
       return new Map(rows.map((row) => [row.uuid, row.id]));
     }
-    case "organizationMembers": {
-      const rows = await client.organizationMembers.findMany({
+    case "organizacaoMembro": {
+      const rows = await client.organizacaoMembro.findMany({
         where: { uuid: { in: unique } },
         select,
       });
       return new Map(rows.map((row) => [row.uuid, row.id]));
     }
-    case "organizationInvites": {
-      const rows = await client.organizationInvites.findMany({
+    case "organizacaoConvite": {
+      const rows = await client.organizacaoConvite.findMany({
         where: { uuid: { in: unique } },
         select,
       });
       return new Map(rows.map((row) => [row.uuid, row.id]));
     }
-    case "instances": {
-      const rows = await client.instances.findMany({ where: { uuid: { in: unique } }, select });
+    case "instancia": {
+      const rows = await client.instancia.findMany({ where: { uuid: { in: unique } }, select });
       return new Map(rows.map((row) => [row.uuid, row.id]));
     }
-    case "contacts": {
-      const rows = await client.contacts.findMany({ where: { uuid: { in: unique } }, select });
+    case "contato": {
+      const rows = await client.contato.findMany({ where: { uuid: { in: unique } }, select });
       return new Map(rows.map((row) => [row.uuid, row.id]));
     }
-    case "conversations": {
-      const rows = await client.conversations.findMany({ where: { uuid: { in: unique } }, select });
+    case "conversa": {
+      const rows = await client.conversa.findMany({ where: { uuid: { in: unique } }, select });
       return new Map(rows.map((row) => [row.uuid, row.id]));
     }
   }
@@ -116,11 +116,11 @@ export function exportUuid(row: { uuid: string }): string {
 }
 
 export {
-  contacts,
-  conversations,
-  instances,
-  organizationInvites,
-  organizationMembers,
-  organizations,
+  contato,
+  conversa,
+  instancia,
+  organizacao,
+  organizacaoConvite,
+  organizacaoMembro,
   usuario,
 };

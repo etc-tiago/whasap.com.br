@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Badge } from "@whasap/ui/components/badge";
 import { Button } from "@whasap/ui/components/button";
@@ -15,17 +15,26 @@ import {
 } from "@whasap/ui/components/select";
 
 import { useSession } from "@/lib/auth";
+import { orgInput } from "@/lib/org-input";
 import { orpc } from "@/lib/orpc";
+import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
-export const Route = createFileRoute("/_panel/equipe")({
+export const Route = createFileRoute("/_panel/$organizacaoHash/equipe")({
   component: EquipePage,
 });
 
 function EquipePage() {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
-  const orgId = session?.organizacao?.id;
-  const isAdmin = session?.role === "admin";
+  const organizacaoHash = useOrganizacaoHash();
+
+  const org = useQuery(
+    orpc.organizacao.obter.queryOptions({
+      input: orgInput(organizacaoHash),
+    }),
+  );
+
+  const isAdmin = org.data?.meuPapel === "admin";
 
   const [email, setEmail] = useState("");
   const [nome, setNome] = useState("");
@@ -33,13 +42,14 @@ function EquipePage() {
 
   const membros = useQuery(
     orpc.organizacao.membros.lista.queryOptions({
-      input: orgId ? { organizacaoId: orgId } : skipToken,
+      input: orgInput(organizacaoHash),
     }),
   );
 
   const convites = useQuery(
     orpc.organizacao.convites.lista.queryOptions({
-      input: orgId && isAdmin ? { organizacaoId: orgId } : skipToken,
+      input: orgInput(organizacaoHash),
+      enabled: isAdmin,
     }),
   );
 
@@ -48,9 +58,11 @@ function EquipePage() {
       onSuccess: () => {
         setEmail("");
         setNome("");
-        if (orgId) {
+        if (organizacaoHash) {
           queryClient.invalidateQueries({
-            queryKey: orpc.organizacao.convites.lista.key({ input: { organizacaoId: orgId } }),
+            queryKey: orpc.organizacao.convites.lista.key({
+              input: { organizacaoHash },
+            }),
           });
         }
       },
@@ -60,9 +72,11 @@ function EquipePage() {
   const atualizarPapel = useMutation(
     orpc.organizacao.membros.atualizarPapel.mutationOptions({
       onSuccess: () => {
-        if (orgId) {
+        if (organizacaoHash) {
           queryClient.invalidateQueries({
-            queryKey: orpc.organizacao.membros.lista.key({ input: { organizacaoId: orgId } }),
+            queryKey: orpc.organizacao.membros.lista.key({
+              input: { organizacaoHash },
+            }),
           });
         }
       },
@@ -140,10 +154,10 @@ function EquipePage() {
             </Select>
           </div>
           <Button
-            disabled={!orgId || !email || convidar.isPending}
+            disabled={!organizacaoHash || !email || convidar.isPending}
             onClick={() =>
-              orgId &&
-              convidar.mutate({ organizacaoId: orgId, email, nome: nome || undefined, role })
+              organizacaoHash &&
+              convidar.mutate({ organizacaoHash, email, nome: nome || undefined, role })
             }
           >
             Enviar convite

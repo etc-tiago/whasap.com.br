@@ -1,12 +1,12 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-import { sessaoSchema, turnstileTokenSchema } from "../../schemas";
+import { sessaoSchema } from "../../schemas";
 
 export const autenticacaoContract = {
   enviarOtp: oc
     .input(
-      turnstileTokenSchema.extend({
+      z.object({
         email: z.string().email(),
         proposito: z.enum(["entrar", "cadastrar", "convite"]),
       }),
@@ -15,10 +15,9 @@ export const autenticacaoContract = {
 
   cadastrar: oc
     .input(
-      turnstileTokenSchema.extend({
+      z.object({
         email: z.string().email(),
         nome: z.string().min(2),
-        nomeOrganizacao: z.string().min(2),
         otp: z.string().length(6),
         lgpdConsent: z.literal(true),
       }),
@@ -27,7 +26,7 @@ export const autenticacaoContract = {
 
   entrar: oc
     .input(
-      turnstileTokenSchema.extend({
+      z.object({
         email: z.string().email(),
         otp: z.string().length(6),
       }),

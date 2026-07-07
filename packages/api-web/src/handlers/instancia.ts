@@ -1,10 +1,6 @@
 import { notFound, preconditionFailed } from "@whasap/api-core";
-import {
-  createEvolutionClient,
-  evolutionSecretName,
-  parseEvolutionCredentials,
-} from "@whasap/evolution";
-import { createMetaClient, metaSecretName, parseMetaCredentials } from "@whasap/meta";
+import { createEvolutionClient } from "@whasap/evolution";
+import { createMetaClient } from "@whasap/meta";
 import { appCreateData, resolveInternalId } from "@whasap/db";
 
 import { toInstanciaOutput } from "../lib/mappers";
@@ -36,91 +32,56 @@ function nivelAlerta(
 }
 
 export async function getInstanceForOrg(ctx: WebContext, instanciaUuid: string) {
-  const row = await ctx.client.instances.findFirst({
+  const row = await ctx.client.instancia.findFirst({
     where: { uuid: instanciaUuid },
-    include: { organization: true },
+    include: { organizacao: true },
   });
-  if (!row?.organization) notFound();
-  requireOrgInternal(ctx, row.organizationId);
+  if (!row?.organizacao) notFound();
+  await requireOrgInternal(ctx, row.organizacaoId);
   return row;
 }
 
-async function storeEvolutionCredentials(
-  ctx: WebContext,
-  orgUuid: string,
-  instanceUuid: string,
-  baseUrl: string,
-  apiKey: string,
-) {
-  const secretName = evolutionSecretName(orgUuid, instanceUuid);
-  const payload = JSON.stringify({ baseUrl, apiKey });
-  if (ctx.env.EVOLUTION_SECRETS_STORE) {
-    await ctx.env.EVOLUTION_SECRETS_STORE.put(secretName, payload);
+export function getEvolutionCreds(env: { EVOLUTION_BASE_URL?: string; EVOLUTION_API_KEY?: string }) {
+  const baseUrl = env.EVOLUTION_BASE_URL;
+  const apiKey = env.EVOLUTION_API_KEY;
+  if (!baseUrl || !apiKey) {
+    preconditionFailed("Evolution API não configurada no worker");
   }
-  return secretName;
+  return { baseUrl, apiKey };
 }
 
-async function storeMetaCredentials(
-  ctx: WebContext,
-  orgUuid: string,
-  instanceUuid: string,
-  creds: { accessToken: string; phoneNumberId: string; wabaId: string },
-) {
-  const secretName = metaSecretName(orgUuid, instanceUuid);
-  const payload = JSON.stringify(creds);
-  if (ctx.env.META_SECRETS_STORE) {
-    await ctx.env.META_SECRETS_STORE.put(secretName, payload);
-  }
-  return secretName;
-}
-
-export async function getEvolutionCreds(
-  ctx: WebContext,
-  instance: {
-    evolutionSecretName: string | null;
-  },
-) {
-  if (instance.evolutionSecretName && ctx.env.EVOLUTION_SECRETS_STORE) {
-    const raw = await ctx.env.EVOLUTION_SECRETS_STORE.get(instance.evolutionSecretName);
-    if (raw) return parseEvolutionCredentials(raw);
-  }
-  const baseUrl = ctx.env.EVOLUTION_BASE_URL;
-  const apiKey = ctx.env.EVOLUTION_API_KEY;
-  if (baseUrl && apiKey) return { baseUrl, apiKey };
-  preconditionFailed("Evolution API não configurada");
-}
-
-export async function getMetaCreds(
-  ctx: WebContext,
-  instance: {
-    cloudAccessTokenSecretName: string | null;
-  },
-) {
-  if (!instance.cloudAccessTokenSecretName || !ctx.env.META_SECRETS_STORE) {
+export function getMetaCreds(instance: {
+  nuvemTokenAcesso: string | null;
+  nuvemIdNumeroTelefone: string | null;
+  nuvemIdWaba: string | null;
+}) {
+  if (!instance.nuvemTokenAcesso || !instance.nuvemIdNumeroTelefone || !instance.nuvemIdWaba) {
     preconditionFailed("Credenciais Meta não configuradas");
   }
-  const raw = await ctx.env.META_SECRETS_STORE.get(instance.cloudAccessTokenSecretName);
-  if (!raw) preconditionFailed("Credenciais Meta não encontradas");
-  return parseMetaCredentials(raw);
+  return {
+    accessToken: instance.nuvemTokenAcesso,
+    phoneNumberId: instance.nuvemIdNumeroTelefone,
+    wabaId: instance.nuvemIdWaba,
+  };
 }
 
 export const instanciaHandlers = {
-  lista: async (ctx: WebContext, input: { organizacaoId: string }) => {
+  lista: async (ctx: WebContext, input: { organizacaoHash: string }) => {
     const internalOrgId = await resolveInternalId(
       ctx.client,
-      "organizations",
-      input.organizacaoId,
+      "organizacao",
+      input.organizacaoHash,
     );
     if (internalOrgId === null) notFound();
-    requireOrgInternal(ctx, internalOrgId);
+    await requireOrgInternal(ctx, internalOrgId);
 
-    const org = await ctx.client.organizations.findFirst({
+    const org = await ctx.client.organizacao.findFirst({
       where: { id: internalOrgId },
     });
     if (!org) notFound();
 
-    const rows = await ctx.client.instances.findMany({
-      where: { organizationId: internalOrgId },
+    const rows = await ctx.client.instancia.findMany({
+      where: { organizacaoId: internalOrgId },
     });
     return rows.map((instance) => toInstanciaOutput(instance, org.uuid));
   },
@@ -128,31 +89,31 @@ export const instanciaHandlers = {
   criar: async (
     ctx: WebContext,
     input: {
-      organizacaoId: string;
+      organizacaoHash: string;
       nome: string;
       provider: "cloud_api" | "evolution";
     },
   ) => {
     const internalOrgId = await resolveInternalId(
       ctx.client,
-      "organizations",
-      input.organizacaoId,
+      "organizacao",
+      input.organizacaoHash,
     );
     if (internalOrgId === null) notFound();
-    requireAdminInternal(ctx, internalOrgId);
+    await requireAdminInternal(ctx, internalOrgId);
 
-    const org = await ctx.client.organizations.findFirst({
+    const org = await ctx.client.organizacao.findFirst({
       where: { id: internalOrgId },
     });
     if (!org) notFound();
 
-    const instance = await ctx.client.instances.create({
+    const instance = await ctx.client.instancia.create({
       data: appCreateData({
-        organizationId: internalOrgId,
-        name: input.nome,
-        provider: input.provider,
+        organizacaoId: internalOrgId,
+        nome: input.nome,
+        provedor: input.provider,
         status: "pending_connection",
-        conversationLimit: mvpDefaults.billing.conversationsPerInstance,
+        limiteConversas: mvpDefaults.billing.conversationsPerInstance,
       }),
     });
 
@@ -162,38 +123,30 @@ export const instanciaHandlers = {
   provisionar: async (ctx: WebContext, input: { instanciaId: string }) => {
     requireAuth(ctx);
     const row = await getInstanceForOrg(ctx, input.instanciaId);
-    if (row.provider !== "evolution") preconditionFailed("Instância não é Evolution");
+    if (row.provedor !== "evolution") preconditionFailed("Instância não é Evolution");
     if (row.status !== "pending_connection" && row.status !== "provisioning") {
       preconditionFailed("Instância já provisionada");
     }
 
-    const instanceName = `whasap-${row.uuid.slice(0, 8)}`;
-    const webhookUrl = `${ctx.env.WEBHOOK_URL}/evolution`;
-    const baseUrl = ctx.env.EVOLUTION_BASE_URL ?? "http://localhost:8080";
-    const apiKey = ctx.env.EVOLUTION_API_KEY ?? "dev-key";
-
-    const secretName = await storeEvolutionCredentials(
-      ctx,
-      row.organization!.uuid,
-      row.uuid,
-      baseUrl,
-      apiKey,
-    );
+    const { baseUrl, apiKey } = getEvolutionCreds(ctx.env);
+    const instanceName = row.evolucaoNomeInstancia ?? `whasap-${row.uuid.slice(0, 8)}`;
+    const webhookUrl = `${ctx.env.WEBHOOK_URL}${mvpDefaults.evolution.webhookPath}`;
 
     try {
       const client = createEvolutionClient({ baseUrl, apiKey });
-      await client.createInstance(instanceName, webhookUrl);
+      if (!row.evolucaoNomeInstancia) {
+        await client.createInstance(instanceName, webhookUrl);
+      }
     } catch (err) {
       console.warn("[evolution] provision skipped or failed:", err);
     }
 
-    await ctx.client.instances.update({
+    await ctx.client.instancia.update({
       where: { id: row.id },
       data: {
         status: "provisioning",
-        evolutionInstanceName: instanceName,
-        evolutionSecretName: secretName,
-        provisionAttempts: row.provisionAttempts + 1,
+        evolucaoNomeInstancia: instanceName,
+        tentativasProvisionamento: row.tentativasProvisionamento + 1,
       },
     });
 
@@ -203,16 +156,16 @@ export const instanciaHandlers = {
   obterQr: async (ctx: WebContext, input: { instanciaId: string }) => {
     requireAuth(ctx);
     const row = await getInstanceForOrg(ctx, input.instanciaId);
-    if (row.provider !== "evolution" || !row.evolutionInstanceName) {
+    if (row.provedor !== "evolution" || !row.evolucaoNomeInstancia) {
       preconditionFailed("Instância Evolution não provisionada");
     }
 
-    const creds = await getEvolutionCreds(ctx, row);
+    const creds = getEvolutionCreds(ctx.env);
     const client = createEvolutionClient(creds);
 
     try {
-      const qr = await client.getQrCode(row.evolutionInstanceName);
-      const state = await client.getConnectionState(row.evolutionInstanceName);
+      const qr = await client.getQrCode(row.evolucaoNomeInstancia);
+      const state = await client.getConnectionState(row.evolucaoNomeInstancia);
       return {
         base64: qr.base64 ?? null,
         pairingCode: qr.pairingCode ?? null,
@@ -227,31 +180,31 @@ export const instanciaHandlers = {
     requireAuth(ctx);
     const row = await getInstanceForOrg(ctx, input.instanciaId);
 
-    if (row.provider === "cloud_api") {
-      const conectado = Boolean(row.cloudPhoneNumberId && row.cloudWabaId);
+    if (row.provedor === "cloud_api") {
+      const conectado = Boolean(row.nuvemIdNumeroTelefone && row.nuvemIdWaba && row.nuvemTokenAcesso);
       if (conectado && row.status !== "pending_payment" && row.status !== "connected") {
-        await ctx.client.instances.update({
+        await ctx.client.instancia.update({
           where: { id: row.id },
-          data: { status: "pending_payment", connectedAt: new Date() },
+          data: { status: "pending_payment", conectadoEm: new Date() },
         });
       }
       return { estado: conectado ? "open" : "close", conectado };
     }
 
-    if (!row.evolutionInstanceName) {
+    if (!row.evolucaoNomeInstancia) {
       return { estado: "close", conectado: false };
     }
 
-    const creds = await getEvolutionCreds(ctx, row);
+    const creds = getEvolutionCreds(ctx.env);
     const client = createEvolutionClient(creds);
 
     try {
-      const state = await client.getConnectionState(row.evolutionInstanceName);
+      const state = await client.getConnectionState(row.evolucaoNomeInstancia);
       const conectado = state.instance.state === "open";
       if (conectado && row.status !== "pending_payment" && row.status !== "connected") {
-        await ctx.client.instances.update({
+        await ctx.client.instancia.update({
           where: { id: row.id },
-          data: { status: "pending_payment", connectedAt: new Date() },
+          data: { status: "pending_payment", conectadoEm: new Date() },
         });
       }
       return { estado: state.instance.state, conectado };
@@ -271,14 +224,8 @@ export const instanciaHandlers = {
   ) => {
     requireAuth(ctx);
     const row = await getInstanceForOrg(ctx, input.instanciaId);
-    if (row.provider !== "cloud_api") preconditionFailed("Instância não é Cloud API");
-    requireAdminInternal(ctx, row.organizationId);
-
-    const secretName = await storeMetaCredentials(ctx, row.organization!.uuid, row.uuid, {
-      accessToken: input.accessToken,
-      phoneNumberId: input.phoneNumberId,
-      wabaId: input.wabaId,
-    });
+    if (row.provedor !== "cloud_api") preconditionFailed("Instância não é Cloud API");
+    await requireAdminInternal(ctx, row.organizacaoId);
 
     try {
       const meta = createMetaClient({
@@ -291,14 +238,14 @@ export const instanciaHandlers = {
       console.warn("[meta] token validation failed:", err);
     }
 
-    await ctx.client.instances.update({
+    await ctx.client.instancia.update({
       where: { id: row.id },
       data: {
-        cloudPhoneNumberId: input.phoneNumberId,
-        cloudWabaId: input.wabaId,
-        cloudAccessTokenSecretName: secretName,
+        nuvemIdNumeroTelefone: input.phoneNumberId,
+        nuvemIdWaba: input.wabaId,
+        nuvemTokenAcesso: input.accessToken,
         status: "pending_payment",
-        connectedAt: new Date(),
+        conectadoEm: new Date(),
       },
     });
 
@@ -316,34 +263,34 @@ export const instanciaHandlers = {
   ) => {
     requireAuth(ctx);
     const row = await getInstanceForOrg(ctx, input.instanciaId);
-    requireAdminInternal(ctx, row.organizationId);
+    await requireAdminInternal(ctx, row.organizacaoId);
 
     if (row.status !== "pending_payment") {
       preconditionFailed("Conecte o WhatsApp antes de configurar o pagamento");
     }
 
-    const org = row.organization!;
+    const org = row.organizacao!;
 
-    await ctx.client.organizations.update({
+    await ctx.client.organizacao.update({
       where: { id: org.id },
       data: {
-        taxId: input.documento,
-        taxIdType: input.tipoDocumento,
-        legalName: input.razaoSocial,
+        documentoFiscal: input.documento,
+        tipoDocumento: input.tipoDocumento,
+        razaoSocial: input.razaoSocial,
       },
     });
 
     const customerId = await ensureAsaasCustomer(ctx.env, {
       ...org,
-      taxId: input.documento,
-      taxIdType: input.tipoDocumento,
-      legalName: input.razaoSocial,
+      documentoFiscal: input.documento,
+      tipoDocumento: input.tipoDocumento,
+      razaoSocial: input.razaoSocial,
     });
 
-    if (!org.asaasCustomerId) {
-      await ctx.client.organizations.update({
+    if (!org.asaasIdCliente) {
+      await ctx.client.organizacao.update({
         where: { id: org.id },
-        data: { asaasCustomerId: customerId },
+        data: { asaasIdCliente: customerId },
       });
     }
 
@@ -357,10 +304,10 @@ export const instanciaHandlers = {
       customerId,
       customerData,
       instanceUuid: row.uuid,
-      instanceName: row.name,
-      successUrl: `${ctx.env.WEB_URL}/onboarding?instance=${row.uuid}&step=concluido`,
-      cancelUrl: `${ctx.env.WEB_URL}/onboarding?instance=${row.uuid}&step=pagamento`,
-      expiredUrl: `${ctx.env.WEB_URL}/onboarding?instance=${row.uuid}&step=pagamento`,
+      instanceName: row.nome,
+      successUrl: `${ctx.env.WEB_URL}/${org.uuid}/integracao?instance=${row.uuid}&step=concluido`,
+      cancelUrl: `${ctx.env.WEB_URL}/${org.uuid}/integracao?instance=${row.uuid}&step=pagamento`,
+      expiredUrl: `${ctx.env.WEB_URL}/${org.uuid}/integracao?instance=${row.uuid}&step=pagamento`,
     });
 
     return { urlCheckout };
@@ -369,30 +316,30 @@ export const instanciaHandlers = {
   obter: async (ctx: WebContext, input: { instanciaId: string }) => {
     requireAuth(ctx);
     const row = await getInstanceForOrg(ctx, input.instanciaId);
-    return toInstanciaOutput(row, row.organization!.uuid);
+    return toInstanciaOutput(row, row.organizacao!.uuid);
   },
 
   adicionarPacoteConversas: async (ctx: WebContext, input: { instanciaId: string }) => {
     requireAuth(ctx);
     const row = await getInstanceForOrg(ctx, input.instanciaId);
-    requireAdminInternal(ctx, row.organizationId);
+    await requireAdminInternal(ctx, row.organizacaoId);
 
-    const org = row.organization!;
-    if (!org.asaasCustomerId) preconditionFailed();
+    const org = row.organizacao!;
+    if (!org.asaasIdCliente) preconditionFailed();
 
     const customerData = {
-      name: org.legalName ?? org.name,
-      cpfCnpj: org.taxId ?? "",
+      name: org.razaoSocial ?? org.nome,
+      cpfCnpj: org.documentoFiscal ?? "",
     };
 
     const urlCheckout = await createConversationPackCheckout({
       env: ctx.env,
-      customerId: org.asaasCustomerId,
+      customerId: org.asaasIdCliente,
       customerData,
       instanceUuid: row.uuid,
-      successUrl: `${ctx.env.WEB_URL}/instancias`,
-      cancelUrl: `${ctx.env.WEB_URL}/instancias`,
-      expiredUrl: `${ctx.env.WEB_URL}/instancias`,
+      successUrl: `${ctx.env.WEB_URL}/${org.uuid}/instancias`,
+      cancelUrl: `${ctx.env.WEB_URL}/${org.uuid}/instancias`,
+      expiredUrl: `${ctx.env.WEB_URL}/${org.uuid}/instancias`,
     });
 
     return { urlCheckout };
@@ -400,22 +347,22 @@ export const instanciaHandlers = {
 };
 
 export const cobrancaHandlers = {
-  assinaturas: async (ctx: WebContext, input: { organizacaoId: string }) => {
-    await requireAdmin(ctx, input.organizacaoId);
-    const org = await ctx.client.organizations.findFirst({
-      where: { uuid: input.organizacaoId },
+  assinaturas: async (ctx: WebContext, input: { organizacaoHash: string }) => {
+    await requireAdmin(ctx, input.organizacaoHash);
+    const org = await ctx.client.organizacao.findFirst({
+      where: { uuid: input.organizacaoHash },
     });
     if (!org) notFound();
 
-    const instances = await ctx.client.instances.findMany({
-      where: { organizationId: org.id },
+    const instances = await ctx.client.instancia.findMany({
+      where: { organizacaoId: org.id },
     });
 
-    const asaas = createAsaasFromEnv(ctx.env);
+    const asaas = await createAsaasFromEnv(ctx.env);
     const assinaturas = [];
 
     for (const instance of instances) {
-      if (!instance.asaasSubscriptionId) continue;
+      if (!instance.asaasIdAssinatura) continue;
 
       let subscriptionStatus = "UNKNOWN";
       let cobrancasPendentes: Array<{
@@ -427,10 +374,10 @@ export const cobrancaHandlers = {
       }> = [];
 
       try {
-        const subscription = await asaas.subscriptions.get(instance.asaasSubscriptionId);
+        const subscription = await asaas.subscriptions.get(instance.asaasIdAssinatura);
         subscriptionStatus = subscription.status;
 
-        const payments = await asaas.subscriptions.listPayments(instance.asaasSubscriptionId);
+        const payments = await asaas.subscriptions.listPayments(instance.asaasIdAssinatura);
         cobrancasPendentes = payments.data
           .filter((p) => p.status === "PENDING" || p.status === "OVERDUE")
           .map((p) => ({
@@ -446,8 +393,8 @@ export const cobrancaHandlers = {
 
       assinaturas.push({
         instanciaId: instance.uuid,
-        instanciaNome: instance.name,
-        asaasSubscriptionId: instance.asaasSubscriptionId,
+        instanciaNome: instance.nome,
+        asaasSubscriptionId: instance.asaasIdAssinatura,
         statusInstancia: instance.status,
         statusAssinatura: subscriptionStatus,
         cobrancasPendentes,
@@ -460,16 +407,16 @@ export const cobrancaHandlers = {
   cancelarAssinatura: async (ctx: WebContext, input: { instanciaId: string }) => {
     requireAuth(ctx);
     const row = await getInstanceForOrg(ctx, input.instanciaId);
-    requireAdminInternal(ctx, row.organizationId);
+    await requireAdminInternal(ctx, row.organizacaoId);
 
-    if (!row.asaasSubscriptionId) preconditionFailed("Instância sem assinatura ativa");
+    if (!row.asaasIdAssinatura) preconditionFailed("Instância sem assinatura ativa");
 
-    const asaas = createAsaasFromEnv(ctx.env);
-    await asaas.subscriptions.cancel(row.asaasSubscriptionId);
+    const asaas = await createAsaasFromEnv(ctx.env);
+    await asaas.subscriptions.cancel(row.asaasIdAssinatura);
 
-    await ctx.client.instances.update({
+    await ctx.client.instancia.update({
       where: { id: row.id },
-      data: { status: "deactivated", deactivatedAt: new Date() },
+      data: { status: "deactivated", desativadoEm: new Date() },
     });
 
     return { ok: true };
@@ -477,23 +424,23 @@ export const cobrancaHandlers = {
 
   uso: async (ctx: WebContext, input: { instanciaId: string }) => {
     requireAuth(ctx);
-    const instance = await ctx.client.instances.findFirst({
+    const instance = await ctx.client.instancia.findFirst({
       where: { uuid: input.instanciaId },
     });
     if (!instance) notFound();
-    requireOrgInternal(ctx, instance.organizationId);
+    await requireOrgInternal(ctx, instance.organizacaoId);
 
     const anoMes = new Date().toISOString().slice(0, 7);
-    const usage = await ctx.client.monthlyUsage.findFirst({
-      where: { instanceId: instance.id, yearMonth: anoMes },
+    const usage = await ctx.client.usoMensal.findFirst({
+      where: { instanciaId: instance.id, anoMes },
     });
 
-    const count = usage?.uniqueContactsCount ?? 0;
+    const count = usage?.contatosUnicosContagem ?? 0;
     return {
       anoMes,
       contatosUnicos: count,
-      limiteConversas: instance.conversationLimit,
-      nivelAlerta: nivelAlerta(count, instance.conversationLimit),
+      limiteConversas: instance.limiteConversas,
+      nivelAlerta: nivelAlerta(count, instance.limiteConversas),
     };
   },
 };

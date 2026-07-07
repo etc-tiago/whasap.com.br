@@ -1,14 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { skipToken, useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@whasap/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/card";
 import { Badge } from "@whasap/ui/components/badge";
-import { useState } from "react";
 
-import { useSession } from "@/lib/auth";
+import { orgInput } from "@/lib/org-input";
 import { orpc, type InstanciaItem } from "@/lib/orpc";
+import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
-export const Route = createFileRoute("/_panel/instancias")({
+export const Route = createFileRoute("/_panel/$organizacaoHash/instancias")({
   component: InstancesPage,
 });
 
@@ -23,16 +23,23 @@ const statusLabels: Record<string, string> = {
 
 function InstancesPage() {
   const navigate = useNavigate();
-  const { data: session } = useSession();
-  const orgId = session?.organizacao?.id;
+  const organizacaoHash = useOrganizacaoHash();
 
-  const instances = useQuery(
-    orpc.instancia.lista.queryOptions({
-      input: orgId ? { organizacaoId: orgId } : skipToken,
+  const org = useQuery(
+    orpc.organizacao.obter.queryOptions({
+      input: orgInput(organizacaoHash),
     }),
   );
 
-  const isAdmin = session?.role === "admin";
+  const instances = useQuery(
+    orpc.instancia.lista.queryOptions({
+      input: orgInput(organizacaoHash),
+    }),
+  );
+
+  const isAdmin = org.data?.meuPapel === "admin";
+
+  if (!organizacaoHash) return null;
 
   return (
     <div className="space-y-6 p-6">
@@ -44,7 +51,15 @@ function InstancesPage() {
           </p>
         </div>
         {isAdmin && (
-          <Button onClick={() => navigate({ to: "/onboarding", search: { instance: "", step: "" } })}>
+          <Button
+            onClick={() =>
+              navigate({
+                to: "/$organizacaoHash/integracao",
+                params: { organizacaoHash },
+                search: { instance: "", step: "" },
+              })
+            }
+          >
             Nova instância
           </Button>
         )}
@@ -65,14 +80,21 @@ function InstancesPage() {
             <CardContent className="flex gap-2">
               {inst.status !== "connected" && (
                 <Button asChild size="sm" variant="outline">
-                  <Link to="/onboarding" search={{ instance: inst.id, step: "" }}>
+                  <Link
+                    to="/$organizacaoHash/integracao"
+                    params={{ organizacaoHash }}
+                    search={{ instance: inst.id, step: "" }}
+                  >
                     Configurar
                   </Link>
                 </Button>
               )}
               {inst.status === "connected" && inst.asaasSubscriptionId && (
                 <Button asChild size="sm">
-                  <Link to="/inbox/$instanceId" params={{ instanceId: inst.id }}>
+                  <Link
+                    to="/$organizacaoHash/inbox/$instanceId"
+                    params={{ organizacaoHash, instanceId: inst.id }}
+                  >
                     Inbox
                   </Link>
                 </Button>
@@ -83,7 +105,12 @@ function InstancesPage() {
         {instances.data?.length === 0 && (
           <p className="text-sm text-muted-foreground">
             Nenhuma instância ainda.{" "}
-            <Link to="/onboarding" search={{ instance: "", step: "" }} className="text-wa-green underline">
+            <Link
+              to="/$organizacaoHash/integracao"
+              params={{ organizacaoHash }}
+              search={{ instance: "", step: "" }}
+              className="text-wa-green underline"
+            >
               Configure a primeira
             </Link>
             .

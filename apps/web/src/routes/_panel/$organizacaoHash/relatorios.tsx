@@ -2,28 +2,34 @@ import { createFileRoute } from "@tanstack/react-router";
 import { skipToken, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/card";
 
-import { useSession } from "@/lib/auth";
+import { orgInput } from "@/lib/org-input";
 import { orpc, type RelatorioVisaoGeral } from "@/lib/orpc";
+import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
-export const Route = createFileRoute("/_panel/relatorios")({
+export const Route = createFileRoute("/_panel/$organizacaoHash/relatorios")({
   component: ReportsPage,
 });
 
 function ReportsPage() {
-  const { data: session } = useSession();
-  const orgId = session?.organizacao?.id;
+  const organizacaoHash = useOrganizacaoHash();
+
+  const org = useQuery(
+    orpc.organizacao.obter.queryOptions({
+      input: orgInput(organizacaoHash),
+    }),
+  );
 
   const ate = new Date();
   const de = new Date();
   de.setDate(de.getDate() - 30);
 
-  const canViewReports = !!orgId && session?.role !== "usuario";
+  const canViewReports = Boolean(organizacaoHash) && org.data?.meuPapel !== "usuario";
 
   const report = useQuery(
     orpc.relatorios.visaoGeral.queryOptions({
       input: canViewReports
         ? {
-            organizacaoId: orgId,
+            organizacaoHash: organizacaoHash!,
             de: de.toISOString(),
             ate: ate.toISOString(),
           }
@@ -31,7 +37,7 @@ function ReportsPage() {
     }),
   );
 
-  if (session?.role === "usuario") {
+  if (org.data?.meuPapel === "usuario") {
     return (
       <div className="p-6">
         <p className="text-sm text-muted-foreground">Relatórios não disponíveis para seu perfil.</p>

@@ -18,6 +18,7 @@
     "drizzle-orm": "^0.44.2"
   },
   "devDependencies": {
+    "@types/node": "^22.16.5",
     "@whasap/typescript-config": "workspace:*",
     "drizzle-kit": "^0.31.4",
     "typescript": "^5.8.3"

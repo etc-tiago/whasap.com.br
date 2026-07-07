@@ -5,12 +5,19 @@ Arquivos em `packages/db/src/schema/`:
 | Módulo | Tabelas |
 |--------|---------|
 | `autenticacao.ts` | `usuario`, `sessao`, `codigo_otp` |
-| `office.ts` | `office_usuario`, `sessao_office` |
-| `organizacoes.ts` | `organizations`, `organization_members`, `organization_invites` |
-| `instancias.ts` | `instances`, `instance_addons` |
-| `mensageria.ts` | `contacts`, `contact_tags`, `contact_tag_assignments`, `conversations`, `messages`, `message_templates`, `conversation_notes`, `quick_replies`, `monthly_usage`, `monthly_usage_contacts` |
-| `webhook.ts` | `webhook_events`, `asaas_webhook_log` |
+| `office.ts` | `office_usuario`, `office_sessao` |
+| `organizacoes.ts` | `organizacao`, `organizacao_membro`, `organizacao_convite` |
+| `instancias.ts` | `instancia`, `instancia_addon` |
+| `mensageria.ts` | `contato`, `contato_tag`, `contato_tag_atribuicao`, `conversa`, `mensagem`, `mensagem_template`, `conversa_anotacao`, `resposta_rapida`, `uso_mensal`, `uso_mensal_contato` |
+| `webhook.ts` | `webhook_evento`, `asaas_webhook_registro` |
 | `relacoes.ts` | `relations()` Drizzle para better-drizzle `include` / filtros relacionais |
+
+## Convenção de nomes
+
+- **Tabelas SQL:** singular em pt-BR (`organizacao`, `instancia`, `contato`, `conversa`, `mensagem`)
+- **Exports TS / delegates `client.*`:** camelCase singular (`organizacao`, `instancia`, `contato`, `conversa`, `mensagem`)
+- **Colunas TS:** camelCase pt-BR; mapeadas para `snake_case` no Postgres via `casing: "snake_case"` em `drizzle.config.ts` e `createDb()`
+- **Sem strings redundantes:** preferir `nome: text()` em vez de `nome: text("nome")` quando a chave TS já define o nome da coluna
 
 ## Identificadores
 
@@ -22,8 +29,8 @@ Arquivos em `packages/db/src/schema/`:
 
 - **`criadoEm` / `atualizadoEm`:** em todo o schema (colunas `criado_em` / `atualizado_em`); preenchidos pelo plugin `@better-drizzle/timestamps` (`mode: 'app'`)
 - **`excluidoEm`:** exclusão lógica nas entidades exportáveis + `office_usuario`; filtrado por `@better-drizzle/soft-delete` (padrão: ocultar excluídos)
-- Tabelas só com `criadoEm` (`sessao`, `codigo_otp`, `webhook_events`, etc.) não têm `atualizadoEm` — o plugin ignora automaticamente
-- **`instance_addons.active`:** estado do addon Asaas, não é soft-delete
+- Tabelas só com `criadoEm` (`sessao`, `codigo_otp`, `webhook_evento`, etc.) não têm `atualizadoEm` — o plugin ignora automaticamente
+- **`instancia_addon.ativo`:** estado do addon Asaas, não é soft-delete
 
 ## Client better-drizzle
 
@@ -32,8 +39,14 @@ Arquivos em `packages/db/src/schema/`:
 - **`client.*`:** CRUD, lookup por `uuid`, relations, soft-delete — preferir nos handlers
 - **`db`:** agregações pesadas (`count`, joins complexos em relatórios/admin) e SQL cru quando necessário
 
-Delegates principais: `client.usuario`, `client.organizations`, `client.organizationMembers`, `client.instances`, `client.conversations`, `client.messages`, `client.officeUsuario`, `client.codigoOtp`, `client.sessao`, etc.
+Delegates principais: `client.usuario`, `client.organizacao`, `client.organizacaoMembro`, `client.instancia`, `client.conversa`, `client.mensagem`, `client.officeUsuario`, `client.officeSessao`, `client.codigoOtp`, `client.sessao`, etc.
 
-`resolveInternalId(client, 'usuario', publicUuid)` converte uuid exportável → `id` interno.
+`resolveInternalId(client, 'organizacao', publicUuid)` converte uuid exportável → `id` interno.
 
-**Desenvolvedor:** após alterações de schema, rodar `bun run db:generate` e `bun run db:migrate` (renomear timestamps, remover `ativo`/`active`, adicionar `excluido_em`).
+## Índices
+
+- Únicos de coluna única: `campo().unique()` (ex.: `email`, `token`, `asaas_id_assinatura`)
+- Compostos via `index()` / `unique().on(...)` no callback de `pgTable`
+- FKs frequentes indexadas: `organizacao_id`, `instancia_id`, `conversa_id`, `usuario_id`, etc.
+
+**Desenvolvedor:** após alterações de schema, rodar `bun run db:generate` e `bun run db:migrate` (renomear tabelas/colunas, enums, índices).

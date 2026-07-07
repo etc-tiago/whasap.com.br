@@ -1,6 +1,7 @@
 import aceitar from "./convites/aceitar";
 import convitesLista from "./convites/lista";
 import atualizar from "./atualizar";
+import criar from "./criar";
 import lista from "./lista";
 import convidar from "./membros/convidar";
 import atualizarPapel from "./membros/atualizar-papel";
@@ -11,6 +12,7 @@ import trocar from "./trocar";
 
 export default {
   lista,
+  criar,
   obter,
   atualizar,
   trocar,

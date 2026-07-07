@@ -97,5 +97,20 @@ export function createEvolutionClient(credentials: EvolutionCredentials) {
         { number, contact: contacts },
       );
     },
+
+    getBase64FromMediaMessage(
+      instanceName: string,
+      messageKey: { remoteJid: string; fromMe: boolean; id: string },
+      convertToMp4 = false,
+    ) {
+      return request<{
+        mimetype?: string;
+        base64: string;
+        fileName?: string;
+      }>("POST", `/chat/getBase64FromMediaMessage/${encodeURIComponent(instanceName)}`, {
+        message: { key: messageKey },
+        convertToMp4,
+      });
+    },
   };
 }

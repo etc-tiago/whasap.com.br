@@ -1,7 +1,14 @@
-import { Link, Outlet } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@whasap/ui/components/button";
 import { Badge } from "@whasap/ui/components/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@whasap/ui/components/select";
 import {
   MessageCircle,
   LogOut,
@@ -9,15 +16,29 @@ import {
   Smartphone,
   BarChart3,
   Users,
+  Plus,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { useSession } from "@/lib/auth";
-import { orpc } from "@/lib/orpc";
+import { orpc, orpcClient } from "@/lib/orpc";
 
-export function PanelShell({ children }: { children?: ReactNode }) {
+type OrganizacaoComPapel = Awaited<ReturnType<typeof orpcClient.organizacao.obter>>;
+
+export function PanelShell({
+  children,
+  organizacao,
+}: {
+  children?: ReactNode;
+  organizacao: OrganizacaoComPapel;
+}) {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
+  const organizacaoHash = organizacao.id;
+
+  const orgs = useQuery(orpc.organizacao.lista.queryOptions());
+
   const logout = useMutation(
     orpc.autenticacao.sair.mutationOptions({
       onSuccess: () => {
@@ -33,43 +54,63 @@ export function PanelShell({ children }: { children?: ReactNode }) {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-wa-green text-white">
             <MessageCircle className="h-4 w-4 fill-white" />
           </span>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">Whasap</p>
-            <p className="truncate text-xs text-muted-foreground">
-              {session?.organizacao?.nome ?? "Sem organização"}
-            </p>
-            {session?.organizacao && (
-              <Badge variant="outline" className="mt-1 text-[10px]">
-                {session.role}
-              </Badge>
+            {(orgs.data?.length ?? 0) > 1 ? (
+              <Select
+                value={organizacaoHash}
+                onValueChange={(value) =>
+                  navigate({ to: "/$organizacaoHash", params: { organizacaoHash: value } })
+                }
+              >
+                <SelectTrigger className="mt-1 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {orgs.data?.map((org) => (
+                    <SelectItem key={org.id} value={org.id}>
+                      {org.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <p className="truncate text-xs text-muted-foreground">{organizacao.nome}</p>
             )}
+            <Badge variant="outline" className="mt-1 text-[10px]">
+              {organizacao.meuPapel}
+            </Badge>
           </div>
         </div>
         <nav className="flex flex-1 flex-col gap-1 p-2">
           <Link
-            to="/"
+            to="/$organizacaoHash"
+            params={{ organizacaoHash }}
             className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
           >
             <MessageCircle className="h-4 w-4" />
             Inbox
           </Link>
           <Link
-            to="/instancias"
+            to="/$organizacaoHash/instancias"
+            params={{ organizacaoHash }}
             className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
           >
             <Smartphone className="h-4 w-4" />
             Instâncias
           </Link>
           <Link
-            to="/relatorios"
+            to="/$organizacaoHash/relatorios"
+            params={{ organizacaoHash }}
             className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
           >
             <BarChart3 className="h-4 w-4" />
             Relatórios
           </Link>
-          {session?.role === "admin" && (
+          {organizacao.meuPapel === "admin" && (
             <Link
-              to="/equipe"
+              to="/$organizacaoHash/equipe"
+              params={{ organizacaoHash }}
               className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
             >
               <Users className="h-4 w-4" />
@@ -77,11 +118,19 @@ export function PanelShell({ children }: { children?: ReactNode }) {
             </Link>
           )}
           <Link
-            to="/ajustes"
+            to="/$organizacaoHash/ajustes"
+            params={{ organizacaoHash }}
             className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
           >
             <Settings className="h-4 w-4" />
             Ajustes
+          </Link>
+          <Link
+            to="/integracao"
+            className="mt-2 flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent"
+          >
+            <Plus className="h-4 w-4" />
+            Nova organização
           </Link>
         </nav>
         <div className="border-t border-border p-2">

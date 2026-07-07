@@ -10,30 +10,33 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PanelRouteRouteImport } from './routes/_panel/route'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as RpcIndexRouteImport } from './routes/rpc/index'
-import { Route as PanelIndexRouteImport } from './routes/_panel/index'
 import { Route as RpcSplatRouteImport } from './routes/rpc/$'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
-import { Route as PanelRelatoriosRouteImport } from './routes/_panel/relatorios'
-import { Route as PanelOnboardingRouteImport } from './routes/_panel/onboarding'
-import { Route as PanelInstanciasRouteImport } from './routes/_panel/instancias'
-import { Route as PanelEquipeRouteImport } from './routes/_panel/equipe'
-import { Route as PanelAjustesRouteImport } from './routes/_panel/ajustes'
-import { Route as PanelInboxInstanceIdRouteImport } from './routes/_panel/inbox.$instanceId'
+import { Route as PanelIntegracaoRouteImport } from './routes/_panel/integracao'
+import { Route as PanelOrganizacaoHashRouteRouteImport } from './routes/_panel/$organizacaoHash/route'
+import { Route as PanelOrganizacaoHashIndexRouteImport } from './routes/_panel/$organizacaoHash/index'
+import { Route as PanelOrganizacaoHashRelatoriosRouteImport } from './routes/_panel/$organizacaoHash/relatorios'
+import { Route as PanelOrganizacaoHashIntegracaoRouteImport } from './routes/_panel/$organizacaoHash/integracao'
+import { Route as PanelOrganizacaoHashInstanciasRouteImport } from './routes/_panel/$organizacaoHash/instancias'
+import { Route as PanelOrganizacaoHashEquipeRouteImport } from './routes/_panel/$organizacaoHash/equipe'
+import { Route as PanelOrganizacaoHashAjustesRouteImport } from './routes/_panel/$organizacaoHash/ajustes'
+import { Route as PanelOrganizacaoHashInboxInstanceIdRouteImport } from './routes/_panel/$organizacaoHash/inbox.$instanceId'
 
 const PanelRouteRoute = PanelRouteRouteImport.update({
   id: '/_panel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RpcIndexRoute = RpcIndexRouteImport.update({
   id: '/rpc/',
   path: '/rpc/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const PanelIndexRoute = PanelIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PanelRouteRoute,
 } as any)
 const RpcSplatRoute = RpcSplatRouteImport.update({
   id: '/rpc/$',
@@ -45,116 +48,156 @@ const ConviteTokenRoute = ConviteTokenRouteImport.update({
   path: '/convite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PanelRelatoriosRoute = PanelRelatoriosRouteImport.update({
-  id: '/relatorios',
-  path: '/relatorios',
+const PanelIntegracaoRoute = PanelIntegracaoRouteImport.update({
+  id: '/integracao',
+  path: '/integracao',
   getParentRoute: () => PanelRouteRoute,
 } as any)
-const PanelOnboardingRoute = PanelOnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => PanelRouteRoute,
-} as any)
-const PanelInstanciasRoute = PanelInstanciasRouteImport.update({
-  id: '/instancias',
-  path: '/instancias',
-  getParentRoute: () => PanelRouteRoute,
-} as any)
-const PanelEquipeRoute = PanelEquipeRouteImport.update({
-  id: '/equipe',
-  path: '/equipe',
-  getParentRoute: () => PanelRouteRoute,
-} as any)
-const PanelAjustesRoute = PanelAjustesRouteImport.update({
-  id: '/ajustes',
-  path: '/ajustes',
-  getParentRoute: () => PanelRouteRoute,
-} as any)
-const PanelInboxInstanceIdRoute = PanelInboxInstanceIdRouteImport.update({
-  id: '/inbox/$instanceId',
-  path: '/inbox/$instanceId',
-  getParentRoute: () => PanelRouteRoute,
-} as any)
+const PanelOrganizacaoHashRouteRoute =
+  PanelOrganizacaoHashRouteRouteImport.update({
+    id: '/$organizacaoHash',
+    path: '/$organizacaoHash',
+    getParentRoute: () => PanelRouteRoute,
+  } as any)
+const PanelOrganizacaoHashIndexRoute =
+  PanelOrganizacaoHashIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => PanelOrganizacaoHashRouteRoute,
+  } as any)
+const PanelOrganizacaoHashRelatoriosRoute =
+  PanelOrganizacaoHashRelatoriosRouteImport.update({
+    id: '/relatorios',
+    path: '/relatorios',
+    getParentRoute: () => PanelOrganizacaoHashRouteRoute,
+  } as any)
+const PanelOrganizacaoHashIntegracaoRoute =
+  PanelOrganizacaoHashIntegracaoRouteImport.update({
+    id: '/integracao',
+    path: '/integracao',
+    getParentRoute: () => PanelOrganizacaoHashRouteRoute,
+  } as any)
+const PanelOrganizacaoHashInstanciasRoute =
+  PanelOrganizacaoHashInstanciasRouteImport.update({
+    id: '/instancias',
+    path: '/instancias',
+    getParentRoute: () => PanelOrganizacaoHashRouteRoute,
+  } as any)
+const PanelOrganizacaoHashEquipeRoute =
+  PanelOrganizacaoHashEquipeRouteImport.update({
+    id: '/equipe',
+    path: '/equipe',
+    getParentRoute: () => PanelOrganizacaoHashRouteRoute,
+  } as any)
+const PanelOrganizacaoHashAjustesRoute =
+  PanelOrganizacaoHashAjustesRouteImport.update({
+    id: '/ajustes',
+    path: '/ajustes',
+    getParentRoute: () => PanelOrganizacaoHashRouteRoute,
+  } as any)
+const PanelOrganizacaoHashInboxInstanceIdRoute =
+  PanelOrganizacaoHashInboxInstanceIdRouteImport.update({
+    id: '/inbox/$instanceId',
+    path: '/inbox/$instanceId',
+    getParentRoute: () => PanelOrganizacaoHashRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof PanelIndexRoute
-  '/ajustes': typeof PanelAjustesRoute
-  '/equipe': typeof PanelEquipeRoute
-  '/instancias': typeof PanelInstanciasRoute
-  '/onboarding': typeof PanelOnboardingRoute
-  '/relatorios': typeof PanelRelatoriosRoute
+  '/': typeof IndexRoute
+  '/$organizacaoHash': typeof PanelOrganizacaoHashRouteRouteWithChildren
+  '/integracao': typeof PanelIntegracaoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/rpc/$': typeof RpcSplatRoute
   '/rpc/': typeof RpcIndexRoute
-  '/inbox/$instanceId': typeof PanelInboxInstanceIdRoute
+  '/$organizacaoHash/ajustes': typeof PanelOrganizacaoHashAjustesRoute
+  '/$organizacaoHash/equipe': typeof PanelOrganizacaoHashEquipeRoute
+  '/$organizacaoHash/instancias': typeof PanelOrganizacaoHashInstanciasRoute
+  '/$organizacaoHash/integracao': typeof PanelOrganizacaoHashIntegracaoRoute
+  '/$organizacaoHash/relatorios': typeof PanelOrganizacaoHashRelatoriosRoute
+  '/$organizacaoHash/': typeof PanelOrganizacaoHashIndexRoute
+  '/$organizacaoHash/inbox/$instanceId': typeof PanelOrganizacaoHashInboxInstanceIdRoute
 }
 export interface FileRoutesByTo {
-  '/ajustes': typeof PanelAjustesRoute
-  '/equipe': typeof PanelEquipeRoute
-  '/instancias': typeof PanelInstanciasRoute
-  '/onboarding': typeof PanelOnboardingRoute
-  '/relatorios': typeof PanelRelatoriosRoute
+  '/': typeof IndexRoute
+  '/integracao': typeof PanelIntegracaoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/rpc/$': typeof RpcSplatRoute
-  '/': typeof PanelIndexRoute
   '/rpc': typeof RpcIndexRoute
-  '/inbox/$instanceId': typeof PanelInboxInstanceIdRoute
+  '/$organizacaoHash/ajustes': typeof PanelOrganizacaoHashAjustesRoute
+  '/$organizacaoHash/equipe': typeof PanelOrganizacaoHashEquipeRoute
+  '/$organizacaoHash/instancias': typeof PanelOrganizacaoHashInstanciasRoute
+  '/$organizacaoHash/integracao': typeof PanelOrganizacaoHashIntegracaoRoute
+  '/$organizacaoHash/relatorios': typeof PanelOrganizacaoHashRelatoriosRoute
+  '/$organizacaoHash': typeof PanelOrganizacaoHashIndexRoute
+  '/$organizacaoHash/inbox/$instanceId': typeof PanelOrganizacaoHashInboxInstanceIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/_panel': typeof PanelRouteRouteWithChildren
-  '/_panel/ajustes': typeof PanelAjustesRoute
-  '/_panel/equipe': typeof PanelEquipeRoute
-  '/_panel/instancias': typeof PanelInstanciasRoute
-  '/_panel/onboarding': typeof PanelOnboardingRoute
-  '/_panel/relatorios': typeof PanelRelatoriosRoute
+  '/_panel/$organizacaoHash': typeof PanelOrganizacaoHashRouteRouteWithChildren
+  '/_panel/integracao': typeof PanelIntegracaoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/rpc/$': typeof RpcSplatRoute
-  '/_panel/': typeof PanelIndexRoute
   '/rpc/': typeof RpcIndexRoute
-  '/_panel/inbox/$instanceId': typeof PanelInboxInstanceIdRoute
+  '/_panel/$organizacaoHash/ajustes': typeof PanelOrganizacaoHashAjustesRoute
+  '/_panel/$organizacaoHash/equipe': typeof PanelOrganizacaoHashEquipeRoute
+  '/_panel/$organizacaoHash/instancias': typeof PanelOrganizacaoHashInstanciasRoute
+  '/_panel/$organizacaoHash/integracao': typeof PanelOrganizacaoHashIntegracaoRoute
+  '/_panel/$organizacaoHash/relatorios': typeof PanelOrganizacaoHashRelatoriosRoute
+  '/_panel/$organizacaoHash/': typeof PanelOrganizacaoHashIndexRoute
+  '/_panel/$organizacaoHash/inbox/$instanceId': typeof PanelOrganizacaoHashInboxInstanceIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/ajustes'
-    | '/equipe'
-    | '/instancias'
-    | '/onboarding'
-    | '/relatorios'
+    | '/$organizacaoHash'
+    | '/integracao'
     | '/convite/$token'
     | '/rpc/$'
     | '/rpc/'
-    | '/inbox/$instanceId'
+    | '/$organizacaoHash/ajustes'
+    | '/$organizacaoHash/equipe'
+    | '/$organizacaoHash/instancias'
+    | '/$organizacaoHash/integracao'
+    | '/$organizacaoHash/relatorios'
+    | '/$organizacaoHash/'
+    | '/$organizacaoHash/inbox/$instanceId'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/ajustes'
-    | '/equipe'
-    | '/instancias'
-    | '/onboarding'
-    | '/relatorios'
+    | '/'
+    | '/integracao'
     | '/convite/$token'
     | '/rpc/$'
-    | '/'
     | '/rpc'
-    | '/inbox/$instanceId'
+    | '/$organizacaoHash/ajustes'
+    | '/$organizacaoHash/equipe'
+    | '/$organizacaoHash/instancias'
+    | '/$organizacaoHash/integracao'
+    | '/$organizacaoHash/relatorios'
+    | '/$organizacaoHash'
+    | '/$organizacaoHash/inbox/$instanceId'
   id:
     | '__root__'
+    | '/'
     | '/_panel'
-    | '/_panel/ajustes'
-    | '/_panel/equipe'
-    | '/_panel/instancias'
-    | '/_panel/onboarding'
-    | '/_panel/relatorios'
+    | '/_panel/$organizacaoHash'
+    | '/_panel/integracao'
     | '/convite/$token'
     | '/rpc/$'
-    | '/_panel/'
     | '/rpc/'
-    | '/_panel/inbox/$instanceId'
+    | '/_panel/$organizacaoHash/ajustes'
+    | '/_panel/$organizacaoHash/equipe'
+    | '/_panel/$organizacaoHash/instancias'
+    | '/_panel/$organizacaoHash/integracao'
+    | '/_panel/$organizacaoHash/relatorios'
+    | '/_panel/$organizacaoHash/'
+    | '/_panel/$organizacaoHash/inbox/$instanceId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   PanelRouteRoute: typeof PanelRouteRouteWithChildren
   ConviteTokenRoute: typeof ConviteTokenRoute
   RpcSplatRoute: typeof RpcSplatRoute
@@ -170,19 +213,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/rpc/': {
       id: '/rpc/'
       path: '/rpc'
       fullPath: '/rpc/'
       preLoaderRoute: typeof RpcIndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_panel/': {
-      id: '/_panel/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof PanelIndexRouteImport
-      parentRoute: typeof PanelRouteRoute
     }
     '/rpc/$': {
       id: '/rpc/$'
@@ -198,69 +241,107 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_panel/relatorios': {
-      id: '/_panel/relatorios'
+    '/_panel/integracao': {
+      id: '/_panel/integracao'
+      path: '/integracao'
+      fullPath: '/integracao'
+      preLoaderRoute: typeof PanelIntegracaoRouteImport
+      parentRoute: typeof PanelRouteRoute
+    }
+    '/_panel/$organizacaoHash': {
+      id: '/_panel/$organizacaoHash'
+      path: '/$organizacaoHash'
+      fullPath: '/$organizacaoHash'
+      preLoaderRoute: typeof PanelOrganizacaoHashRouteRouteImport
+      parentRoute: typeof PanelRouteRoute
+    }
+    '/_panel/$organizacaoHash/': {
+      id: '/_panel/$organizacaoHash/'
+      path: '/'
+      fullPath: '/$organizacaoHash/'
+      preLoaderRoute: typeof PanelOrganizacaoHashIndexRouteImport
+      parentRoute: typeof PanelOrganizacaoHashRouteRoute
+    }
+    '/_panel/$organizacaoHash/relatorios': {
+      id: '/_panel/$organizacaoHash/relatorios'
       path: '/relatorios'
-      fullPath: '/relatorios'
-      preLoaderRoute: typeof PanelRelatoriosRouteImport
-      parentRoute: typeof PanelRouteRoute
+      fullPath: '/$organizacaoHash/relatorios'
+      preLoaderRoute: typeof PanelOrganizacaoHashRelatoriosRouteImport
+      parentRoute: typeof PanelOrganizacaoHashRouteRoute
     }
-    '/_panel/onboarding': {
-      id: '/_panel/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof PanelOnboardingRouteImport
-      parentRoute: typeof PanelRouteRoute
+    '/_panel/$organizacaoHash/integracao': {
+      id: '/_panel/$organizacaoHash/integracao'
+      path: '/integracao'
+      fullPath: '/$organizacaoHash/integracao'
+      preLoaderRoute: typeof PanelOrganizacaoHashIntegracaoRouteImport
+      parentRoute: typeof PanelOrganizacaoHashRouteRoute
     }
-    '/_panel/instancias': {
-      id: '/_panel/instancias'
+    '/_panel/$organizacaoHash/instancias': {
+      id: '/_panel/$organizacaoHash/instancias'
       path: '/instancias'
-      fullPath: '/instancias'
-      preLoaderRoute: typeof PanelInstanciasRouteImport
-      parentRoute: typeof PanelRouteRoute
+      fullPath: '/$organizacaoHash/instancias'
+      preLoaderRoute: typeof PanelOrganizacaoHashInstanciasRouteImport
+      parentRoute: typeof PanelOrganizacaoHashRouteRoute
     }
-    '/_panel/equipe': {
-      id: '/_panel/equipe'
+    '/_panel/$organizacaoHash/equipe': {
+      id: '/_panel/$organizacaoHash/equipe'
       path: '/equipe'
-      fullPath: '/equipe'
-      preLoaderRoute: typeof PanelEquipeRouteImport
-      parentRoute: typeof PanelRouteRoute
+      fullPath: '/$organizacaoHash/equipe'
+      preLoaderRoute: typeof PanelOrganizacaoHashEquipeRouteImport
+      parentRoute: typeof PanelOrganizacaoHashRouteRoute
     }
-    '/_panel/ajustes': {
-      id: '/_panel/ajustes'
+    '/_panel/$organizacaoHash/ajustes': {
+      id: '/_panel/$organizacaoHash/ajustes'
       path: '/ajustes'
-      fullPath: '/ajustes'
-      preLoaderRoute: typeof PanelAjustesRouteImport
-      parentRoute: typeof PanelRouteRoute
+      fullPath: '/$organizacaoHash/ajustes'
+      preLoaderRoute: typeof PanelOrganizacaoHashAjustesRouteImport
+      parentRoute: typeof PanelOrganizacaoHashRouteRoute
     }
-    '/_panel/inbox/$instanceId': {
-      id: '/_panel/inbox/$instanceId'
+    '/_panel/$organizacaoHash/inbox/$instanceId': {
+      id: '/_panel/$organizacaoHash/inbox/$instanceId'
       path: '/inbox/$instanceId'
-      fullPath: '/inbox/$instanceId'
-      preLoaderRoute: typeof PanelInboxInstanceIdRouteImport
-      parentRoute: typeof PanelRouteRoute
+      fullPath: '/$organizacaoHash/inbox/$instanceId'
+      preLoaderRoute: typeof PanelOrganizacaoHashInboxInstanceIdRouteImport
+      parentRoute: typeof PanelOrganizacaoHashRouteRoute
     }
   }
 }
 
+interface PanelOrganizacaoHashRouteRouteChildren {
+  PanelOrganizacaoHashAjustesRoute: typeof PanelOrganizacaoHashAjustesRoute
+  PanelOrganizacaoHashEquipeRoute: typeof PanelOrganizacaoHashEquipeRoute
+  PanelOrganizacaoHashInstanciasRoute: typeof PanelOrganizacaoHashInstanciasRoute
+  PanelOrganizacaoHashIntegracaoRoute: typeof PanelOrganizacaoHashIntegracaoRoute
+  PanelOrganizacaoHashRelatoriosRoute: typeof PanelOrganizacaoHashRelatoriosRoute
+  PanelOrganizacaoHashIndexRoute: typeof PanelOrganizacaoHashIndexRoute
+  PanelOrganizacaoHashInboxInstanceIdRoute: typeof PanelOrganizacaoHashInboxInstanceIdRoute
+}
+
+const PanelOrganizacaoHashRouteRouteChildren: PanelOrganizacaoHashRouteRouteChildren =
+  {
+    PanelOrganizacaoHashAjustesRoute: PanelOrganizacaoHashAjustesRoute,
+    PanelOrganizacaoHashEquipeRoute: PanelOrganizacaoHashEquipeRoute,
+    PanelOrganizacaoHashInstanciasRoute: PanelOrganizacaoHashInstanciasRoute,
+    PanelOrganizacaoHashIntegracaoRoute: PanelOrganizacaoHashIntegracaoRoute,
+    PanelOrganizacaoHashRelatoriosRoute: PanelOrganizacaoHashRelatoriosRoute,
+    PanelOrganizacaoHashIndexRoute: PanelOrganizacaoHashIndexRoute,
+    PanelOrganizacaoHashInboxInstanceIdRoute:
+      PanelOrganizacaoHashInboxInstanceIdRoute,
+  }
+
+const PanelOrganizacaoHashRouteRouteWithChildren =
+  PanelOrganizacaoHashRouteRoute._addFileChildren(
+    PanelOrganizacaoHashRouteRouteChildren,
+  )
+
 interface PanelRouteRouteChildren {
-  PanelAjustesRoute: typeof PanelAjustesRoute
-  PanelEquipeRoute: typeof PanelEquipeRoute
-  PanelInstanciasRoute: typeof PanelInstanciasRoute
-  PanelOnboardingRoute: typeof PanelOnboardingRoute
-  PanelRelatoriosRoute: typeof PanelRelatoriosRoute
-  PanelIndexRoute: typeof PanelIndexRoute
-  PanelInboxInstanceIdRoute: typeof PanelInboxInstanceIdRoute
+  PanelOrganizacaoHashRouteRoute: typeof PanelOrganizacaoHashRouteRouteWithChildren
+  PanelIntegracaoRoute: typeof PanelIntegracaoRoute
 }
 
 const PanelRouteRouteChildren: PanelRouteRouteChildren = {
-  PanelAjustesRoute: PanelAjustesRoute,
-  PanelEquipeRoute: PanelEquipeRoute,
-  PanelInstanciasRoute: PanelInstanciasRoute,
-  PanelOnboardingRoute: PanelOnboardingRoute,
-  PanelRelatoriosRoute: PanelRelatoriosRoute,
-  PanelIndexRoute: PanelIndexRoute,
-  PanelInboxInstanceIdRoute: PanelInboxInstanceIdRoute,
+  PanelOrganizacaoHashRouteRoute: PanelOrganizacaoHashRouteRouteWithChildren,
+  PanelIntegracaoRoute: PanelIntegracaoRoute,
 }
 
 const PanelRouteRouteWithChildren = PanelRouteRoute._addFileChildren(
@@ -268,6 +349,7 @@ const PanelRouteRouteWithChildren = PanelRouteRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   PanelRouteRoute: PanelRouteRouteWithChildren,
   ConviteTokenRoute: ConviteTokenRoute,
   RpcSplatRoute: RpcSplatRoute,

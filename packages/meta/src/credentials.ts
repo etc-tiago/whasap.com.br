@@ -8,10 +8,6 @@ export const metaCredentialsSchema = z.object({
 
 export type MetaCredentials = z.infer<typeof metaCredentialsSchema>;
 
-export function metaSecretName(organizationId: string, instanceId: string): string {
-  return `meta/${organizationId}/${instanceId}`;
-}
-
 export function parseMetaCredentials(raw: string): MetaCredentials {
   return metaCredentialsSchema.parse(JSON.parse(raw));
 }

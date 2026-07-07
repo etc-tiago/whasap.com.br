@@ -1,12 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Button } from "@whasap/ui/components/button";
 import { Input } from "@whasap/ui/components/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@whasap/ui/components/input-otp";
 import { Label } from "@whasap/ui/components/label";
 
-import { TurnstileWidget } from "@/components/turnstile-widget";
 import { getOrpcErrorMessage } from "@/lib/orpc-error";
 import { orpc } from "@/lib/orpc";
 
@@ -20,44 +19,36 @@ function ConvitePage() {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const sendOtp = useMutation(orpc.autenticacao.enviarOtp.mutationOptions());
   const aceitar = useMutation(orpc.organizacao.convites.aceitar.mutationOptions());
 
-  const resetTurnstile = useCallback(() => {
-    setTurnstileToken(null);
-    setTurnstileResetKey((k) => k + 1);
-  }, []);
-
   async function handleSendOtp() {
-    if (!turnstileToken || !email) return;
+    if (!email) return;
     setError(null);
     try {
       await sendOtp.mutateAsync({
         email,
         proposito: "convite",
-        turnstileToken,
       });
       setOtpSent(true);
-      resetTurnstile();
     } catch (err) {
       setError(getOrpcErrorMessage(err, "Não foi possível enviar o código."));
-      resetTurnstile();
     }
   }
 
   async function handleAceitar() {
-    if (!turnstileToken || otp.length !== 6) return;
+    if (otp.length !== 6) return;
     setError(null);
     try {
-      await aceitar.mutateAsync({ token, otp, turnstileToken });
-      navigate({ to: "/" });
+      const result = await aceitar.mutateAsync({ token, otp });
+      navigate({
+        to: "/$organizacaoHash",
+        params: { organizacaoHash: result.organizacaoHash },
+      });
     } catch (err) {
       setError(getOrpcErrorMessage(err, "Não foi possível aceitar o convite."));
-      resetTurnstile();
     }
   }
 
@@ -81,10 +72,9 @@ function ConvitePage() {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <TurnstileWidget key={turnstileResetKey} onTokenChange={setTurnstileToken} />
             <Button
               className="w-full"
-              disabled={sendOtp.isPending || !email || !turnstileToken}
+              disabled={sendOtp.isPending || !email}
               onClick={handleSendOtp}
             >
               Enviar código
@@ -105,10 +95,9 @@ function ConvitePage() {
                 </InputOTPGroup>
               </InputOTP>
             </div>
-            <TurnstileWidget key={turnstileResetKey} onTokenChange={setTurnstileToken} />
             <Button
               className="w-full"
-              disabled={aceitar.isPending || otp.length !== 6 || !turnstileToken}
+              disabled={aceitar.isPending || otp.length !== 6}
               onClick={handleAceitar}
             >
               Entrar na organização

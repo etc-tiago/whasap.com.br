@@ -1,0 +1,22 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "whasap-cdn",
+  "main": "src/index.ts",
+  "routes": [
+    {
+      "pattern": "cdn.whasap.com.br",
+      "custom_domain": true
+    }
+  ],
+  "compatibility_date": "2026-07-05",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
+  },
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "whasap-cdn"
+    }
+  ]
+}

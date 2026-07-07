@@ -1,4 +1,4 @@
-import { instances, organizations } from "@whasap/db";
+import { organizacao } from "@whasap/db";
 import { count } from "drizzle-orm";
 
 import { toOrganizacaoOutput } from "../../../lib/mappers";
@@ -10,8 +10,8 @@ export default os.administracao.organizacoes.lista.handler(async ({ context, inp
   const limite = input?.limite ?? 50;
   const offset = input?.offset ?? 0;
 
-  const [totalRow] = await context.db.select({ value: count() }).from(organizations);
-  const rows = await context.client.organizations.findMany({
+  const [totalRow] = await context.db.select({ value: count() }).from(organizacao);
+  const rows = await context.client.organizacao.findMany({
     take: limite,
     skip: offset,
   });

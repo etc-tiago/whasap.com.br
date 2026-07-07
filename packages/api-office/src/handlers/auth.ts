@@ -4,7 +4,6 @@ import {
   failAuthAttemptWithCode,
   sendOtpEmail,
   verifyOtp,
-  verifyTurnstile,
 } from "@whasap/api-core";
 
 import { createSession } from "../lib/session";
@@ -13,18 +12,15 @@ import { requireOfficeAuth, toOfficeSessionOutput } from "./auth-session";
 
 type EnviarOtpInput = {
   email: string;
-  turnstileToken: string;
 };
 
 type EntrarInput = {
   email: string;
   otp: string;
-  turnstileToken: string;
 };
 
 export const autenticacaoHandlers = {
   enviarOtp: async (ctx: OfficeContext, input: EnviarOtpInput) => {
-    await verifyTurnstile(ctx.env, input.turnstileToken, ctx.clientIp);
     const email = input.email.toLowerCase();
     await beginAuthAttempt(ctx.env, email);
 
@@ -45,7 +41,6 @@ export const autenticacaoHandlers = {
   },
 
   entrar: async (ctx: OfficeContext, input: EntrarInput) => {
-    await verifyTurnstile(ctx.env, input.turnstileToken, ctx.clientIp);
     const email = input.email.toLowerCase();
     await beginAuthAttempt(ctx.env, email);
 

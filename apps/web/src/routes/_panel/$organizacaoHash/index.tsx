@@ -1,27 +1,29 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { skipToken, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@whasap/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/card";
 import { Plus } from "lucide-react";
 
-import { useSession } from "@/lib/auth";
+import { orgInput } from "@/lib/org-input";
 import { orpc, type InstanciaItem } from "@/lib/orpc";
+import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
-export const Route = createFileRoute("/_panel/")({
+export const Route = createFileRoute("/_panel/$organizacaoHash/")({
   component: HomePage,
 });
 
 function HomePage() {
-  const { data: session } = useSession();
-  const orgId = session?.organizacao?.id;
+  const organizacaoHash = useOrganizacaoHash();
 
   const instances = useQuery(
     orpc.instancia.lista.queryOptions({
-      input: orgId ? { organizacaoId: orgId } : skipToken,
+      input: orgInput(organizacaoHash),
     }),
   );
 
   const connected = (instances.data ?? []).filter((i: InstanciaItem) => i.status === "connected");
+
+  if (!organizacaoHash) return null;
 
   return (
     <div className="p-6 space-y-6">
@@ -35,7 +37,7 @@ function HomePage() {
           </p>
         </div>
         <Button asChild>
-          <Link to="/instancias">
+          <Link to="/$organizacaoHash/instancias" params={{ organizacaoHash }}>
             <Plus className="mr-2 h-4 w-4" />
             Instâncias
           </Link>
@@ -53,7 +55,9 @@ function HomePage() {
               Business) para começar a receber mensagens.
             </p>
             <Button asChild>
-              <Link to="/instancias">Contratar instância</Link>
+              <Link to="/$organizacaoHash/instancias" params={{ organizacaoHash }}>
+                Contratar instância
+              </Link>
             </Button>
           </CardContent>
         </Card>
@@ -69,7 +73,10 @@ function HomePage() {
                   {inst.provider === "cloud_api" ? "Cloud API" : "WhatsApp Business"}
                 </p>
                 <Button asChild size="sm" variant="outline">
-                  <Link to="/inbox/$instanceId" params={{ instanceId: inst.id }}>
+                  <Link
+                    to="/$organizacaoHash/inbox/$instanceId"
+                    params={{ organizacaoHash, instanceId: inst.id }}
+                  >
                     Abrir inbox
                   </Link>
                 </Button>

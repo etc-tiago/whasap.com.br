@@ -1,17 +1,17 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-import { instanciaSchema, instanceProviderSchema } from "../../schemas";
+import { instanciaSchema, instanceProviderSchema, organizacaoHashSchema } from "../../schemas";
 
 export const instanciaContract = {
   lista: oc
-    .input(z.object({ organizacaoId: z.string().uuid() }))
+    .input(z.object({ organizacaoHash: organizacaoHashSchema }))
     .output(z.array(instanciaSchema)),
 
   criar: oc
     .input(
       z.object({
-        organizacaoId: z.string().uuid(),
+        organizacaoHash: organizacaoHashSchema,
         nome: z.string().min(2),
         provider: instanceProviderSchema,
       }),

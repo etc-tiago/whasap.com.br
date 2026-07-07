@@ -19,7 +19,15 @@ Se o schema mudar, altere apenas `packages/db/src/schema/` e informe o desenvolv
 ## Convenções
 
 - Schema em `packages/db/src/schema/`; acesso em runtime via `createDb()` → `{ db, client }`
+- **Chaves TS em pt-BR + `casing: "snake_case"`** — omitir o 2º argumento das colunas quando a chave TS já define o nome (`organizacaoId` → `organizacao_id`); o 1º arg de `pgTable` define o nome SQL da tabela
 - **Preferir `client.*`** (better-drizzle) para CRUD e lookups por `uuid`; plugins timestamps (`criadoEm`/`atualizadoEm`) e soft-delete (`excluidoEm`)
-- **`db` cru** só para agregações pesadas (relatórios, counts admin) ou SQL explícito
+- **`db` cru** só para agregações pesadas (relatórios, counts admin) ou SQL explícito — `drizzle()` também usa `casing: "snake_case"`
 - Workers usam Hyperdrive: `createDb(env.HYPERDRIVE.connectionString)`
 - Frontends nunca importam `@whasap/db`
+
+## Índices
+
+- Indexar FKs e colunas usadas em `where`, `orderBy` e joins dos handlers
+- **Campo único isolado:** `campo().unique()` — não usar `uniqueIndex()` de um campo só
+- **Compostos:** `index("nome_idx").on(t.a, t.b)` ou `unique().on(t.a, t.b)` no callback de `pgTable`
+- `uuid` exportável já tem `.unique()` por padrão — não duplicar índice

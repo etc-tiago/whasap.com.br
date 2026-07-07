@@ -12,6 +12,15 @@
         "wrangler": "^4.54.0",
       },
     },
+    "apps/cdn": {
+      "name": "cdn",
+      "devDependencies": {
+        "@cloudflare/workers-types": "^4.20250705.0",
+        "@whasap/typescript-config": "workspace:*",
+        "typescript": "^5.8.3",
+        "wrangler": "^4.54.0",
+      },
+    },
     "apps/office": {
       "name": "office",
       "dependencies": {
@@ -106,6 +115,7 @@
     "apps/webhook": {
       "name": "webhook",
       "dependencies": {
+        "@whasap/api-core": "workspace:*",
         "@whasap/asaas": "workspace:*",
         "@whasap/config": "workspace:*",
         "@whasap/db": "workspace:*",
@@ -202,6 +212,7 @@
         "drizzle-orm": "^0.44.2",
       },
       "devDependencies": {
+        "@types/node": "^22.16.5",
         "@whasap/typescript-config": "workspace:*",
         "drizzle-kit": "^0.31.4",
         "typescript": "^5.8.3",
@@ -911,6 +922,8 @@
     "buffer-from": ["buffer-from@1.1.2", "", {}, "sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ=="],
 
     "caniuse-lite": ["caniuse-lite@1.0.30001800", "", {}, "sha512-MMHtuAz9Ys840zAY5F4k6fV5GaivZ9sPk+nz0mY+GYVzRBnYkN0mpqkSR92oWRQ19yQWo4HvBV/FnC16AJX8MA=="],
+
+    "cdn": ["cdn@workspace:apps/cdn"],
 
     "chokidar": ["chokidar@5.0.0", "", { "dependencies": { "readdirp": "^5.0.0" } }, "sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw=="],
 

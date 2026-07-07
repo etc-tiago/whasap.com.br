@@ -3,6 +3,8 @@ import { z } from "zod";
 
 import {
   memberRoleSchema,
+  organizacaoComPapelSchema,
+  organizacaoHashSchema,
   organizacaoMembroSchema,
   organizacaoSchema,
 } from "../../schemas";
@@ -10,14 +12,18 @@ import {
 export const organizacaoContract = {
   lista: oc.output(z.array(organizacaoSchema)),
 
-  obter: oc
-    .input(z.object({ organizacaoId: z.string().uuid() }))
+  criar: oc
+    .input(z.object({ nome: z.string().min(2) }))
     .output(organizacaoSchema),
+
+  obter: oc
+    .input(z.object({ organizacaoHash: organizacaoHashSchema }))
+    .output(organizacaoComPapelSchema),
 
   atualizar: oc
     .input(
       z.object({
-        organizacaoId: z.string().uuid(),
+        organizacaoHash: organizacaoHashSchema,
         nome: z.string().min(2).optional(),
         documento: z.string().optional(),
         tipoDocumento: z.enum(["cpf", "cnpj"]).optional(),
@@ -27,18 +33,18 @@ export const organizacaoContract = {
     .output(organizacaoSchema),
 
   trocar: oc
-    .input(z.object({ organizacaoId: z.string().uuid() }))
+    .input(z.object({ organizacaoHash: organizacaoHashSchema }))
     .output(z.object({ ok: z.boolean() })),
 
   membros: {
     lista: oc
-      .input(z.object({ organizacaoId: z.string().uuid() }))
+      .input(z.object({ organizacaoHash: organizacaoHashSchema }))
       .output(z.array(organizacaoMembroSchema)),
 
     convidar: oc
       .input(
         z.object({
-          organizacaoId: z.string().uuid(),
+          organizacaoHash: organizacaoHashSchema,
           email: z.string().email(),
           nome: z.string().min(2).optional(),
           role: memberRoleSchema.default("usuario"),
@@ -62,7 +68,7 @@ export const organizacaoContract = {
 
   convites: {
     lista: oc
-      .input(z.object({ organizacaoId: z.string().uuid() }))
+      .input(z.object({ organizacaoHash: organizacaoHashSchema }))
       .output(
         z.array(
           z.object({
@@ -81,9 +87,8 @@ export const organizacaoContract = {
         z.object({
           token: z.string().min(1),
           otp: z.string().length(6),
-          turnstileToken: z.string().min(1),
         }),
       )
-      .output(z.object({ ok: z.boolean(), organizacaoId: z.string().uuid() })),
+      .output(z.object({ ok: z.boolean(), organizacaoHash: z.string().uuid() })),
   },
 };

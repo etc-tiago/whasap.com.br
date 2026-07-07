@@ -1,5 +1,5 @@
 import { notFound } from "@whasap/api-core";
-import { instances } from "@whasap/db";
+import { instancia } from "@whasap/db";
 import { count, eq } from "drizzle-orm";
 
 import { requireOfficeAuth } from "../../../handlers/auth-session";
@@ -12,9 +12,9 @@ export default os.administracao.instancias.lista.handler(async ({ context, input
   const offset = input?.offset ?? 0;
 
   let orgInternalId: number | undefined;
-  if (input?.organizacaoId) {
-    const org = await context.client.organizations.findFirst({
-      where: { uuid: input.organizacaoId },
+  if (input?.organizacaoHash) {
+    const org = await context.client.organizacao.findFirst({
+      where: { uuid: input.organizacaoHash },
       select: { id: true },
     });
     if (!org) notFound();
@@ -22,14 +22,14 @@ export default os.administracao.instancias.lista.handler(async ({ context, input
   }
 
   const rows = orgInternalId
-    ? await context.client.instances.findMany({
-      where: { organizationId: orgInternalId },
-      include: { organization: true },
+    ? await context.client.instancia.findMany({
+      where: { organizacaoId: orgInternalId },
+      include: { organizacao: true },
       take: limite,
       skip: offset,
     })
-    : await context.client.instances.findMany({
-      include: { organization: true },
+    : await context.client.instancia.findMany({
+      include: { organizacao: true },
       take: limite,
       skip: offset,
     });
@@ -37,12 +37,12 @@ export default os.administracao.instancias.lista.handler(async ({ context, input
   const [totalRow] = orgInternalId
     ? await context.db
       .select({ value: count() })
-      .from(instances)
-      .where(eq(instances.organizationId, orgInternalId))
-    : await context.db.select({ value: count() }).from(instances);
+      .from(instancia)
+      .where(eq(instancia.organizacaoId, orgInternalId))
+    : await context.db.select({ value: count() }).from(instancia);
 
   return {
-    itens: rows.map((r) => toInstanciaOutput(r, r.organization!.uuid)),
+    itens: rows.map((r) => toInstanciaOutput(r, r.organizacao!.uuid)),
     total: totalRow?.value ?? 0,
   };
 });

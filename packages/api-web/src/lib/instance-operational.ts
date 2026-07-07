@@ -1,13 +1,13 @@
-import type { instances } from "@whasap/db";
+import type { instancia } from "@whasap/db";
 
 type InstanceRow = Pick<
-  typeof instances.$inferSelect,
-  "status" | "asaasSubscriptionId" | "trialEndsAt"
+  typeof instancia.$inferSelect,
+  "status" | "asaasIdAssinatura" | "trialTerminaEm"
 >;
 
 /** Instância pronta para uso no painel (conectada + assinatura ativa). */
 export function isInstanceOperational(instance: InstanceRow): boolean {
-  return instance.status === "connected" && instance.asaasSubscriptionId !== null;
+  return instance.status === "connected" && instance.asaasIdAssinatura !== null;
 }
 
 export function isOrgOnboardingComplete(
@@ -16,9 +16,9 @@ export function isOrgOnboardingComplete(
   return instances.some(isInstanceOperational);
 }
 
-export function trialDaysRemaining(trialEndsAt: Date | null): number | null {
-  if (!trialEndsAt) return null;
-  const ms = trialEndsAt.getTime() - Date.now();
+export function trialDaysRemaining(trialTerminaEm: Date | null): number | null {
+  if (!trialTerminaEm) return null;
+  const ms = trialTerminaEm.getTime() - Date.now();
   if (ms <= 0) return 0;
   return Math.ceil(ms / (24 * 60 * 60 * 1000));
 }

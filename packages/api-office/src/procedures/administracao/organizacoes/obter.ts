@@ -6,8 +6,8 @@ import { requireOfficeAuth } from "../../../handlers/auth-session";
 
 export default os.administracao.organizacoes.obter.handler(async ({ context, input }) => {
   requireOfficeAuth(context);
-  const org = await context.client.organizations.findFirst({
-    where: { uuid: input.organizacaoId },
+  const org = await context.client.organizacao.findFirst({
+    where: { uuid: input.organizacaoHash },
   });
   if (!org) notFound();
   return toOrganizacaoOutput(org);

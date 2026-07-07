@@ -3,9 +3,7 @@ import {
   createOtp,
   failAuthAttemptWithCode,
   sendOtpEmail,
-  slugify,
   verifyOtp,
-  verifyTurnstile,
 } from "@whasap/api-core";
 import { appCreateData } from "@whasap/db";
 
@@ -19,6 +17,8 @@ export {
   requireAuth,
   requireOrg,
   requireOrgInternal,
+  resolveMembership,
+  resolveMembershipInternal,
   toSessionOutput,
 } from "./auth-session";
 
@@ -31,27 +31,22 @@ const propositoInterno = {
 type EnviarOtpInput = {
   email: string;
   proposito: keyof typeof propositoInterno;
-  turnstileToken: string;
 };
 
 type EntrarInput = {
   email: string;
   otp: string;
-  turnstileToken: string;
 };
 
 type CadastrarInput = {
   email: string;
   nome: string;
-  nomeOrganizacao: string;
   otp: string;
   lgpdConsent: true;
-  turnstileToken: string;
 };
 
 export const autenticacaoHandlers = {
   enviarOtp: async (ctx: WebContext, input: EnviarOtpInput) => {
-    await verifyTurnstile(ctx.env, input.turnstileToken, ctx.clientIp);
     const email = input.email.toLowerCase();
     await beginAuthAttempt(ctx.env, email);
     const finalidade = propositoInterno[input.proposito];
@@ -86,7 +81,6 @@ export const autenticacaoHandlers = {
   },
 
   cadastrar: async (ctx: WebContext, input: CadastrarInput) => {
-    await verifyTurnstile(ctx.env, input.turnstileToken, ctx.clientIp);
     const email = input.email.toLowerCase();
     await beginAuthAttempt(ctx.env, email);
 
@@ -101,12 +95,6 @@ export const autenticacaoHandlers = {
     }
 
     const now = new Date();
-    let slug = slugify(input.nomeOrganizacao);
-    const slugConflict = await ctx.client.organizations.findFirst({
-      where: { slug },
-      select: { id: true },
-    });
-    if (slugConflict) slug = `${slug}-${crypto.randomUUID().slice(0, 8)}`;
 
     const user = await ctx.client.usuario.create({
       data: appCreateData({
@@ -117,23 +105,7 @@ export const autenticacaoHandlers = {
       }),
     });
 
-    const org = await ctx.client.organizations.create({
-      data: appCreateData({
-        name: input.nomeOrganizacao,
-        slug,
-      }),
-    });
-
-    await ctx.client.organizationMembers.create({
-      data: appCreateData({
-        organizationId: org.id,
-        usuarioId: user.id,
-        role: "admin",
-        joinedAt: now,
-      }),
-    });
-
-    const token = await createSession(ctx, user.id, org.id);
+    const token = await createSession(ctx, user.id);
     ctx.sessionToken = token;
     ctx.usuario = {
       id: user.uuid,
@@ -142,14 +114,13 @@ export const autenticacaoHandlers = {
       nome: user.nome,
       emailVerificadoEm: user.emailVerificadoEm,
     };
-    ctx.organizationId = org.id;
-    ctx.role = "admin";
+    ctx.organizationId = null;
+    ctx.role = null;
 
-    return toSessionOutput(ctx, org);
+    return toSessionOutput(ctx, null);
   },
 
   entrar: async (ctx: WebContext, input: EntrarInput) => {
-    await verifyTurnstile(ctx.env, input.turnstileToken, ctx.clientIp);
     const email = input.email.toLowerCase();
     await beginAuthAttempt(ctx.env, email);
 
@@ -176,16 +147,7 @@ export const autenticacaoHandlers = {
 
     const loggedInUser = user!;
 
-    const membership = await ctx.client.organizationMembers.findFirst({
-      where: { usuarioId: loggedInUser.id },
-      include: { organization: true },
-    });
-
-    const token = await createSession(
-      ctx,
-      loggedInUser.id,
-      membership?.organizationId ?? undefined,
-    );
+    const token = await createSession(ctx, loggedInUser.id);
     ctx.sessionToken = token;
     ctx.usuario = {
       id: loggedInUser.uuid,
@@ -194,10 +156,10 @@ export const autenticacaoHandlers = {
       nome: loggedInUser.nome,
       emailVerificadoEm: loggedInUser.emailVerificadoEm,
     };
-    ctx.organizationId = membership?.organizationId ?? null;
-    ctx.role = membership?.role ?? null;
+    ctx.organizationId = null;
+    ctx.role = null;
 
-    return toSessionOutput(ctx, membership?.organization ?? null);
+    return toSessionOutput(ctx, null);
   },
 
   sair: async (ctx: WebContext) => {
@@ -211,12 +173,6 @@ export const autenticacaoHandlers = {
   eu: async (ctx: WebContext) => {
     const { requireAuth } = await import("./auth-session");
     requireAuth(ctx);
-    let org = null;
-    if (ctx.organizationId) {
-      org = await ctx.client.organizations.findFirst({
-        where: { id: ctx.organizationId },
-      });
-    }
-    return toSessionOutput(ctx, org);
+    return toSessionOutput(ctx, null);
   },
 };

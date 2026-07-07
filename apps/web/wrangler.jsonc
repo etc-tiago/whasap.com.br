@@ -2,8 +2,16 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "whasap-web",
   "main": "@tanstack/react-start/server-entry",
+  "routes": [
+    {
+      "pattern": "web.whasap.com.br",
+      "custom_domain": true
+    }
+  ],
   "compatibility_date": "2026-07-05",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "observability": {
     "enabled": true
   },
@@ -11,22 +19,29 @@
     "WEB_URL": "http://localhost:3000",
     "OFFICE_URL": "http://localhost:3001",
     "WEBHOOK_URL": "http://localhost:8788",
-    "EMAIL_FROM": "noreply@localhost"
+    "CDN_URL": "http://localhost:8789",
+    "EMAIL_FROM": "noreply@whasap.com.br"
   },
   "secrets": {
     "required": [
-      "AUTH_SECRET",
-      "ASAAS_API_KEY",
-      "TURNSTILE_SECRET_KEY"
+      "AUTH_SECRET"
     ]
   },
+  // Secrets Store (produção): substitua store_id pelo ID real (`wrangler secrets-store store list`)
+  "secrets_store_secrets": [
+    {
+      "binding": "ASSAS_API_KEY_ETC",
+      "store_id": "ASSAS_API_KEY_ETC",
+      "secret_name": "ASAAS_API_KEY"
+    }
+  ],
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "<HYPERDRIVE_ID>"
+      "id": "c8f9852b6dc748489154722036fb4e48",
+      "localConnectionString": "postgres://postgres:postgres@db.localtest.me:5432/whasap"
     }
   ],
-  // Alinhado com mvpDefaults.auth.attemptRateLimit / attemptRateLimitWindowSeconds
   "ratelimits": [
     {
       "name": "AUTH_RATE_LIMIT",

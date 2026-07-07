@@ -1,5 +1,5 @@
 import { forbidden, notFound } from "@whasap/api-core";
-import { sendInviteEmail, verifyOtp, verifyTurnstile } from "@whasap/api-core";
+import { sendInviteEmail, slugify, verifyOtp } from "@whasap/api-core";
 import { appCreateData, resolveInternalId } from "@whasap/db";
 
 import { toOrganizacaoOutput } from "../lib/mappers";
@@ -11,70 +11,104 @@ import {
   requireAuth,
   requireOrg,
   requireOrgInternal,
+  resolveMembership,
 } from "./auth";
 import { persistSessionOrganization } from "../lib/session";
 
 export const organizacaoHandlers = {
   lista: async (ctx: WebContext) => {
     const current = requireAuth(ctx);
-    const rows = await ctx.client.organizationMembers.findMany({
+    const rows = await ctx.client.organizacaoMembro.findMany({
       where: { usuarioId: current.internalId },
-      include: { organization: true },
+      include: { organizacao: true },
     });
-    return rows.map((r) => toOrganizacaoOutput(r.organization!));
+    return rows
+      .filter((r) => r.organizacao)
+      .sort((a, b) => a.ingressouEm.getTime() - b.ingressouEm.getTime())
+      .map((r) => toOrganizacaoOutput(r.organizacao!));
   },
 
-  obter: async (ctx: WebContext, input: { organizacaoId: string }) => {
-    await requireOrg(ctx, input.organizacaoId);
-    const org = await ctx.client.organizations.findFirst({
-      where: { uuid: input.organizacaoId },
+  criar: async (ctx: WebContext, input: { nome: string }) => {
+    const current = requireAuth(ctx);
+    const now = new Date();
+
+    let slug = slugify(input.nome);
+    const slugConflict = await ctx.client.organizacao.findFirst({
+      where: { slug },
+      select: { id: true },
+    });
+    if (slugConflict) slug = `${slug}-${crypto.randomUUID().slice(0, 8)}`;
+
+    const org = await ctx.client.organizacao.create({
+      data: appCreateData({
+        nome: input.nome,
+        slug,
+      }),
+    });
+
+    await ctx.client.organizacaoMembro.create({
+      data: appCreateData({
+        organizacaoId: org.id,
+        usuarioId: current.internalId,
+        papel: "admin",
+        ingressouEm: now,
+      }),
+    });
+
+    return toOrganizacaoOutput(org);
+  },
+
+  obter: async (ctx: WebContext, input: { organizacaoHash: string }) => {
+    const { role } = await resolveMembership(ctx, input.organizacaoHash);
+    const org = await ctx.client.organizacao.findFirst({
+      where: { uuid: input.organizacaoHash },
     });
     if (!org) notFound();
-    return toOrganizacaoOutput(org);
+    return { ...toOrganizacaoOutput(org), meuPapel: role };
   },
 
   atualizar: async (
     ctx: WebContext,
     input: {
-      organizacaoId: string;
+      organizacaoHash: string;
       nome?: string;
       documento?: string;
       tipoDocumento?: "cpf" | "cnpj";
       razaoSocial?: string;
     },
   ) => {
-    await requireAdmin(ctx, input.organizacaoId);
-    const org = await ctx.client.organizations.update({
-      where: { uuid: input.organizacaoId },
+    await requireAdmin(ctx, input.organizacaoHash);
+    const org = await ctx.client.organizacao.update({
+      where: { uuid: input.organizacaoHash },
       data: {
-        name: input.nome,
-        taxId: input.documento,
-        taxIdType: input.tipoDocumento,
-        legalName: input.razaoSocial,
+        nome: input.nome,
+        documentoFiscal: input.documento,
+        tipoDocumento: input.tipoDocumento,
+        razaoSocial: input.razaoSocial,
       },
     });
     if (!org) notFound();
     return toOrganizacaoOutput(org);
   },
 
-  trocar: async (ctx: WebContext, input: { organizacaoId: string }) => {
+  trocar: async (ctx: WebContext, input: { organizacaoHash: string }) => {
     const current = requireAuth(ctx);
     const internalOrgId = await resolveInternalId(
       ctx.client,
-      "organizations",
-      input.organizacaoId,
+      "organizacao",
+      input.organizacaoHash,
     );
     if (internalOrgId === null) notFound();
 
-    const membership = await ctx.client.organizationMembers.findFirst({
+    const membership = await ctx.client.organizacaoMembro.findFirst({
       where: {
         usuarioId: current.internalId,
-        organizationId: internalOrgId,
+        organizacaoId: internalOrgId,
       },
     });
     if (!membership) forbidden();
     ctx.organizationId = internalOrgId;
-    ctx.role = membership.role;
+    ctx.role = membership.papel;
 
     if (ctx.sessionToken) {
       await persistSessionOrganization(ctx, ctx.sessionToken, internalOrgId);
@@ -84,36 +118,36 @@ export const organizacaoHandlers = {
   },
 
   membros: {
-    lista: async (ctx: WebContext, input: { organizacaoId: string }) => {
+    lista: async (ctx: WebContext, input: { organizacaoHash: string }) => {
       const internalOrgId = await resolveInternalId(
         ctx.client,
-        "organizations",
-        input.organizacaoId,
+        "organizacao",
+        input.organizacaoHash,
       );
       if (internalOrgId === null) notFound();
-      requireOrgInternal(ctx, internalOrgId);
+      await requireOrgInternal(ctx, internalOrgId);
 
-      const rows = await ctx.client.organizationMembers.findMany({
-        where: { organizationId: internalOrgId },
-        include: { organization: true, usuario: true },
+      const rows = await ctx.client.organizacaoMembro.findMany({
+        where: { organizacaoId: internalOrgId },
+        include: { organizacao: true, usuario: true },
       });
 
       return rows
-        .filter((r) => r.organization && r.usuario)
+        .filter((r) => r.organizacao && r.usuario)
         .map((r) => ({
           id: r.uuid,
-          organizacaoId: r.organization!.uuid,
+          organizacaoId: r.organizacao!.uuid,
           usuarioId: r.usuario!.uuid,
           usuarioNome: r.usuario!.nome,
           usuarioEmail: r.usuario!.email,
-          role: r.role,
+          role: r.papel,
         }));
     },
 
     convidar: async (
       ctx: WebContext,
       input: {
-        organizacaoId: string;
+        organizacaoHash: string;
         email: string;
         nome?: string;
         role: "admin" | "usuario" | "analista";
@@ -121,34 +155,34 @@ export const organizacaoHandlers = {
     ) => {
       const internalOrgId = await resolveInternalId(
         ctx.client,
-        "organizations",
-        input.organizacaoId,
+        "organizacao",
+        input.organizacaoHash,
       );
       if (internalOrgId === null) notFound();
-      requireAdminInternal(ctx, internalOrgId);
+      await requireAdminInternal(ctx, internalOrgId);
 
-      const org = await ctx.client.organizations.findFirst({
+      const org = await ctx.client.organizacao.findFirst({
         where: { id: internalOrgId },
       });
       if (!org) notFound();
 
       const token = crypto.randomUUID();
-      const expiresAt = new Date(
+      const expiraEm = new Date(
         Date.now() + mvpDefaults.team.inviteExpiresDays * 24 * 60 * 60 * 1000,
       );
-      const invite = await ctx.client.organizationInvites.create({
+      const invite = await ctx.client.organizacaoConvite.create({
         data: appCreateData({
-          organizationId: internalOrgId,
+          organizacaoId: internalOrgId,
           email: input.email.toLowerCase(),
-          name: input.nome,
-          role: input.role,
+          nome: input.nome,
+          papel: input.role,
           token,
-          expiresAt,
-          createdByUsuarioId: ctx.usuario!.internalId,
+          expiraEm,
+          criadoPorUsuarioId: ctx.usuario!.internalId,
         }),
       });
       const urlConvite = `${ctx.env.WEB_URL}/convite/${token}`;
-      await sendInviteEmail(ctx.env, input.email, org.name, urlConvite);
+      await sendInviteEmail(ctx.env, input.email, org.nome, urlConvite);
       return { conviteId: invite.uuid, urlConvite };
     },
 
@@ -157,70 +191,68 @@ export const organizacaoHandlers = {
       input: { membroId: string; role: "admin" | "usuario" | "analista" },
     ) => {
       requireAuth(ctx);
-      const member = await ctx.client.organizationMembers.findFirst({
+      const member = await ctx.client.organizacaoMembro.findFirst({
         where: { uuid: input.membroId },
       });
       if (!member) notFound();
-      requireAdminInternal(ctx, member.organizationId);
+      await requireAdminInternal(ctx, member.organizacaoId);
 
-      await ctx.client.organizationMembers.update({
+      await ctx.client.organizacaoMembro.update({
         where: { id: member.id },
-        data: { role: input.role },
+        data: { papel: input.role },
       });
       return { ok: true };
     },
 
     desativar: async (ctx: WebContext, input: { membroId: string }) => {
       requireAuth(ctx);
-      const member = await ctx.client.organizationMembers.findFirst({
+      const member = await ctx.client.organizacaoMembro.findFirst({
         where: { uuid: input.membroId },
       });
       if (!member) notFound();
-      requireAdminInternal(ctx, member.organizationId);
+      await requireAdminInternal(ctx, member.organizacaoId);
       if (member.usuarioId === ctx.usuario!.internalId) forbidden("Não é possível remover a si mesmo");
 
-      await ctx.client.organizationMembers.delete({ where: { id: member.id } });
+      await ctx.client.organizacaoMembro.delete({ where: { id: member.id } });
       return { ok: true };
     },
   },
 
   convites: {
-    lista: async (ctx: WebContext, input: { organizacaoId: string }) => {
+    lista: async (ctx: WebContext, input: { organizacaoHash: string }) => {
       const internalOrgId = await resolveInternalId(
         ctx.client,
-        "organizations",
-        input.organizacaoId,
+        "organizacao",
+        input.organizacaoHash,
       );
       if (internalOrgId === null) notFound();
-      requireAdminInternal(ctx, internalOrgId);
+      await requireAdminInternal(ctx, internalOrgId);
 
-      const rows = await ctx.client.organizationInvites.findMany({
-        where: { organizationId: internalOrgId },
+      const rows = await ctx.client.organizacaoConvite.findMany({
+        where: { organizacaoId: internalOrgId },
       });
 
       return rows.map((r) => ({
         id: r.uuid,
         email: r.email,
-        nome: r.name,
-        role: r.role,
-        expiraEm: r.expiresAt.toISOString(),
-        aceitoEm: r.acceptedAt?.toISOString() ?? null,
+        nome: r.nome,
+        role: r.papel,
+        expiraEm: r.expiraEm.toISOString(),
+        aceitoEm: r.aceitoEm?.toISOString() ?? null,
       }));
     },
 
     aceitar: async (
       ctx: WebContext,
-      input: { token: string; otp: string; turnstileToken: string },
+      input: { token: string; otp: string },
     ) => {
-      await verifyTurnstile(ctx.env, input.turnstileToken, ctx.clientIp);
-
-      const invite = await ctx.client.organizationInvites.findFirst({
+      const invite = await ctx.client.organizacaoConvite.findFirst({
         where: { token: input.token },
-        include: { organization: true },
+        include: { organizacao: true },
       });
-      if (!invite?.organization) notFound();
-      if (invite.acceptedAt) forbidden("Convite já aceito");
-      if (invite.expiresAt < new Date()) forbidden("Convite expirado");
+      if (!invite?.organizacao) notFound();
+      if (invite.aceitoEm) forbidden("Convite já aceito");
+      if (invite.expiraEm < new Date()) forbidden("Convite expirado");
 
       const email = invite.email.toLowerCase();
       const valid = await verifyOtp(ctx, email, "invite", input.otp);
@@ -231,33 +263,33 @@ export const organizacaoHandlers = {
         user = await ctx.client.usuario.create({
           data: appCreateData({
             email,
-            nome: invite.name ?? email.split("@")[0] ?? email,
+            nome: invite.nome ?? email.split("@")[0] ?? email,
             emailVerificadoEm: new Date(),
           }),
         });
       }
 
-      const existing = await ctx.client.organizationMembers.findFirst({
-        where: { organizationId: invite.organizationId, usuarioId: user.id },
+      const existing = await ctx.client.organizacaoMembro.findFirst({
+        where: { organizacaoId: invite.organizacaoId, usuarioId: user.id },
       });
       if (!existing) {
-        await ctx.client.organizationMembers.create({
+        await ctx.client.organizacaoMembro.create({
           data: appCreateData({
-            organizationId: invite.organizationId,
+            organizacaoId: invite.organizacaoId,
             usuarioId: user.id,
-            role: invite.role,
-            invitedAt: invite.criadoEm,
-            joinedAt: new Date(),
+            papel: invite.papel,
+            convidadoEm: invite.criadoEm,
+            ingressouEm: new Date(),
           }),
         });
       }
 
-      await ctx.client.organizationInvites.update({
+      await ctx.client.organizacaoConvite.update({
         where: { id: invite.id },
-        data: { acceptedAt: new Date() },
+        data: { aceitoEm: new Date() },
       });
 
-      return { ok: true, organizacaoId: invite.organization.uuid };
+      return { ok: true, organizacaoHash: invite.organizacao.uuid };
     },
   },
 };

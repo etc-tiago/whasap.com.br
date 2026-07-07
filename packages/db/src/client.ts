@@ -8,7 +8,7 @@ import * as schema from "./schema";
 
 export function createDb(connectionString: string) {
   const sql = neon(connectionString);
-  const db = drizzle({ client: sql, schema });
+  const db = drizzle({ client: sql, schema, casing: "snake_case" });
   const client = better(db, {
     schema,
     plugins: [

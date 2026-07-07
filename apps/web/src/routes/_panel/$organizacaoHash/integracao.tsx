@@ -15,10 +15,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@whasap/ui/components/tabs";
 import { Check, Gift, Smartphone } from "lucide-react";
 
-import { useSession } from "@/lib/auth";
+import { orgInput } from "@/lib/org-input";
 import { orpc } from "@/lib/orpc";
+import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
-export const Route = createFileRoute("/_panel/onboarding")({
+export const Route = createFileRoute("/_panel/$organizacaoHash/integracao")({
   validateSearch: (s: Record<string, unknown>) => ({
     instance: (s.instance as string) ?? "",
     step: (s.step as string) ?? "",
@@ -31,9 +32,7 @@ type WizardStep = "tipo" | "conexao" | "trial" | "pagamento" | "concluido";
 function OnboardingPage() {
   const navigate = useNavigate();
   const { instance: instanceId, step: searchStep } = Route.useSearch();
-  const { data: session } = useSession();
-
-  const [nome, setNome] = useState("");
+  const organizacaoHash = useOrganizacaoHash();
   const [provider, setProvider] = useState<"evolution" | "cloud_api">("evolution");
   const [documento, setDocumento] = useState("");
   const [tipoDocumento, setTipoDocumento] = useState<"cpf" | "cnpj">("cnpj");
@@ -42,8 +41,7 @@ function OnboardingPage() {
   const [cloudWaba, setCloudWaba] = useState("");
   const [cloudToken, setCloudToken] = useState("");
   const [activeInstanceId, setActiveInstanceId] = useState(instanceId);
-
-  const orgId = session?.organizacao?.id;
+  const [nome, setNome] = useState("");
 
   const instance = useQuery(
     orpc.instancia.obter.queryOptions({
@@ -84,11 +82,14 @@ function OnboardingPage() {
   })();
 
   useEffect(() => {
-    if (wizardStep === "concluido" && activeInstanceId) {
-      const t = setTimeout(() => navigate({ to: "/" }), 2000);
+    if (wizardStep === "concluido" && activeInstanceId && organizacaoHash) {
+      const t = setTimeout(
+        () => navigate({ to: "/$organizacaoHash", params: { organizacaoHash } }),
+        2000,
+      );
       return () => clearTimeout(t);
     }
-  }, [wizardStep, activeInstanceId, navigate]);
+  }, [wizardStep, activeInstanceId, navigate, organizacaoHash]);
 
   useEffect(() => {
     if (
@@ -103,14 +104,18 @@ function OnboardingPage() {
   }, [activeInstanceId, inst?.provider, inst?.status, provisionar.isPending, provisionar.isSuccess]);
 
   async function handleCriarInstancia() {
-    if (!orgId || !nome.trim()) return;
+    if (!organizacaoHash || !nome.trim()) return;
     const created = await criar.mutateAsync({
-      organizacaoId: orgId,
+      organizacaoHash,
       nome,
       provider,
     });
     setActiveInstanceId(created.id);
-    navigate({ to: "/onboarding", search: { instance: created.id, step: "" } });
+    navigate({
+      to: "/$organizacaoHash/integracao",
+      params: { organizacaoHash },
+      search: { instance: created.id, step: "" },
+    });
   }
 
   async function handleCloudManual() {
@@ -285,7 +290,8 @@ function OnboardingPage() {
                 className="w-full"
                 onClick={() =>
                   navigate({
-                    to: "/onboarding",
+                    to: "/$organizacaoHash/integracao",
+                    params: { organizacaoHash: organizacaoHash! },
                     search: { instance: activeInstanceId, step: "" },
                   })
                 }
@@ -337,7 +343,8 @@ function OnboardingPage() {
               className="w-full"
               onClick={() =>
                 navigate({
-                  to: "/onboarding",
+                  to: "/$organizacaoHash/integracao",
+                  params: { organizacaoHash: organizacaoHash! },
                   search: { instance: activeInstanceId, step: "pagamento" },
                 })
               }

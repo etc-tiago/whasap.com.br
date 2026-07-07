@@ -1,35 +1,26 @@
 import { createAsaasClient } from "@whasap/asaas";
+import { getAsaasApiKey, isAsaasSandbox, type AsaasSecretsEnv } from "@whasap/api-core";
 import { mvpDefaults } from "@whasap/config";
-import type { organizations } from "@whasap/db";
+import type { organizacao } from "@whasap/db";
 
-export type AsaasEnv = {
-  ASAAS_API_KEY: string;
-  ASAAS_SANDBOX?: string;
-};
+export type AsaasEnv = AsaasSecretsEnv;
 
-function isSandbox(env: AsaasEnv): boolean {
-  return env.ASAAS_SANDBOX === "true";
-}
-
-export function createAsaasFromEnv(env: AsaasEnv) {
+export async function createAsaasFromEnv(env: AsaasEnv) {
   return createAsaasClient({
-    apiKey: env.ASAAS_API_KEY,
-    sandbox: isSandbox(env),
+    apiKey: await getAsaasApiKey(env),
+    sandbox: isAsaasSandbox(env),
   });
 }
 
 export async function ensureAsaasCustomer(
   env: AsaasEnv,
-  org: typeof organizations.$inferSelect & {
-    taxId?: string | null;
-    legalName?: string | null;
-  },
+  org: typeof organizacao.$inferSelect,
 ): Promise<string> {
-  if (org.asaasCustomerId) return org.asaasCustomerId;
-  const asaas = createAsaasFromEnv(env);
+  if (org.asaasIdCliente) return org.asaasIdCliente;
+  const asaas = await createAsaasFromEnv(env);
   const customer = await asaas.customers.create({
-    name: org.legalName ?? org.name,
-    cpfCnpj: org.taxId ?? "",
+    name: org.razaoSocial ?? org.nome,
+    cpfCnpj: org.documentoFiscal ?? "",
   });
   return customer.id;
 }
@@ -44,7 +35,7 @@ export async function createInstanceCheckout(params: {
   cancelUrl: string;
   expiredUrl: string;
 }): Promise<string> {
-  const asaas = createAsaasFromEnv(params.env);
+  const asaas = await createAsaasFromEnv(params.env);
   const checkout = await asaas.checkouts.createInstanceCheckout({
     customerId: params.customerId,
     customerData: params.customerData,
@@ -68,7 +59,7 @@ export async function createConversationPackCheckout(params: {
   cancelUrl: string;
   expiredUrl: string;
 }): Promise<string> {
-  const asaas = createAsaasFromEnv(params.env);
+  const asaas = await createAsaasFromEnv(params.env);
   const checkout = await asaas.checkouts.createConversationPackCheckout({
     customerId: params.customerId,
     customerData: params.customerData,

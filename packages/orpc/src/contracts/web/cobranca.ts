@@ -1,6 +1,8 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
+import { organizacaoHashSchema } from "../../schemas";
+
 const cobrancaPendenteSchema = z.object({
   id: z.string(),
   valor: z.number(),
@@ -11,7 +13,7 @@ const cobrancaPendenteSchema = z.object({
 
 export const cobrancaContract = {
   assinaturas: oc
-    .input(z.object({ organizacaoId: z.string().uuid() }))
+    .input(z.object({ organizacaoHash: organizacaoHashSchema }))
     .output(
       z.object({
         assinaturas: z.array(

@@ -23,20 +23,30 @@ import {
 import { cn } from "@whasap/ui/lib/utils";
 
 import { useSession } from "@/lib/auth";
+import { orgInput } from "@/lib/org-input";
 import { orpc, type ConversaItem, type MensagemItem } from "@/lib/orpc";
+import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
-export const Route = createFileRoute("/_panel/inbox/$instanceId")({
+export const Route = createFileRoute("/_panel/$organizacaoHash/inbox/$instanceId")({
   component: InboxPage,
 });
 
 function InboxPage() {
   const { instanceId } = Route.useParams();
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
+  const organizacaoHash = useOrganizacaoHash();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignUserId, setAssignUserId] = useState<string>("");
+
+  const { data: session } = useSession();
+
+  const org = useQuery(
+    orpc.organizacao.obter.queryOptions({
+      input: orgInput(organizacaoHash),
+    }),
+  );
 
   const instance = useQuery(
     orpc.instancia.obter.queryOptions({ input: { instanciaId: instanceId } }),
@@ -56,9 +66,7 @@ function InboxPage() {
 
   const membros = useQuery(
     orpc.organizacao.membros.lista.queryOptions({
-      input: session?.organizacao?.id
-        ? { organizacaoId: session.organizacao.id }
-        : skipToken,
+      input: orgInput(organizacaoHash),
     }),
   );
 
@@ -102,9 +110,9 @@ function InboxPage() {
     selected?.janelaCloudExpiraEm && new Date(selected.janelaCloudExpiraEm) > new Date();
 
   const canSend =
-    session?.role === "admin" ||
-    (session?.role === "usuario" &&
-      (!selected?.usuarioAtribuidoId || selected.usuarioAtribuidoId === session.usuario?.id));
+    org.data?.meuPapel === "admin" ||
+    (org.data?.meuPapel === "usuario" &&
+      (!selected?.usuarioAtribuidoId || selected.usuarioAtribuidoId === session?.usuario?.id));
 
   const composerDisabled = isCloud && !cloudWindowOpen;
 

@@ -1,11 +1,13 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
+import { organizacaoHashSchema } from "../../schemas";
+
 export const relatoriosContract = {
   visaoGeral: oc
     .input(
       z.object({
-        organizacaoId: z.string().uuid(),
+        organizacaoHash: organizacaoHashSchema,
         de: z.string().datetime(),
         ate: z.string().datetime(),
         instanciaId: z.string().uuid().optional(),

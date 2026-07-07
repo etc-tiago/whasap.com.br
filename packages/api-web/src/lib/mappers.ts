@@ -1,8 +1,4 @@
-import type {
-  instances,
-  organizations,
-  usuario,
-} from "@whasap/db";
+import type { instancia, organizacao, usuario } from "@whasap/db";
 
 export function toUsuarioOutput(u: typeof usuario.$inferSelect) {
   return {
@@ -13,34 +9,33 @@ export function toUsuarioOutput(u: typeof usuario.$inferSelect) {
   };
 }
 
-export function toOrganizacaoOutput(org: typeof organizations.$inferSelect) {
+export function toOrganizacaoOutput(org: typeof organizacao.$inferSelect) {
   return {
     id: org.uuid,
-    nome: org.name,
+    nome: org.nome,
     slug: org.slug,
-    documento: org.taxId,
-    tipoDocumento: org.taxIdType,
-    razaoSocial: org.legalName,
-    asaasCustomerId: org.asaasCustomerId,
+    documento: org.documentoFiscal,
+    tipoDocumento: org.tipoDocumento,
+    razaoSocial: org.razaoSocial,
+    asaasCustomerId: org.asaasIdCliente,
   };
 }
 
 export function toInstanciaOutput(
-  instance: typeof instances.$inferSelect,
+  instance: typeof instancia.$inferSelect,
   organizacaoUuid: string,
 ) {
   return {
     id: instance.uuid,
     organizacaoId: organizacaoUuid,
-    nome: instance.name,
-    provider: instance.provider,
+    nome: instance.nome,
+    provider: instance.provedor,
     status: instance.status,
-    limiteConversas: instance.conversationLimit,
-    asaasSubscriptionId: instance.asaasSubscriptionId,
-    evolutionSecretName: instance.evolutionSecretName,
-    cloudPhoneNumberId: instance.cloudPhoneNumberId,
-    trialEndsAt: instance.trialEndsAt?.toISOString() ?? null,
-    connectedAt: instance.connectedAt?.toISOString() ?? null,
+    limiteConversas: instance.limiteConversas,
+    asaasSubscriptionId: instance.asaasIdAssinatura,
+    cloudPhoneNumberId: instance.nuvemIdNumeroTelefone,
+    trialEndsAt: instance.trialTerminaEm?.toISOString() ?? null,
+    connectedAt: instance.conectadoEm?.toISOString() ?? null,
     criadoEm: instance.criadoEm.toISOString(),
   };
 }

@@ -23,7 +23,7 @@ export async function createSession(
   await ctx.client.sessao.create({
     data: appCreateData({
       usuarioId: usuarioInternalId,
-      organizationId: organizationId ?? null,
+      organizacaoId: organizationId ?? null,
       token,
       expiraEm,
     }),
@@ -38,7 +38,7 @@ export async function persistSessionOrganization(
 ): Promise<void> {
   await ctx.client.sessao.update({
     where: { token },
-    data: { organizationId },
+    data: { organizacaoId: organizationId },
   });
 }
 
@@ -69,21 +69,6 @@ export async function resolveSession(
 
   if (!row) return { usuario: null, organizationId: null, role: null };
 
-  const membership = await ctx.client.organizationMembers.findFirst({
-    where: {
-      usuarioId: row.id,
-      ...(session.organizationId !== null && session.organizationId !== undefined
-        ? { organizationId: session.organizationId }
-        : {}),
-    },
-  });
-
-  const fallbackMembership =
-    membership ??
-    (await ctx.client.organizationMembers.findFirst({
-      where: { usuarioId: row.id },
-    }));
-
   return {
     usuario: {
       id: row.uuid,
@@ -92,8 +77,8 @@ export async function resolveSession(
       nome: row.nome,
       emailVerificadoEm: row.emailVerificadoEm,
     },
-    organizationId: fallbackMembership?.organizationId ?? null,
-    role: fallbackMembership?.role ?? null,
+    organizationId: null,
+    role: null,
   };
 }
 
@@ -102,18 +87,18 @@ export async function getOrganizationForUser(
   usuarioInternalId: number,
   organizationId?: number,
 ) {
-  const membership = await ctx.client.organizationMembers.findFirst({
+  const membership = await ctx.client.organizacaoMembro.findFirst({
     where: {
       usuarioId: usuarioInternalId,
-      ...(organizationId !== undefined ? { organizationId } : {}),
+      ...(organizationId !== undefined ? { organizacaoId: organizationId } : {}),
     },
-    include: { organization: true },
+    include: { organizacao: true },
   });
 
-  if (!membership?.organization) return null;
+  if (!membership?.organizacao) return null;
 
   return {
-    organization: membership.organization,
-    role: membership.role,
+    organization: membership.organizacao,
+    role: membership.papel,
   };
 }

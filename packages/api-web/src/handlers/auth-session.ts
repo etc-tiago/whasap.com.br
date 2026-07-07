@@ -1,8 +1,13 @@
 import { forbidden, unauthorized } from "@whasap/api-core";
-import { resolveInternalId, type organizations as OrganizationsTable } from "@whasap/db";
+import { resolveInternalId, type organizacao as OrganizacaoTable } from "@whasap/db";
 
 import { toOrganizacaoOutput } from "../lib/mappers";
 import type { MemberRole, WebContext } from "../types";
+
+export type ResolvedMembership = {
+  internalOrgId: number;
+  role: MemberRole;
+};
 
 export function requireAuth(ctx: WebContext) {
   if (!ctx.usuario) {
@@ -11,40 +16,79 @@ export function requireAuth(ctx: WebContext) {
   return ctx.usuario;
 }
 
-export async function requireOrg(ctx: WebContext, organizacaoUuid: string) {
+export async function resolveMembership(
+  ctx: WebContext,
+  organizacaoHash: string,
+): Promise<ResolvedMembership> {
   const usuario = requireAuth(ctx);
-  const internalId = await resolveInternalId(ctx.client, "organizations", organizacaoUuid);
-  if (internalId === null || ctx.organizationId !== internalId || !ctx.role) {
+  const internalOrgId = await resolveInternalId(ctx.client, "organizacao", organizacaoHash);
+  if (internalOrgId === null) {
     forbidden("Sem acesso à organização");
   }
-  return usuario;
-}
 
-export function requireOrgInternal(ctx: WebContext, organizationId: number) {
-  const usuario = requireAuth(ctx);
-  if (ctx.organizationId !== organizationId || !ctx.role) {
+  const membership = await ctx.client.organizacaoMembro.findFirst({
+    where: {
+      usuarioId: usuario.internalId,
+      organizacaoId: internalOrgId,
+    },
+  });
+
+  if (!membership) {
     forbidden("Sem acesso à organização");
   }
-  return usuario;
+
+  return { internalOrgId, role: membership.papel as MemberRole };
 }
 
-export async function requireAdmin(ctx: WebContext, organizacaoUuid: string) {
-  await requireOrg(ctx, organizacaoUuid);
-  if (ctx.role !== "admin") {
-    forbidden("Apenas administradores");
+export async function resolveMembershipInternal(
+  ctx: WebContext,
+  organizationId: number,
+): Promise<ResolvedMembership> {
+  const usuario = requireAuth(ctx);
+
+  const membership = await ctx.client.organizacaoMembro.findFirst({
+    where: {
+      usuarioId: usuario.internalId,
+      organizacaoId: organizationId,
+    },
+  });
+
+  if (!membership) {
+    forbidden("Sem acesso à organização");
   }
+
+  return { internalOrgId: organizationId, role: membership.papel as MemberRole };
 }
 
-export function requireAdminInternal(ctx: WebContext, organizationId: number) {
-  requireOrgInternal(ctx, organizationId);
-  if (ctx.role !== "admin") {
+export async function requireOrg(ctx: WebContext, organizacaoHash: string) {
+  await resolveMembership(ctx, organizacaoHash);
+  return requireAuth(ctx);
+}
+
+export async function requireOrgInternal(ctx: WebContext, organizationId: number) {
+  await resolveMembershipInternal(ctx, organizationId);
+  return requireAuth(ctx);
+}
+
+export async function requireAdmin(ctx: WebContext, organizacaoHash: string) {
+  const { role } = await resolveMembership(ctx, organizacaoHash);
+  if (role !== "admin") {
     forbidden("Apenas administradores");
   }
+  return requireAuth(ctx);
+}
+
+export async function requireAdminInternal(ctx: WebContext, organizationId: number) {
+  const { role } = await resolveMembershipInternal(ctx, organizationId);
+  if (role !== "admin") {
+    forbidden("Apenas administradores");
+  }
+  return requireAuth(ctx);
 }
 
 export function toSessionOutput(
   ctx: WebContext,
-  org: typeof OrganizationsTable.$inferSelect | null,
+  org: typeof OrganizacaoTable.$inferSelect | null,
 ) {
   if (!ctx.usuario) {
     unauthorized();

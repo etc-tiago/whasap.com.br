@@ -7,10 +7,11 @@ import type { WebContext } from "../types";
 type SendParams = {
   ctx: WebContext;
   instance: {
-    provider: "cloud_api" | "evolution";
-    evolutionInstanceName: string | null;
-    evolutionSecretName: string | null;
-    cloudAccessTokenSecretName: string | null;
+    provedor: "cloud_api" | "evolution";
+    evolucaoNomeInstancia: string | null;
+    nuvemTokenAcesso: string | null;
+    nuvemIdNumeroTelefone: string | null;
+    nuvemIdWaba: string | null;
   };
   phone: string;
   type: string;
@@ -29,10 +30,10 @@ export async function sendProviderMessage(params: SendParams): Promise<string | 
   const { ctx, instance, phone, type } = params;
   const normalizedPhone = phone.replace(/\D/g, "");
 
-  if (instance.provider === "evolution" && instance.evolutionInstanceName) {
-    const creds = await getEvolutionCreds(ctx, instance);
+  if (instance.provedor === "evolution" && instance.evolucaoNomeInstancia) {
+    const creds = getEvolutionCreds(ctx.env);
     const client = createEvolutionClient(creds);
-    const name = instance.evolutionInstanceName;
+    const name = instance.evolucaoNomeInstancia;
 
     if (type === "text" && params.body) {
       const res = await client.sendText(name, normalizedPhone, params.body);
@@ -62,8 +63,8 @@ export async function sendProviderMessage(params: SendParams): Promise<string | 
     return null;
   }
 
-  if (instance.provider === "cloud_api") {
-    const creds = await getMetaCreds(ctx, instance);
+  if (instance.provedor === "cloud_api") {
+    const creds = getMetaCreds(instance);
     const client = createMetaClient(creds);
 
     if (type === "template" && params.templateName) {
@@ -102,17 +103,17 @@ export async function sendProviderMessage(params: SendParams): Promise<string | 
   return null;
 }
 
-export function isCloudWindowOpen(cloudWindowExpiresAt: Date | null): boolean {
-  if (!cloudWindowExpiresAt) return false;
-  return cloudWindowExpiresAt.getTime() > Date.now();
+export function isCloudWindowOpen(nuvemJanelaExpiraEm: Date | null): boolean {
+  if (!nuvemJanelaExpiraEm) return false;
+  return nuvemJanelaExpiraEm.getTime() > Date.now();
 }
 
 export function cloudRequiresTemplate(
   provider: "cloud_api" | "evolution",
-  cloudWindowExpiresAt: Date | null,
+  nuvemJanelaExpiraEm: Date | null,
   isNewConversation: boolean,
 ): boolean {
   if (provider !== "cloud_api") return false;
   if (isNewConversation) return true;
-  return !isCloudWindowOpen(cloudWindowExpiresAt);
+  return !isCloudWindowOpen(nuvemJanelaExpiraEm);
 }

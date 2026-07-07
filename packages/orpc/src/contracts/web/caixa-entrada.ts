@@ -22,6 +22,7 @@ const mensagemSchema = z.object({
   direction: z.enum(["inbound", "outbound"]),
   type: z.string(),
   body: z.string().nullable(),
+  mediaUrl: z.string().url().nullable(),
   enviadoPorUsuarioId: z.string().uuid().nullable(),
   enviadoPorNome: z.string().nullable(),
   templateNome: z.string().nullable(),

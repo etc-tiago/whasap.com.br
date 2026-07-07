@@ -3,6 +3,7 @@ import { createDb, appCreateData } from "@whasap/db";
 import { handleAsaasWebhook } from "./asaas";
 import type { Env } from "./env";
 import { processEvolutionWebhook, processMetaWebhook } from "./processors";
+import { cloudLogKeyFromBody, evolutionLogKeyFromBody, putWebhookLog } from "./r2-log";
 
 export type { Env } from "./env";
 
@@ -14,11 +15,54 @@ async function timingSafeEqual(a: string, b: string): Promise<boolean> {
   return crypto.subtle.timingSafeEqual(aBytes, bBytes);
 }
 
+async function handleProviderWebhook(
+  ctx: ExecutionContext,
+  env: Env,
+  source: "evo" | "cloud",
+  body: string,
+): Promise<Response> {
+  const { client } = createDb(env.HYPERDRIVE.connectionString);
+  const r2Key = source === "evo" ? evolutionLogKeyFromBody(body) : cloudLogKeyFromBody(body);
+
+  ctx.waitUntil(
+    putWebhookLog(env, r2Key, body, { source, path: r2Key }).catch((err) => {
+      console.error(`[webhook] R2 log failed (${source}):`, err);
+    }),
+  );
+
+  const event = await client.webhookEvento.create({
+    data: appCreateData({
+      origem: source,
+      idEvento: r2Key,
+      payload: body,
+    }),
+  });
+
+  try {
+    if (source === "cloud") {
+      await processMetaWebhook(client, env, ctx, body);
+    } else {
+      await processEvolutionWebhook(client, env, ctx, body);
+    }
+    await client.webhookEvento.update({
+      where: { id: event.id },
+      data: { processadoEm: new Date() },
+    });
+  } catch (err) {
+    console.error(`[webhook] processor error (${source}):`, err);
+  }
+
+  return new Response(JSON.stringify({ received: true }), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
+}
+
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
-    if (request.method === "GET" && url.pathname === "/meta") {
+    if (request.method === "GET" && url.pathname === "/cloud") {
       const mode = url.searchParams.get("hub.mode");
       const token = url.searchParams.get("hub.verify_token");
       const challenge = url.searchParams.get("hub.challenge");
@@ -33,9 +77,9 @@ export default {
     }
 
     const body = await request.text();
-    const { client } = createDb(env.HYPERDRIVE.connectionString);
 
     if (url.pathname === "/asaas") {
+      const { client } = createDb(env.HYPERDRIVE.connectionString);
       const token = request.headers.get("asaas-access-token") ?? "";
       const valid = await timingSafeEqual(token, env.ASAAS_WEBHOOK_TOKEN);
       if (!valid) {
@@ -43,10 +87,10 @@ export default {
       }
       const event = JSON.parse(body) as { id: string; event: string };
       try {
-        await client.asaasWebhookLog.create({
+        await client.asaasWebhookRegistro.create({
           data: appCreateData({
-            asaasEventId: event.id,
-            type: event.event,
+            asaasIdEvento: event.id,
+            tipo: event.event,
             payload: body,
           }),
         });
@@ -63,45 +107,14 @@ export default {
       });
     }
 
-    const source =
-      url.pathname === "/meta"
-        ? "meta"
-        : url.pathname === "/evolution"
-          ? "evolution"
-          : (request.headers.get("x-webhook-source") ?? "unknown");
-
-    if (url.pathname !== "/meta" && url.pathname !== "/evolution") {
-      const signature = request.headers.get("x-webhook-signature") ?? "";
-      const valid = await timingSafeEqual(signature, env.WEBHOOK_SECRET);
-      if (!valid) {
-        return new Response("Unauthorized", { status: 401 });
-      }
+    if (url.pathname === "/evo") {
+      return handleProviderWebhook(ctx, env, "evo", body);
     }
 
-    const event = await client.webhookEvents.create({
-      data: appCreateData({
-        source,
-        payload: body,
-      }),
-    });
-
-    try {
-      if (source === "meta") {
-        await processMetaWebhook(client, body);
-      } else if (source === "evolution") {
-        await processEvolutionWebhook(client, body);
-      }
-      await client.webhookEvents.update({
-        where: { id: event.id },
-        data: { processedAt: new Date() },
-      });
-    } catch (err) {
-      console.error("[webhook] processor error:", err);
+    if (url.pathname === "/cloud") {
+      return handleProviderWebhook(ctx, env, "cloud", body);
     }
 
-    return new Response(JSON.stringify({ received: true }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    });
+    return new Response("Not found", { status: 404 });
   },
 };

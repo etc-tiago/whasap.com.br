@@ -31,17 +31,17 @@ cp apps/web/.dev.vars.example apps/web/.dev.vars
 cp apps/webhook/.dev.vars.example apps/webhook/.dev.vars
 ```
 
-Chaves de teste do Turnstile já vêm nos arquivos `.example`. Em produção, use chaves reais do painel Cloudflare e defina `VITE_TURNSTILE_SITE_KEY` no **build** do `apps/web` (SPA embute no bundle).
+Chaves de teste e secrets de exemplo vêm nos arquivos `.example`. Em produção, configure os secrets via `wrangler secret put`.
 
 ### Neon + Hyperdrive
 
 1. Crie um projeto em [Neon](https://neon.tech)
 2. Configure `DATABASE_URL` no `.env`
-3. Crie Hyperdrive:
+3. Crie Hyperdrive (se ainda não existir na conta):
    ```bash
    wrangler hyperdrive create whasap-db --connection-string "$DATABASE_URL"
    ```
-4. Substitua `<HYPERDRIVE_ID>` em `apps/web/wrangler.jsonc`, `apps/office/wrangler.jsonc` e `apps/webhook/wrangler.jsonc`
+4. Os workers `web`, `office` e `webhook` já usam o mesmo binding Hyperdrive em `wrangler.jsonc` (`id: c8f9852b6dc748489154722036fb4e48`)
 5. Defina `DATABASE_URL` no `.env` da raiz — o `bun run dev` do web/office repassa para o Hyperdrive local automaticamente
 6. **Desenvolvedor:** gere e aplique migrations manualmente:
    ```bash
@@ -87,7 +87,9 @@ VALUES ('seu-email@exemplo.com', 'Admin', true);
 bun run deploy
 ```
 
-Ordem recomendada (desenvolvedor): `db:migrate` → `webhook` → `site` + `web` + `office`
+Ordem recomendada (desenvolvedor): `db:migrate` → `cdn` + `webhook` → `site` + `web` + `office`
+
+**Checklist completo de produção:** [docs/PRODUCAO.md](./docs/PRODUCAO.md) (vars, R2, Hyperdrive, Secrets Store, build-time, secrets por app).
 
 ## Qualidade de código
 

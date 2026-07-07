@@ -1,4 +1,5 @@
 import { createAsaasClient, parseAsaasExternalReference } from "@whasap/asaas";
+import { getAsaasApiKey, isAsaasSandbox } from "@whasap/api-core";
 import { mvpDefaults } from "@whasap/config";
 import { appCreateData, type Client } from "@whasap/db";
 
@@ -44,18 +45,18 @@ async function activateInstance(
   subscriptionId: string,
   trialEndsAt: Date | null,
 ): Promise<void> {
-  const instance = await client.instances.findFirst({
+  const instance = await client.instancia.findFirst({
     where: { uuid: instanceUuid },
     select: { id: true },
   });
   if (!instance) return;
 
-  await client.instances.update({
+  await client.instancia.update({
     where: { id: instance.id },
     data: {
       status: "connected",
-      asaasSubscriptionId: subscriptionId,
-      trialEndsAt,
+      asaasIdAssinatura: subscriptionId,
+      trialTerminaEm: trialEndsAt,
     },
   });
 }
@@ -65,29 +66,29 @@ async function activateConversationPack(
   instanceUuid: string,
   subscriptionId: string,
 ): Promise<void> {
-  const instance = await client.instances.findFirst({
+  const instance = await client.instancia.findFirst({
     where: { uuid: instanceUuid },
   });
   if (!instance) return;
 
-  const existing = await client.instanceAddons.findFirst({
-    where: { instanceId: instance.id, asaasSubscriptionId: subscriptionId },
+  const existing = await client.instanciaAddon.findFirst({
+    where: { instanciaId: instance.id, asaasIdAssinatura: subscriptionId },
   });
   if (existing) return;
 
-  await client.instanceAddons.create({
+  await client.instanciaAddon.create({
     data: appCreateData({
-      instanceId: instance.id,
-      asaasSubscriptionId: subscriptionId,
-      conversationPackSize: mvpDefaults.billing.conversationsPerPack,
+      instanciaId: instance.id,
+      asaasIdAssinatura: subscriptionId,
+      tamanhoPacoteConversas: mvpDefaults.billing.conversationsPerPack,
     }),
   });
 
-  await client.instances.update({
+  await client.instancia.update({
     where: { id: instance.id },
     data: {
-      conversationLimit:
-        instance.conversationLimit + mvpDefaults.billing.conversationsPerPack,
+      limiteConversas:
+        instance.limiteConversas + mvpDefaults.billing.conversationsPerPack,
     },
   });
 }
@@ -99,8 +100,8 @@ async function resolveSubscriptionId(
 ): Promise<string | null> {
   if (!customerId) return null;
   const asaas = createAsaasClient({
-    apiKey: env.ASAAS_API_KEY,
-    sandbox: env.ASAAS_SANDBOX === "true",
+    apiKey: await getAsaasApiKey(env),
+    sandbox: isAsaasSandbox(env),
   });
   const parsed = parseAsaasExternalReference(externalReference);
   if (!parsed) return null;
@@ -167,33 +168,33 @@ export async function handleAsaasWebhook(
 
   if (event.event === "SUBSCRIPTION_DELETED" && event.subscription) {
     const subId = event.subscription.id;
-    const instance = await client.instances.findFirst({
-      where: { asaasSubscriptionId: subId },
+    const instance = await client.instancia.findFirst({
+      where: { asaasIdAssinatura: subId },
       select: { id: true },
     });
     if (!instance) return;
 
-    await client.instances.update({
+    await client.instancia.update({
       where: { id: instance.id },
-      data: { status: "deactivated", deactivatedAt: new Date() },
+      data: { status: "deactivated", desativadoEm: new Date() },
     });
     return;
   }
 
   if (event.event === "PAYMENT_OVERDUE" && event.payment?.subscription) {
     const subId = event.payment.subscription;
-    const instance = await client.instances.findFirst({
-      where: { asaasSubscriptionId: subId },
-      select: { id: true, trialEndsAt: true },
+    const instance = await client.instancia.findFirst({
+      where: { asaasIdAssinatura: subId },
+      select: { id: true, trialTerminaEm: true },
     });
     if (!instance) return;
 
     const pastTrial =
-      !instance.trialEndsAt || instance.trialEndsAt.getTime() < Date.now();
+      !instance.trialTerminaEm || instance.trialTerminaEm.getTime() < Date.now();
     if (pastTrial) {
-      await client.instances.update({
+      await client.instancia.update({
         where: { id: instance.id },
-        data: { status: "deactivated", deactivatedAt: new Date() },
+        data: { status: "deactivated", desativadoEm: new Date() },
       });
     }
   }

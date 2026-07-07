@@ -7,10 +7,6 @@ export const evolutionCredentialsSchema = z.object({
 
 export type EvolutionCredentials = z.infer<typeof evolutionCredentialsSchema>;
 
-export function evolutionSecretName(organizationId: string, instanceId: string): string {
-  return `evolution/${organizationId}/${instanceId}`;
-}
-
 export function parseEvolutionCredentials(raw: string): EvolutionCredentials {
   return evolutionCredentialsSchema.parse(JSON.parse(raw));
 }

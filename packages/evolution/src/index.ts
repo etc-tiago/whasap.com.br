@@ -1,6 +1,5 @@
 export {
   evolutionCredentialsSchema,
-  evolutionSecretName,
   parseEvolutionCredentials,
   type EvolutionCredentials,
 } from "./credentials";

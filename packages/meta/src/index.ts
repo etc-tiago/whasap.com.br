@@ -1,6 +1,5 @@
 export {
   metaCredentialsSchema,
-  metaSecretName,
   parseMetaCredentials,
   type MetaCredentials,
 } from "./credentials";

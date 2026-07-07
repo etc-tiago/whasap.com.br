@@ -8,6 +8,94 @@ alwaysApply: false
 
 - Use `wrangler.jsonc` with recent `compatibility_date` and `nodejs_compat`
 - Run `wrangler types` after binding changes; never hand-write `Env`
-- Secrets via `wrangler secret put`, never in source
+- Secrets via **Secrets Store** em produção; local via `.dev.vars`
 - Use Hyperdrive for Postgres: `createDb(env.HYPERDRIVE.connectionString)`
 - No module-level request state; await all promises or use `ctx.waitUntil()`
+
+## Secrets Store (produção)
+
+| Binding | Store (nome) | Uso |
+|---------|--------------|-----|
+| `ASSAS_API_KEY_ETC` | `ASSAS_API_KEY_ETC` | API key Asaas (`web`, `webhook`) |
+
+```jsonc
+"secrets_store_secrets": [
+  {
+    "binding": "ASSAS_API_KEY_ETC",
+    "store_id": "<uuid-do-store-ASSAS_API_KEY_ETC>",
+    "secret_name": "ASAAS_API_KEY"
+  }
+]
+```
+
+Secrets Worker clássicos (`wrangler secret put`): `AUTH_SECRET` (`web`, `office`).
+
+Local: `.dev.vars` com os mesmos nomes. Código aceita `ASAAS_API_KEY` como fallback legado.
+
+## Hyperdrive (sempre igual)
+
+Em todo worker com Postgres (`web`, `office`, `webhook`), use **exatamente** este bloco — não invente outro `id` nem connection string local:
+
+```jsonc
+"hyperdrive": [
+  {
+    "binding": "HYPERDRIVE",
+    "id": "c8f9852b6dc748489154722036fb4e48",
+    "localConnectionString": "postgres://postgres:postgres@db.localtest.me:5432/whasap"
+  }
+]
+```
+
+- Binding sempre `HYPERDRIVE` (acesso: `env.HYPERDRIVE.connectionString`)
+- Não use placeholder `<HYPERDRIVE_ID>` em novos workers — copie o bloco acima
+
+## R2
+
+- Bucket de logs/webhooks: **`whasap`** — binding sugerido `R2` → `env.R2`
+- Bucket de mídia (CDN): **`whasap-cdn`** — binding `CDN_R2` no webhook (escrita) e `R2` no app `cdn` (leitura)
+
+```jsonc
+"r2_buckets": [
+  { "binding": "R2", "bucket_name": "whasap" }
+]
+```
+
+Para mídia no webhook:
+
+```jsonc
+"r2_buckets": [
+  { "binding": "CDN_R2", "bucket_name": "whasap-cdn" }
+]
+```
+
+## Domínios (produção)
+
+Cada app tem **um** custom domain em `routes`:
+
+| App | `pattern` |
+|-----|-----------|
+| `site` | `whasap.com.br` |
+| `web` | `web.whasap.com.br` |
+| `office` | `office.whasap.com.br` |
+| `webhook` | `webhook.whasap.com.br` |
+| `cdn` | `cdn.whasap.com.br` |
+
+```jsonc
+"routes": [
+  { "pattern": "web.whasap.com.br", "custom_domain": true }
+]
+```
+
+Não altere domínios por app sem alinhar DNS, Asaas callbacks e vars (`WEB_URL`, `WEBHOOK_URL`, etc.).
+
+Documentação completa de produção: `docs/PRODUCAO.md`.
+
+## Webhooks WhatsApp (R2)
+
+| Rota HTTP | Provider | Prefixo R2 |
+|-----------|----------|------------|
+| `POST /evo` | Evolution | `webhook/evo/{instance}/{date}/...` |
+| `GET/POST /cloud` | Meta Cloud API | `webhook/cloud/{phoneNumberId}/{date}/...` |
+
+Logs brutos no bucket `whasap` (binding `R2` em `apps/webhook`).
+

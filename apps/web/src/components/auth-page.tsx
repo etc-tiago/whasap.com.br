@@ -7,9 +7,8 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@whasap/ui/components/inp
 import { Label } from "@whasap/ui/components/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@whasap/ui/components/tabs";
 import { MessageCircle } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
-import { TurnstileWidget } from "@/components/turnstile-widget";
 import { getOrpcErrorMessage } from "@/lib/orpc-error";
 import { orpc } from "@/lib/orpc";
 
@@ -25,56 +24,27 @@ export function AuthPage() {
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [nome, setNome] = useState("");
-  const [nomeOrganizacao, setNomeOrganizacao] = useState("");
   const [lgpdConsent, setLgpdConsent] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const resetTurnstile = useCallback(() => {
-    setTurnstileToken(null);
-    setTurnstileResetKey((k) => k + 1);
-  }, []);
-
-  const handleTurnstileToken = useCallback((token: string | null) => {
-    setTurnstileToken(token);
-  }, []);
-
-  function requireTurnstile(): string | null {
-    if (!turnstileToken) {
-      setError("Conclua a verificação de segurança antes de continuar.");
-      return null;
-    }
-    return turnstileToken;
-  }
-
   async function handleSendOtp(proposito: "entrar" | "cadastrar") {
-    const token = requireTurnstile();
-    if (!token) return;
-
     setError(null);
     try {
-      await sendOtp.mutateAsync({ email, proposito, turnstileToken: token });
+      await sendOtp.mutateAsync({ email, proposito });
       setOtpSent(true);
-      resetTurnstile();
     } catch (err) {
       setError(getOrpcErrorMessage(err, "Não foi possível enviar o código. Tente novamente."));
-      resetTurnstile();
     }
   }
 
   async function handleLogin() {
-    const token = requireTurnstile();
-    if (!token) return;
-
     setError(null);
     try {
-      await login.mutateAsync({ email, otp, turnstileToken: token });
+      await login.mutateAsync({ email, otp });
       await queryClient.invalidateQueries({ queryKey: orpc.autenticacao.eu.key() });
       await navigate({ to: "/" });
     } catch (err) {
       setError(getOrpcErrorMessage(err, "Código inválido ou expirado."));
-      resetTurnstile();
     }
   }
 
@@ -84,26 +54,20 @@ export function AuthPage() {
       return;
     }
 
-    const token = requireTurnstile();
-    if (!token) return;
-
     setError(null);
     try {
       await signup.mutateAsync({
         email,
         nome,
-        nomeOrganizacao,
         otp,
         lgpdConsent: true,
-        turnstileToken: token,
       });
       await queryClient.invalidateQueries({ queryKey: orpc.autenticacao.eu.key() });
-      await navigate({ to: "/" });
+      await navigate({ to: "/integracao" });
     } catch (err) {
       setError(
         getOrpcErrorMessage(err, "Não foi possível concluir o cadastro. Verifique o código."),
       );
-      resetTurnstile();
     }
   }
 
@@ -112,7 +76,6 @@ export function AuthPage() {
     setOtpSent(false);
     setOtp("");
     setError(null);
-    resetTurnstile();
   }
 
   const isBusy = sendOtp.isPending || login.isPending || signup.isPending;
@@ -149,7 +112,7 @@ export function AuthPage() {
               <Button
                 className="w-full"
                 onClick={() => handleSendOtp("entrar")}
-                disabled={!email || isBusy || !turnstileToken}
+                disabled={!email || isBusy}
               >
                 Enviar código
               </Button>
@@ -168,7 +131,7 @@ export function AuthPage() {
                 <Button
                   className="w-full"
                   onClick={handleLogin}
-                  disabled={otp.length < 6 || isBusy || !turnstileToken}
+                  disabled={otp.length < 6 || isBusy}
                 >
                   Entrar
                 </Button>
@@ -180,14 +143,6 @@ export function AuthPage() {
             <div className="space-y-2">
               <Label htmlFor="signup-name">Seu nome</Label>
               <Input id="signup-name" value={nome} onChange={(e) => setNome(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="signup-org">Nome da organização</Label>
-              <Input
-                id="signup-org"
-                value={nomeOrganizacao}
-                onChange={(e) => setNomeOrganizacao(e.target.value)}
-              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="signup-email">Email</Label>
@@ -202,7 +157,7 @@ export function AuthPage() {
               <Button
                 className="w-full"
                 onClick={() => handleSendOtp("cadastrar")}
-                disabled={!email || !nome || !nomeOrganizacao || isBusy || !turnstileToken}
+                disabled={!email || !nome || isBusy}
               >
                 Enviar código
               </Button>
@@ -231,7 +186,7 @@ export function AuthPage() {
                 <Button
                   className="w-full"
                   onClick={handleSignup}
-                  disabled={otp.length < 6 || isBusy || !turnstileToken}
+                  disabled={otp.length < 6 || isBusy}
                 >
                   Criar conta
                 </Button>
@@ -239,8 +194,6 @@ export function AuthPage() {
             )}
           </TabsContent>
         </Tabs>
-
-        <TurnstileWidget onTokenChange={handleTurnstileToken} resetKey={turnstileResetKey} />
 
         <p className="text-center text-xs text-muted-foreground">
           Limite de 3 tentativas de login ou cadastro por minuto.

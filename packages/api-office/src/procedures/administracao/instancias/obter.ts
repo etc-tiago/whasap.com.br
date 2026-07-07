@@ -6,10 +6,10 @@ import { requireOfficeAuth } from "../../../handlers/auth-session";
 
 export default os.administracao.instancias.obter.handler(async ({ context, input }) => {
   requireOfficeAuth(context);
-  const row = await context.client.instances.findFirst({
+  const row = await context.client.instancia.findFirst({
     where: { uuid: input.instanciaId },
-    include: { organization: true },
+    include: { organizacao: true },
   });
-  if (!row?.organization) notFound();
-  return toInstanciaOutput(row, row.organization.uuid);
+  if (!row?.organizacao) notFound();
+  return toInstanciaOutput(row, row.organizacao.uuid);
 });
