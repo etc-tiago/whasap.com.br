@@ -1,1 +1,8 @@
-# Nenhum secret Worker obrigatório para desenvolvimento local.
+# Copie para .dev.vars (nunca commite .dev.vars):
+#   cp .dev.vars.example .dev.vars
+#
+# Overrides locais — sync: packages/config/src/public-urls.ts → workerVarsDevelopment
+
+WEB_URL=http://localhost:3000
+OFFICE_URL=http://localhost:3001
+EMAIL_FROM=noreply@localhost

@@ -2,7 +2,7 @@
 
 Guia para configurar Asaas, Evolution API e Meta Cloud API.
 
-**Infraestrutura de produção (vars, R2, Hyperdrive, Secrets Store, deploy):** [PRODUCAO.md](./PRODUCAO.md)
+**Infraestrutura de produção (vars, R2, Hyperdrive, Secrets Store, deploy):** [PRODUCAO.md](./PRODUCAO.md) · **Vars vs secrets:** [ENV.md](./ENV.md)
 
 ## Asaas (PIX + cartão)
 
@@ -27,7 +27,7 @@ Guia para configurar Asaas, Evolution API e Meta Cloud API.
 
    Secrets Worker clássicos (`wrangler secret put`): ver requisitos em [SECRETS-WEBHOOK.md](./SECRETS-WEBHOOK.md) (`WHATSAPP_CLOUD_WEBHOOK_SECRET`, `ASAAS_WEBHOOK_TOKEN`).
 
-7. Em desenvolvimento local, defina `ASSAS_API_KEY` e `ASAAS_SANDBOX=true` em `.dev.vars`.
+7. Em desenvolvimento local: copie `apps/*/.dev.vars.example` → `.dev.vars` (URLs localhost + secrets). Ver [ENV.md](./ENV.md).
 
 Fluxo no painel: onboarding → QR Code → trial → checkout Asaas (PIX ou cartão).
 

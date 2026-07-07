@@ -11,6 +11,7 @@
     "db:migrate": "bun run --filter @whasap/db db:migrate",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
+    "validate:env": "bun scripts/validate-wrangler-vars.ts",
     "format": "oxfmt --check .",
     "format:fix": "oxfmt ."
   },

@@ -16,11 +16,13 @@
     "enabled": true
   },
   "vars": {
-    "WEB_URL": "http://localhost:3000",
-    "OFFICE_URL": "http://localhost:3001",
-    "WEBHOOK_URL": "http://localhost:8788",
-    "CDN_URL": "http://localhost:8789",
-    "EMAIL_FROM": "noreply@whasap.com.br"
+    // sync: packages/config/src/public-urls.ts → workerVarsProduction
+    "WEB_URL": "https://web.whasap.com.br",
+    "OFFICE_URL": "https://office.whasap.com.br",
+    "WEBHOOK_URL": "https://webhook.whasap.com.br",
+    "CDN_URL": "https://cdn.whasap.com.br",
+    "EMAIL_FROM": "noreply@whasap.com.br",
+    "EVOLUTION_BASE_URL": "https://evolution.whasap.com.br"
   },
   // Secrets Store (produção): substitua store_id pelo ID real (`wrangler secrets-store store list`)
   "secrets_store_secrets": [

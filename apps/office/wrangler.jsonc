@@ -13,9 +13,10 @@
     "nodejs_compat"
   ],
   "vars": {
-    "WEB_URL": "http://localhost:3000",
-    "OFFICE_URL": "http://localhost:3001",
-    "EMAIL_FROM": "noreply@localhost"
+    // sync: packages/config/src/public-urls.ts → workerVarsProduction
+    "WEB_URL": "https://web.whasap.com.br",
+    "OFFICE_URL": "https://office.whasap.com.br",
+    "EMAIL_FROM": "noreply@whasap.com.br"
   },
   "hyperdrive": [
     {

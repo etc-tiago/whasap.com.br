@@ -133,19 +133,15 @@ O token Meta é dado coluna `text` no Postgres (não Secrets Store, não exposto
 
 Nenhum (apenas Worker + domínio).
 
-#### Variáveis de build (obrigatórias no CI / máquina de deploy)
+#### Variáveis de build
 
-Defina no ambiente **antes** de `vite build` (não vão no `wrangler.jsonc`):
+Definidas em [`apps/site/.env.production`](../apps/site/.env.production) (commitado; sync com `packages/config/src/public-urls.ts`):
 
 | Variável | Produção | Descrição |
 |----------|----------|-----------|
-| `VITE_WEB_PANEL_URL` | `https://web.whasap.com.br` | Link “Acessar painel” no site |
+| `VITE_WEB_PANEL_URL` | `https://web.whasap.com.br` | Link “Começar agora” / painel |
 
-Exemplo:
-
-```bash
-VITE_WEB_PANEL_URL=https://web.whasap.com.br bun run deploy
-```
+`bun run deploy` no site já usa `.env.production` no `vite build`. Detalhes: [ENV.md](./ENV.md).
 
 #### Secrets / vars Worker
 
@@ -166,7 +162,9 @@ Nenhum.
 | Secrets Store | `ASSAS_API_KEY` | store `ASSAS_API_KEY_ETC` → secret `ASSAS_API_KEY_ETC` |
 | Assets | `./dist/client` | SPA estática |
 
-#### Vars (`wrangler.jsonc` → `vars`) — valores de produção
+#### Vars (`wrangler.jsonc` → `vars`) — produção no código
+
+Fonte canônica: [`packages/config/src/public-urls.ts`](../packages/config/src/public-urls.ts). Validar: `bun run validate:env`.
 
 | Var | Valor produção |
 |-----|----------------|
@@ -174,7 +172,10 @@ Nenhum.
 | `OFFICE_URL` | `https://office.whasap.com.br` |
 | `WEBHOOK_URL` | `https://webhook.whasap.com.br` |
 | `CDN_URL` | `https://cdn.whasap.com.br` |
-| `EMAIL_FROM` | `noreply@whasap.com.br` (ou domínio verificado) |
+| `EMAIL_FROM` | `noreply@whasap.com.br` |
+| `EVOLUTION_BASE_URL` | `https://evolution.whasap.com.br` |
+
+**Local:** overrides em `apps/web/.dev.vars` (localhost). Ver [ENV.md](./ENV.md).
 
 #### Vars opcionais (dashboard ou `wrangler.jsonc`)
 
@@ -191,16 +192,14 @@ Nenhum.
 
 #### Variáveis de build (SPA — embutidas no bundle)
 
+Em [`apps/web/.env.production`](../apps/web/.env.production) (preencher antes do deploy):
+
 | Variável | Produção | Descrição |
 |----------|----------|-----------|
 | `VITE_META_APP_ID` | App ID Meta | Embedded Signup (onboarding Cloud API) |
 | `VITE_META_CONFIG_ID` | Config ID Embedded Signup | Idem |
 
-```bash
-VITE_META_APP_ID=... \
-VITE_META_CONFIG_ID=... \
-bun run deploy
-```
+Detalhes: [ENV.md](./ENV.md).
 
 ---
 
@@ -215,7 +214,9 @@ bun run deploy
 | Hyperdrive | `HYPERDRIVE` | mesmo ID dos demais |
 | Rate Limit | `AUTH_RATE_LIMIT` | namespace `1001` (compartilhado com `web`) |
 
-#### Vars — produção
+#### Vars — produção no `wrangler.jsonc`
+
+Sync: `packages/config/src/public-urls.ts`. Local: `apps/office/.dev.vars`.
 
 | Var | Valor produção |
 |-----|----------------|
@@ -246,11 +247,14 @@ Inserir ao menos um usuário em `office_usuario` (ver [README.md](../README.md))
 | R2 | `CDN_R2` | bucket `whasap-cdn` |
 | Secrets Store | `ASSAS_API_KEY` | store `ASSAS_API_KEY_ETC` → secret `ASSAS_API_KEY_ETC` |
 
-#### Vars — produção
+#### Vars — produção no `wrangler.jsonc`
 
 | Var | Valor produção |
 |-----|----------------|
 | `CDN_URL` | `https://cdn.whasap.com.br` |
+| `EVOLUTION_BASE_URL` | `https://evolution.whasap.com.br` |
+
+Local: `apps/webhook/.dev.vars`. Ver [ENV.md](./ENV.md).
 
 #### Secrets Worker
 
@@ -268,14 +272,13 @@ cd apps/webhook && wrangler secret put ASAAS_WEBHOOK_TOKEN
 
 Use o **mesmo** valor de `WHATSAPP_CLOUD_WEBHOOK_SECRET` no app Meta (Webhook → Verify token).
 
-#### Vars opcionais
+#### Vars opcionais (apenas dev)
 
 | Var | Uso |
 |-----|-----|
-| `EVOLUTION_BASE_URL` | Servidor Evolution da plataforma (download de mídia) |
-| `ASAAS_SANDBOX` | **Não definir** em produção |
+| `ASAAS_SANDBOX` | `true` em `.dev.vars` — **não definir** em produção |
 
-Secret `EVOLUTION_API_KEY` no worker webhook (mesmo valor do `web`).
+Secret `EVOLUTION_API_KEY` no worker webhook (mesmo valor do `web`). Ver [SECRETS-WEBHOOK.md](./SECRETS-WEBHOOK.md).
 
 ---
 
@@ -325,13 +328,14 @@ bun run db:migrate
 cd apps/cdn && bun run deploy
 cd apps/webhook && bun run deploy
 
-# 3. Painéis e site (com vars de build)
+# 3. Painéis e site (.env.production já define VITE_*)
+bun run validate:env
 cd apps/web && bun run deploy
 cd apps/office && bun run deploy
-cd apps/site && VITE_WEB_PANEL_URL=https://web.whasap.com.br bun run deploy
+cd apps/site && bun run deploy
 ```
 
-Ou na raiz: `bun run deploy` (Turbo), desde que as vars de build estejam no ambiente do CI.
+Ou na raiz: `bun run validate:env && bun run deploy` (Turbo).
 
 ---
 
@@ -347,20 +351,22 @@ Ou na raiz: `bun run deploy` (Turbo), desde que as vars de build estejam no ambi
 - [ ] Rate limit namespace `1001` existe
 - [ ] `store_id` nos `wrangler.jsonc` atualizados com UUIDs reais
 
-### Workers — vars de produção
+### Workers — vars de produção (no código)
 
-- [ ] `web`: `WEB_URL`, `OFFICE_URL`, `WEBHOOK_URL`, `CDN_URL`, `EMAIL_FROM`
-- [ ] `office`: `WEB_URL`, `OFFICE_URL`, `EMAIL_FROM`
-- [ ] `webhook`: `CDN_URL`
+Rodar `bun run validate:env` antes do deploy.
+
+- [ ] `web`: vars em `wrangler.jsonc` = `public-urls.ts`
+- [ ] `office`: idem
+- [ ] `webhook`: `CDN_URL`, `EVOLUTION_BASE_URL`
 
 ### Workers — secrets
 
 - [ ] `webhook`: `WHATSAPP_CLOUD_WEBHOOK_SECRET`, `ASAAS_WEBHOOK_TOKEN`
 
-### Build (CI)
+### Build (`.env.production` commitados)
 
-- [ ] `site`: `VITE_WEB_PANEL_URL`
-- [ ] `web`: `VITE_META_APP_ID`, `VITE_META_CONFIG_ID`
+- [ ] `site`: `apps/site/.env.production` → `VITE_WEB_PANEL_URL`
+- [ ] `web`: `apps/web/.env.production` → `VITE_META_*` preenchidos
 
 
 ### Externo
@@ -392,11 +398,18 @@ Ou na raiz: `bun run deploy` (Turbo), desde que as vars de build estejam no ambi
 
 ## 7. Desenvolvimento local (contraste)
 
+Ver [ENV.md](./ENV.md).
+
 | Produção | Local |
 |----------|-------|
-| Hyperdrive remoto | `DATABASE_URL` na raiz + Hyperdrive local (`localConnectionString`) |
-| Secrets Store | `.dev.vars` por app (`ASSAS_API_KEY`, etc.) |
-| R2 remoto | Simulação local do Wrangler ou `remote: true` |
-| `VITE_*` | `.env` / `.env.example` na raiz e em `apps/web` |
+| `vars` no `wrangler.jsonc` (URLs https) | `.dev.vars` sobrescreve com localhost |
+| Secrets Store / `wrangler secret` | `.dev.vars` (gitignored) |
+| `apps/*/.env.production` (`VITE_*`) | `.env` na raiz / `.env.example` |
+| Hyperdrive remoto | `DATABASE_URL` na raiz + `localConnectionString` |
 
-Arquivos de exemplo: `.env.example`, `apps/*/.dev.vars.example`, `apps/web/.env.example`.
+```bash
+cp apps/web/.dev.vars.example apps/web/.dev.vars
+cp apps/office/.dev.vars.example apps/office/.dev.vars
+cp apps/webhook/.dev.vars.example apps/webhook/.dev.vars
+bun run validate:env   # confere wrangler vs public-urls.ts
+```

@@ -33,7 +33,9 @@
     }
   ],
   "vars": {
-    "CDN_URL": "https://cdn.whasap.com.br"
+    // sync: packages/config/src/public-urls.ts → workerVarsProduction
+    "CDN_URL": "https://cdn.whasap.com.br",
+    "EVOLUTION_BASE_URL": "https://evolution.whasap.com.br"
   },
   "secrets": {
     "required": [

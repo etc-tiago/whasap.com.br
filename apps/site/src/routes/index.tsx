@@ -1,17 +1,40 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@whasap/ui/components/button";
-import { ArrowRight, Cloud, MessageCircle, MessagesSquare, Smartphone, Users } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  Cloud,
+  GraduationCap,
+  HardHat,
+  Home,
+  Hotel,
+  MessageCircle,
+  MessagesSquare,
+  Package,
+  PawPrint,
+  Pill,
+  Scale,
+  Shield,
+  ShoppingBag,
+  Smartphone,
+  Stethoscope,
+  Truck,
+  Users,
+  UtensilsCrossed,
+  Wrench,
+} from "lucide-react";
 
+import { CalculadoraInvestimento } from "@/components/calculadora-investimento";
 import { PANEL_URL } from "@/lib/panel-url";
 import { seo } from "@/lib/seo";
 
 const description =
-  "Whasap é a versão simplificada do WhatsApp para equipes. Conecte o WhatsApp Comercial e a Cloud API — ou ambos — e gerencie todos os chats em um só lugar.";
+  "Whasap é a versão simplificada e sem limites do WhatsApp para equipes. Ideal para contabilidades, farmácias, distribuidoras e negócios com mais de 3 atendentes simultâneos. Conecte WhatsApp Comercial e Cloud API — ou ambos — e gerencie todos os chats em um só painel.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: seo({
-      title: "Whasap — WhatsApp simplificado para equipes",
+      title: "Whasap — WhatsApp sem limites para equipes",
       description,
       path: "/",
     }),
@@ -19,6 +42,105 @@ export const Route = createFileRoute("/")({
   }),
   component: LandingPage,
 });
+
+const segmentos = [
+  {
+    title: "Contabilidades",
+    description:
+      "Múltiplos clientes, documentos e prazos no mesmo inbox — sem perder mensagens entre números.",
+    icon: Building2,
+  },
+  {
+    title: "Farmácias",
+    description:
+      "Pedidos, receitas e status de entrega com vários atendentes ao mesmo tempo, no mesmo fluxo.",
+    icon: Pill,
+  },
+  {
+    title: "Distribuidoras",
+    description: "Catálogo, cotações e pedidos B2B sem trocar de número ou alternar entre apps.",
+    icon: Truck,
+  },
+  {
+    title: "Clínicas e consultórios",
+    description:
+      "Confirmação de consultas, resultados e orientações com equipe de recepção e atendimento unificada.",
+    icon: Stethoscope,
+  },
+  {
+    title: "Imobiliárias",
+    description:
+      "Visitas, propostas e documentação de locação ou venda distribuídas entre corretores no mesmo número.",
+    icon: Home,
+  },
+  {
+    title: "E-commerce e varejo",
+    description:
+      "Rastreio de pedidos, trocas e pós-venda com vários atendentes sem fila única no celular.",
+    icon: ShoppingBag,
+  },
+  {
+    title: "Escritórios de advocacia",
+    description:
+      "Triagem de casos, envio de documentos e acompanhamento processual com sigilo e organização.",
+    icon: Scale,
+  },
+  {
+    title: "Escolas e cursos",
+    description:
+      "Matrículas, avisos aos responsáveis e suporte acadêmico com equipe de secretaria coordenada.",
+    icon: GraduationCap,
+  },
+  {
+    title: "Oficinas e auto centers",
+    description:
+      "Orçamentos, aprovação de serviços e aviso de veículo pronto com mecânicos e consultores alinhados.",
+    icon: Wrench,
+  },
+  {
+    title: "Restaurantes e delivery",
+    description:
+      "Pedidos, cardápio e status de entrega com cozinha e atendimento no mesmo fluxo de mensagens.",
+    icon: UtensilsCrossed,
+  },
+  {
+    title: "Hotéis e pousadas",
+    description:
+      "Reservas, check-in e solicitações de hóspedes atendidas pela recepção e concierge juntos.",
+    icon: Hotel,
+  },
+  {
+    title: "Seguradoras e corretoras",
+    description:
+      "Cotações, sinistros e renovações com corretores e suporte compartilhando o mesmo canal.",
+    icon: Shield,
+  },
+  {
+    title: "Clínicas veterinárias",
+    description:
+      "Agendamentos, receitas e acompanhamento de pets com equipe clínica e balcão sincronizados.",
+    icon: PawPrint,
+  },
+  {
+    title: "Construtoras",
+    description:
+      "Dúvidas de compradores, obra e documentação comercial com vários consultores no mesmo número.",
+    icon: HardHat,
+  },
+  {
+    title: "Logística e transporte",
+    description:
+      "Coletas, entregas e ocorrências em rota com despacho e motoristas no mesmo painel de atendimento.",
+    icon: Package,
+  },
+  {
+    title: "Equipe",
+    description:
+      "Qualquer operação com 3 ou mais atendentes simultâneos — sem cobrança por usuário, com todo o time no mesmo painel.",
+    icon: Users,
+    destaque: true,
+  },
+];
 
 const steps = [
   {
@@ -36,7 +158,7 @@ const steps = [
   {
     title: "Gerencie sua equipe",
     description:
-      "Distribua atendimentos, acompanhe conversas e otimize o trabalho do time de chat em um só painel.",
+      "Distribua atendimentos entre 3 ou mais atendentes simultâneos e acompanhe tudo em um só painel.",
     icon: Users,
   },
 ];
@@ -54,8 +176,8 @@ const benefits = [
     icon: Cloud,
   },
   {
-    title: "Feito para equipes",
-    description: "Organize atendimentos, reduza retrabalho e acelere respostas ao cliente.",
+    title: "Atendentes ilimitados",
+    description: "Organize quantos atendentes precisar — sem custo por usuário.",
     icon: Users,
   },
 ];
@@ -72,6 +194,9 @@ function LandingPage() {
             Whasap
           </Link>
           <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
+            <a href="#para-quem" className="transition-colors hover:text-foreground">
+              Para quem é
+            </a>
             <a href="#como-funciona" className="transition-colors hover:text-foreground">
               Como funciona
             </a>
@@ -92,27 +217,67 @@ function LandingPage() {
         <section className="relative overflow-hidden border-b border-border/60">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,oklch(0.92_0.08_155),transparent_60%)]" />
           <div className="relative mx-auto max-w-6xl px-6 py-20 md:py-28">
-            <div className="max-w-3xl">
-              <p className="mb-4 inline-flex items-center rounded-full border border-wa-green/20 bg-wa-green/10 px-3 py-1 text-sm font-medium text-wa-green-dark">
-                WhatsApp simplificado para equipes
-              </p>
-              <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-6xl">
-                O Whasap conecta seus canais e centraliza o atendimento
-              </h1>
-              <p className="mt-6 text-lg leading-relaxed text-muted-foreground md:text-xl">
-                {description}
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Button asChild size="lg" className="bg-wa-green text-white hover:bg-wa-green-dark">
-                  <a href={PANEL_URL}>
-                    Começar agora
-                    <ArrowRight />
-                  </a>
-                </Button>
-                <Button asChild size="lg" variant="outline">
-                  <a href="#como-funciona">Ver como funciona</a>
-                </Button>
+            <div className="grid items-start gap-12 lg:grid-cols-2 lg:gap-16">
+              <div>
+                <p className="mb-4 inline-flex items-center rounded-full border border-wa-green/20 bg-wa-green/10 px-3 py-1 text-sm font-medium text-wa-green-dark">
+                  WhatsApp sem limites para equipes
+                </p>
+                <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl">
+                  Atenda mais clientes com toda a equipe no mesmo lugar
+                </h1>
+                <p className="mt-6 text-lg leading-relaxed text-muted-foreground md:text-xl">
+                  {description}
+                </p>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Button asChild size="lg" className="bg-wa-green text-white hover:bg-wa-green-dark">
+                    <a href={PANEL_URL}>
+                      Começar agora
+                      <ArrowRight />
+                    </a>
+                  </Button>
+                  <Button asChild size="lg" variant="outline">
+                    <a href="#como-funciona">Ver como funciona</a>
+                  </Button>
+                </div>
               </div>
+              <CalculadoraInvestimento />
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b border-border/60 py-20" id="para-quem">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="max-w-2xl">
+              <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Para quem é o Whasap</h2>
+              <p className="mt-4 text-lg text-muted-foreground">
+                Pensado para operações com vários atendentes — de contabilidades a restaurantes,
+                clínicas, e-commerce e muito mais. Escale o atendimento sem escalar a fatura por
+                usuário.
+              </p>
+            </div>
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {segmentos.map((segmento) => (
+                <article
+                  key={segmento.title}
+                  className={
+                    segmento.destaque
+                      ? "rounded-2xl border border-wa-green/30 bg-wa-green/5 p-6 shadow-sm sm:col-span-2 lg:col-span-4"
+                      : "rounded-2xl border border-border bg-card p-6 shadow-sm"
+                  }
+                >
+                  <div
+                    className={
+                      segmento.destaque
+                        ? "mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-wa-green/20 text-wa-green-dark"
+                        : "mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-wa-green/15 text-wa-green-dark"
+                    }
+                  >
+                    <segmento.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold">{segmento.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">{segmento.description}</p>
+                </article>
+              ))}
             </div>
           </div>
         </section>
@@ -121,12 +286,12 @@ function LandingPage() {
           <div className="mx-auto max-w-6xl px-6">
             <div className="max-w-2xl">
               <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-                Uma versão simplificada do WhatsApp, feita para operação
+                WhatsApp simplificado para quem opera em escala
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                O Whasap foi pensado para quem precisa unificar atendimento: conecte o WhatsApp
-                Comercial, a Cloud API ou ambos juntos e tenha uma experiência mais leve para
-                gerenciar equipes de chat.
+                O Whasap foi pensado para contabilidades, farmácias, distribuidoras e equipes com
+                mais de 3 atendentes: conecte o WhatsApp Comercial, a Cloud API ou ambos juntos —
+                sem limite de atendentes e com uma experiência leve para gerenciar o dia a dia.
               </p>
             </div>
             <div className="mt-10 grid gap-4 md:grid-cols-3">
@@ -144,8 +309,8 @@ function LandingPage() {
           <div className="mx-auto max-w-6xl px-6">
             <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Como funciona</h2>
             <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-              Três passos para sair da fragmentação e colocar sua equipe no mesmo fluxo de
-              atendimento.
+              Três passos para sair da fragmentação e colocar sua equipe — de 3 a dezenas de
+              atendentes — no mesmo fluxo de atendimento.
             </p>
             <div className="mt-12 grid gap-6 md:grid-cols-3">
               {steps.map((step, index) => (
@@ -191,11 +356,11 @@ function LandingPage() {
           <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 md:flex-row md:items-center">
             <div className="max-w-2xl">
               <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-                Pronto para simplificar seu atendimento?
+                Comece com 3 dias grátis
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Experimente o Whasap e veja como é gerenciar WhatsApp Comercial e Cloud API em um só
-                lugar.
+                Experimente o Whasap com investimento transparente — simule acima ou fale com nossa
+                equipe para montar o plano certo para sua operação.
               </p>
             </div>
             <Button asChild size="lg" className="bg-wa-green text-white hover:bg-wa-green-dark">
@@ -211,7 +376,7 @@ function LandingPage() {
       <footer className="border-t border-border/60 py-8">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
           <p>© {new Date().getFullYear()} Whasap. Todos os direitos reservados.</p>
-          <p>whasap.com.br — WhatsApp simplificado para equipes.</p>
+          <p>whasap.com.br — WhatsApp sem limites para equipes.</p>
         </div>
       </footer>
     </div>

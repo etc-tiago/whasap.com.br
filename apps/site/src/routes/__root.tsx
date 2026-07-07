@@ -64,14 +64,14 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 const defaultDescription =
-  "Whasap é a versão simplificada do WhatsApp para equipes. Conecte o WhatsApp Comercial e a Cloud API em um só lugar.";
+  "Whasap é a versão simplificada e sem limites do WhatsApp para equipes. Ideal para contabilidades, farmácias, distribuidoras e negócios com mais de 3 atendentes simultâneos.";
 
 export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Whasap — WhatsApp simplificado para equipes" },
+      { title: "Whasap — WhatsApp sem limites para equipes" },
       { name: "description", content: defaultDescription },
       ...icons.meta,
     ],

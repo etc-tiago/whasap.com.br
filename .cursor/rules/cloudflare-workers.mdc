@@ -9,6 +9,9 @@ alwaysApply: false
 - Use `wrangler.jsonc` with recent `compatibility_date` and `nodejs_compat`
 - Run `wrangler types` after binding changes; never hand-write `Env`
 - Secrets via **Secrets Store** em produção; local via `.dev.vars`
+- **Vars públicas** (`WEB_URL`, `CDN_URL`, …): top-level `vars` no `wrangler.jsonc` = **produção** (sync [`packages/config/src/public-urls.ts`](../../packages/config/src/public-urls.ts)); local sobrescreve via `.dev.vars`
+- **`VITE_*`**: `apps/*/.env.production` no build; dev na raiz `.env`
+- Validar sync: `bun run validate:env` — ver [docs/ENV.md](../../docs/ENV.md)
 - Use Hyperdrive for Postgres: `createDb(env.HYPERDRIVE.connectionString)`
 - No module-level request state; await all promises or use `ctx.waitUntil()`
 
@@ -30,7 +33,7 @@ alwaysApply: false
 
 Secrets Worker clássicos (`wrangler secret put`): ver [docs/SECRETS-WEBHOOK.md](../../docs/SECRETS-WEBHOOK.md).
 
-Local: `.dev.vars` com `ASSAS_API_KEY` (string) em `web` e `webhook`.
+Local: `.dev.vars` com secrets **e** overrides de URL (`WEB_URL`, etc.) em `web`, `office`, `webhook`.
 
 ## Hyperdrive (sempre igual)
 
@@ -88,7 +91,7 @@ Cada app tem **um** custom domain em `routes`:
 
 Não altere domínios por app sem alinhar DNS, Asaas callbacks e vars (`WEB_URL`, `WEBHOOK_URL`, etc.).
 
-Documentação completa de produção: `docs/PRODUCAO.md`.
+Documentação completa: `docs/ENV.md`, `docs/PRODUCAO.md`.
 
 ## Webhooks WhatsApp (R2)
 

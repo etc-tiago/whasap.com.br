@@ -1,5 +1,16 @@
+# Copie para .dev.vars (nunca commite .dev.vars):
+#   cp .dev.vars.example .dev.vars
+#
+# Overrides locais (sobrescrevem vars de produção do wrangler.jsonc em dev).
+# Sync: packages/config/src/public-urls.ts → workerVarsDevelopment
+
+WEB_URL=http://localhost:3000
+OFFICE_URL=http://localhost:3001
+WEBHOOK_URL=http://localhost:8788
+CDN_URL=http://localhost:8789
+
+# Secrets e flags — ver docs/SECRETS-WEBHOOK.md e docs/ENV.md
 ASSAS_API_KEY=$aact_placeholder
 ASAAS_SANDBOX=true
 EVOLUTION_BASE_URL=http://localhost:8080
 EVOLUTION_API_KEY=dev-key
-# DATABASE_URL fica no .env da raiz do monorepo — não coloque Hyperdrive aqui
