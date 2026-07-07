@@ -2,13 +2,7 @@ import { relations } from "drizzle-orm";
 
 import { sessao, usuario } from "./autenticacao";
 import { instancia, instanciaAddon } from "./instancias";
-import {
-  contato,
-  conversa,
-  conversaAnotacao,
-  mensagem,
-  mensagemTemplate,
-} from "./mensageria";
+import { contato, conversa, conversaAnotacao, mensagem, mensagemTemplate } from "./mensageria";
 import { officeSessao, officeUsuario } from "./office";
 import { organizacao, organizacaoConvite, organizacaoMembro } from "./organizacoes";
 

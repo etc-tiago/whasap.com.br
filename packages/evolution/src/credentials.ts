@@ -7,6 +7,11 @@ export const evolutionCredentialsSchema = z.object({
 
 export type EvolutionCredentials = z.infer<typeof evolutionCredentialsSchema>;
 
+/** Contexto por instância Evolution GO (token retornado em `/instance/create`). */
+export type EvolutionGoInstanceContext = {
+  instanceToken: string;
+};
+
 export function parseEvolutionCredentials(raw: string): EvolutionCredentials {
   return evolutionCredentialsSchema.parse(JSON.parse(raw));
 }

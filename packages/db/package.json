@@ -11,10 +11,7 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
-    "@better-drizzle/soft-delete": "^0.1.1",
-    "@better-drizzle/timestamps": "^0.1.1",
     "@neondatabase/serverless": "^1.0.1",
-    "better-drizzle": "^0.1.1",
     "drizzle-orm": "^0.44.2"
   },
   "devDependencies": {

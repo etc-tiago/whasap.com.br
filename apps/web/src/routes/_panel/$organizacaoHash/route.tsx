@@ -1,8 +1,16 @@
+/**
+ * Layout da organização: shell do painel + gate de onboarding.
+ *
+ * Redireciona para `/integracao` quando a org não é operacional
+ * (nenhuma instância `connected` com `asaasSubscriptionId`).
+ * Paths isentos: `/integracao`, `/ajustes`.
+ */
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 
 import { PanelShell } from "@/components/panel-shell";
+import { isOrganizacaoOperacional } from "@/lib/onboarding";
 import { orgInput } from "@/lib/org-input";
 import { orpc } from "@/lib/orpc";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
@@ -10,12 +18,6 @@ import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 export const Route = createFileRoute("/_panel/$organizacaoHash")({
   component: OrganizacaoLayout,
 });
-
-function isOperational(
-  instances: Array<{ status: string; asaasSubscriptionId: string | null }>,
-): boolean {
-  return instances.some((i) => i.status === "connected" && i.asaasSubscriptionId);
-}
 
 function OrganizacaoLayout() {
   const organizacaoHash = useOrganizacaoHash();
@@ -34,7 +36,7 @@ function OrganizacaoLayout() {
     }),
   );
 
-  const onboardingComplete = instances.data ? isOperational(instances.data) : false;
+  const onboardingComplete = instances.data ? isOrganizacaoOperacional(instances.data) : false;
   const integracaoPath = organizacaoHash ? `/${organizacaoHash}/integracao` : "";
   const ajustesPath = organizacaoHash ? `/${organizacaoHash}/ajustes` : "";
   const exemptPaths = [integracaoPath, ajustesPath];

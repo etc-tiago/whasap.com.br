@@ -1,6 +1,2 @@
-export {
-  metaCredentialsSchema,
-  parseMetaCredentials,
-  type MetaCredentials,
-} from "./credentials";
-export { createMetaClient, type MetaTemplate } from "./client";
+export { metaCredentialsSchema, parseMetaCredentials, type MetaCredentials } from "./credentials";
+export { createMetaClient, extractMetaMessageId, type MetaTemplate } from "./client";

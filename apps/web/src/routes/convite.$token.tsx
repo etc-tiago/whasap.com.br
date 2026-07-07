@@ -57,20 +57,14 @@ function ConvitePage() {
       <div className="w-full max-w-sm space-y-6 rounded-xl border bg-card p-6 shadow-sm">
         <div className="text-center">
           <h1 className="text-xl font-semibold">Aceitar convite</h1>
-          <p className="text-sm text-muted-foreground">
-            Use o email que recebeu o convite
-          </p>
+          <p className="text-sm text-muted-foreground">Use o email que recebeu o convite</p>
         </div>
 
         {!otpSent ? (
           <>
             <div className="space-y-2">
               <Label>Email</Label>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <Button
               className="w-full"

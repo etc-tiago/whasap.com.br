@@ -10,9 +10,7 @@ export function isInstanceOperational(instance: InstanceRow): boolean {
   return instance.status === "connected" && instance.asaasIdAssinatura !== null;
 }
 
-export function isOrgOnboardingComplete(
-  instances: InstanceRow[],
-): boolean {
+export function isOrgOnboardingComplete(instances: InstanceRow[]): boolean {
   return instances.some(isInstanceOperational);
 }
 

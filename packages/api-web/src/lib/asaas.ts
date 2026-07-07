@@ -14,7 +14,10 @@ export async function createAsaasFromEnv(env: AsaasEnv) {
 
 export async function ensureAsaasCustomer(
   env: AsaasEnv,
-  org: typeof organizacao.$inferSelect,
+  org: Pick<
+    typeof organizacao.$inferSelect,
+    "asaasIdCliente" | "razaoSocial" | "nome" | "documentoFiscal"
+  >,
 ): Promise<string> {
   if (org.asaasIdCliente) return org.asaasIdCliente;
   const asaas = await createAsaasFromEnv(env);

@@ -1,6 +1,8 @@
 import type { instancia, organizacao, usuario } from "@whasap/db";
 
-export function toUsuarioOutput(u: typeof usuario.$inferSelect) {
+export function toUsuarioOutput(
+  u: Pick<typeof usuario.$inferSelect, "uuid" | "email" | "nome" | "emailVerificadoEm">,
+) {
   return {
     id: u.uuid,
     email: u.email,
@@ -9,7 +11,18 @@ export function toUsuarioOutput(u: typeof usuario.$inferSelect) {
   };
 }
 
-export function toOrganizacaoOutput(org: typeof organizacao.$inferSelect) {
+export function toOrganizacaoOutput(
+  org: Pick<
+    typeof organizacao.$inferSelect,
+    | "uuid"
+    | "nome"
+    | "slug"
+    | "documentoFiscal"
+    | "tipoDocumento"
+    | "razaoSocial"
+    | "asaasIdCliente"
+  >,
+) {
   return {
     id: org.uuid,
     nome: org.nome,
@@ -22,7 +35,19 @@ export function toOrganizacaoOutput(org: typeof organizacao.$inferSelect) {
 }
 
 export function toInstanciaOutput(
-  instance: typeof instancia.$inferSelect,
+  instance: Pick<
+    typeof instancia.$inferSelect,
+    | "uuid"
+    | "nome"
+    | "provedor"
+    | "status"
+    | "limiteConversas"
+    | "asaasIdAssinatura"
+    | "nuvemIdNumeroTelefone"
+    | "trialTerminaEm"
+    | "conectadoEm"
+    | "criadoEm"
+  >,
   organizacaoUuid: string,
 ) {
   return {

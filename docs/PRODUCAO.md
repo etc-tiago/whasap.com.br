@@ -116,7 +116,7 @@ Crie o namespace no dashboard Cloudflare (Workers → Rate limiting) se `1001` a
 
 | Provedor | Onde fica | Por instância? |
 |----------|-----------|----------------|
-| **Evolution** | Vars/secrets do worker (`EVOLUTION_BASE_URL`, `EVOLUTION_API_KEY`) — servidor único da plataforma | Só `evolucao_nome_instancia` no Neon |
+| **Evolution** | Vars/secrets do worker (`EVOLUTION_BASE_URL`, `EVOLUTION_API_KEY`) | v2: `evolucao_nome_instancia`; GO: `evolucao_instance_id`, `evolucao_token`, `evolucao_nome_instancia` |
 | **Meta Cloud** | Colunas em `instancia` (`nuvem_token_acesso`, `nuvem_id_numero_telefone`, `nuvem_id_waba`) — admin informa no onboarding | Sim |
 
 O token Meta é dado coluna `text` no Postgres (não Secrets Store, não exposto na API).
@@ -365,7 +365,7 @@ Ou na raiz: `bun run deploy` (Turbo), desde que as vars de build estejam no ambi
 
 - [ ] Asaas: webhook + domínio do painel cadastrado
 - [ ] Meta: app, webhook, tokens
-- [ ] Evolution: instância v2 + Redis, webhook `/evo`
+- [ ] Evolution GO provisionado, webhook `/evo`
 - [ ] `office_usuario` com pelo menos um admin
 - [ ] Email: `EMAIL_FROM` com domínio verificado (envio real ainda stub em `@whasap/api-core`)
 
@@ -381,7 +381,7 @@ Ou na raiz: `bun run deploy` (Turbo), desde que as vars de build estejam no ambi
 | Sessão usuário / office | Token opaco em cookie + tabela `sessao` / `office_sessao` no Postgres |
 | Verify token Meta | `wrangler secret` → `WEBHOOK_SECRET` no webhook |
 | Connection string DB | Hyperdrive (nunca em var plain) |
-| Credenciais WhatsApp por instância | Meta: colunas em `instancia` no Neon; Evolution: só `evolucao_nome_instancia` |
+| Credenciais WhatsApp por instância | Meta: `nuvem_*`; Evolution: `evolucao_instance_id` + `evolucao_token` + `evolucao_nome_instancia` |
 | Servidor Evolution | `EVOLUTION_BASE_URL` + secret `EVOLUTION_API_KEY` nos workers `web` e `webhook` |
 | Anexos de mensagem | R2 `whasap-cdn` (escrita webhook, leitura cdn) |
 | Logs de webhook | R2 `whasap` |

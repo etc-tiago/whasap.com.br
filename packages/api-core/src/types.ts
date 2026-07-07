@@ -1,4 +1,4 @@
-import type { Client, Db } from "@whasap/db";
+import type { Db } from "@whasap/db";
 
 export type AuthRateLimiter = {
   limit(options: { key: string }): Promise<{ success: boolean }>;
@@ -12,7 +12,6 @@ export type BaseEnv = {
 
 export type DbContext = {
   db: Db;
-  client: Client;
   env: BaseEnv;
   clientIp?: string;
 };

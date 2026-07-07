@@ -8,6 +8,7 @@ export type RpcSessionConfig = {
   logoutPath: string;
 };
 
+/** Helpers de cookie de sessão para handlers RPC (web e office). */
 export function createSessionCookieHelpers(cookieName: string) {
   return {
     getSessionTokenFromRequest(request: Request): string | null {
@@ -24,6 +25,10 @@ export function createSessionCookieHelpers(cookieName: string) {
   };
 }
 
+/**
+ * Monta handler HTTP `/rpc` com contexto, cookies de sessão e interceptors.
+ * Usado por `apps/web` e `apps/office`.
+ */
 export function createRpcHandler<TContext extends { sessionToken: string | null }>(options: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   router: any;

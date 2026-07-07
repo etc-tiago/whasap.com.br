@@ -205,10 +205,7 @@
       "name": "@whasap/db",
       "version": "0.0.0",
       "dependencies": {
-        "@better-drizzle/soft-delete": "^0.1.1",
-        "@better-drizzle/timestamps": "^0.1.1",
         "@neondatabase/serverless": "^1.0.1",
-        "better-drizzle": "^0.1.1",
         "drizzle-orm": "^0.44.2",
       },
       "devDependencies": {
@@ -225,6 +222,7 @@
         "zod": "^3.24.2",
       },
       "devDependencies": {
+        "@cloudflare/workers-types": "^4.20250705.0",
         "@whasap/typescript-config": "workspace:*",
         "typescript": "^5.8.3",
       },
@@ -356,10 +354,6 @@
     "@babel/traverse": ["@babel/traverse@7.29.7", "", { "dependencies": { "@babel/code-frame": "^7.29.7", "@babel/generator": "^7.29.7", "@babel/helper-globals": "^7.29.7", "@babel/parser": "^7.29.7", "@babel/template": "^7.29.7", "@babel/types": "^7.29.7", "debug": "^4.3.1" } }, "sha512-EhlfNQtZ+NK22w5BM61ciuiq1m58ed33Wr1Xan//ZRTy6hgjnwyCffRYwzsGXdASJSUJ1guZILsErh1eQcl+zw=="],
 
     "@babel/types": ["@babel/types@7.29.7", "", { "dependencies": { "@babel/helper-string-parser": "^7.29.7", "@babel/helper-validator-identifier": "^7.29.7" } }, "sha512-4zBIxpPzowiZpusoFkyGVwakdRJUyuH5PxQ/PrqghfdFWWasvnCdPfQXHrenDai+gyLARulZjZowCOj6fjT4pA=="],
-
-    "@better-drizzle/soft-delete": ["@better-drizzle/soft-delete@0.1.1", "", { "peerDependencies": { "better-drizzle": "^0.1.1", "drizzle-orm": "^0.30.0", "typescript": "^5" } }, "sha512-mTtWSndgXXyExapovafG508O7vuEwZI7QhAZ2yFjTUzP4uhFM1Gq7TOIyjKvqlqU9elnX2UJaTEHfBPfidZ3Wg=="],
-
-    "@better-drizzle/timestamps": ["@better-drizzle/timestamps@0.1.1", "", { "peerDependencies": { "better-drizzle": "^0.1.1", "drizzle-orm": "^0.30.0", "typescript": "^5" } }, "sha512-6X17bzEwKqF4P/dL/3w5nXBZ4zhVhBoYZwhbGoQdZg7YAcusH+M8Jb7LbyiO+tn19GhytjW3K8aKIt18M6alLA=="],
 
     "@cloudflare/kv-asset-handler": ["@cloudflare/kv-asset-handler@0.5.0", "", {}, "sha512-jxQYkj8dSIzc0cD6cMMNdOc1UVjqSqu8BZdor5s8cGjW2I8BjODt/kWPVdY+u9zj3ms75Q5qaZgnxUad83+eAg=="],
 
@@ -912,8 +906,6 @@
     "babel-dead-code-elimination": ["babel-dead-code-elimination@1.0.12", "", { "dependencies": { "@babel/core": "^7.23.7", "@babel/parser": "^7.23.6", "@babel/traverse": "^7.23.7", "@babel/types": "^7.23.6" } }, "sha512-GERT7L2TiYcYDtYk1IpD+ASAYXjKbLTDPhBtYj7X1NuRMDTMtAx9kyBenub1Ev41lo91OHCKdmP+egTDmfQ7Ig=="],
 
     "baseline-browser-mapping": ["baseline-browser-mapping@2.10.42", "", { "bin": { "baseline-browser-mapping": "dist/cli.cjs" } }, "sha512-c/jurFrDLyui7o1J86yLkRu4LMsTYcBohveus7/I2Hzdn9KIP2bdJPTue/lR1KH46enoPbD77GKeSYNdyPoD3Q=="],
-
-    "better-drizzle": ["better-drizzle@0.1.1", "", { "peerDependencies": { "drizzle-orm": "^0.30.0", "typescript": "^5" } }, "sha512-D8DI/eTzZJSEFB7xGzWHWbuQ4ZBvZxO5HHxOTJ6a9N32ycZk2KR6c0/tsNlwexGGqMwRH9XWZbIDXlnk0Vi6LA=="],
 
     "blake3-wasm": ["blake3-wasm@2.1.5", "", {}, "sha512-F1+K8EbfOZE49dtoPtmxUQrpXaBIl3ICvasLh+nJta0xkz+9kF/7uet9fLnwKqhDrmj6g+6K3Tw9yQPUg2ka5g=="],
 

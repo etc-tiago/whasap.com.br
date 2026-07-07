@@ -1,5 +1,5 @@
 {
-  "extends": "@whasap/typescript-config/base.json",
+  "extends": "@whasap/typescript-config/worker.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src"

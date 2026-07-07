@@ -1,6 +1,16 @@
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { mvpDefaults } from "@whasap/config";
 import { createSessionCookieHelpers } from "@whasap/api-core";
-import { appCreateData } from "@whasap/db";
+import {
+  colunasMembroOrganizacao,
+  colunasSessaoWeb,
+  colunasUsuarioSessao,
+  comCriadoEm,
+  incluirOrganizacaoPublica,
+  organizacaoMembro,
+  sessao,
+  usuario,
+} from "@whasap/db";
 
 import type { WebContext, WebUsuario, MemberRole } from "../types";
 
@@ -13,6 +23,7 @@ export const getSessionTokenFromRequest = cookieHelpers.getSessionTokenFromReque
 export const sessionCookieHeader = cookieHelpers.sessionCookieHeader;
 export const clearSessionCookieHeader = cookieHelpers.clearSessionCookieHeader;
 
+/** Cria sessão web e retorna o token do cookie. */
 export async function createSession(
   ctx: WebContext,
   usuarioInternalId: number,
@@ -20,32 +31,35 @@ export async function createSession(
 ): Promise<string> {
   const token = crypto.randomUUID();
   const expiraEm = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
-  await ctx.client.sessao.create({
-    data: appCreateData({
+  await ctx.db.insert(sessao).values(
+    comCriadoEm({
       usuarioId: usuarioInternalId,
       organizacaoId: organizationId ?? null,
       token,
       expiraEm,
     }),
-  });
+  );
   return token;
 }
 
+/** Atualiza organização ativa na sessão. */
 export async function persistSessionOrganization(
   ctx: WebContext,
   token: string,
   organizationId: number,
 ): Promise<void> {
-  await ctx.client.sessao.update({
-    where: { token },
-    data: { organizacaoId: organizationId },
-  });
+  await ctx.db.update(sessao).set({ organizacaoId: organizationId }).where(eq(sessao.token, token));
 }
 
+/** Remove sessão pelo token. */
 export async function deleteSession(ctx: WebContext, token: string): Promise<void> {
-  await ctx.client.sessao.delete({ where: { token } });
+  await ctx.db.delete(sessao).where(eq(sessao.token, token));
 }
 
+/**
+ * Resolve sessão a partir do token do cookie.
+ * @returns Usuário autenticado ou null; `organizationId` e `role` sempre null aqui.
+ */
 export async function resolveSession(
   ctx: WebContext,
   token: string | null,
@@ -57,14 +71,16 @@ export async function resolveSession(
   if (!token) return { usuario: null, organizationId: null, role: null };
 
   const now = new Date();
-  const session = await ctx.client.sessao.findFirst({
-    where: { token, expiraEm: { gt: now } },
+  const session = await ctx.db.query.sessao.findFirst({
+    where: and(eq(sessao.token, token), gt(sessao.expiraEm, now)),
+    columns: colunasSessaoWeb,
   });
 
   if (!session) return { usuario: null, organizationId: null, role: null };
 
-  const row = await ctx.client.usuario.findFirst({
-    where: { id: session.usuarioId },
+  const row = await ctx.db.query.usuario.findFirst({
+    where: and(eq(usuario.id, session.usuarioId), isNull(usuario.excluidoEm)),
+    columns: colunasUsuarioSessao,
   });
 
   if (!row) return { usuario: null, organizationId: null, role: null };
@@ -82,17 +98,25 @@ export async function resolveSession(
   };
 }
 
+/**
+ * Busca organização e papel do usuário (primeira ou org específica da sessão).
+ * @returns Organização ativa + papel ou null.
+ */
 export async function getOrganizationForUser(
   ctx: WebContext,
   usuarioInternalId: number,
   organizationId?: number,
 ) {
-  const membership = await ctx.client.organizacaoMembro.findFirst({
-    where: {
-      usuarioId: usuarioInternalId,
-      ...(organizationId !== undefined ? { organizacaoId: organizationId } : {}),
-    },
-    include: { organizacao: true },
+  const membership = await ctx.db.query.organizacaoMembro.findFirst({
+    where: and(
+      eq(organizacaoMembro.usuarioId, usuarioInternalId),
+      ...(organizationId !== undefined
+        ? [eq(organizacaoMembro.organizacaoId, organizationId)]
+        : []),
+      isNull(organizacaoMembro.excluidoEm),
+    ),
+    columns: colunasMembroOrganizacao,
+    with: { organizacao: incluirOrganizacaoPublica },
   });
 
   if (!membership?.organizacao) return null;

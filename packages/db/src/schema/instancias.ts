@@ -37,6 +37,8 @@ export const instancia = pgTable(
     asaasIdAssinatura: text().unique(),
     limiteConversas: integer().notNull().default(1000),
     evolucaoNomeInstancia: text().unique(),
+    evolucaoInstanceId: text().unique(),
+    evolucaoToken: text(),
     nuvemIdNumeroTelefone: text().unique(),
     nuvemIdWaba: text(),
     nuvemTokenAcesso: text(),

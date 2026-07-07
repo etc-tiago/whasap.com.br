@@ -44,7 +44,11 @@ function IntegracaoPage() {
               placeholder="Minha empresa"
             />
           </div>
-          <Button className="w-full" disabled={!nome.trim() || criar.isPending} onClick={handleCriar}>
+          <Button
+            className="w-full"
+            disabled={!nome.trim() || criar.isPending}
+            onClick={handleCriar}
+          >
             Criar organização
           </Button>
         </CardContent>

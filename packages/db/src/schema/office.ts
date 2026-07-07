@@ -1,12 +1,4 @@
-import {
-  index,
-  integer,
-  pgTable,
-  serial,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { index, integer, pgTable, serial, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const officeUsuario = pgTable("office_usuario", {
   id: serial().primaryKey(),

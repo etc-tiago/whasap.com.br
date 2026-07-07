@@ -1,0 +1,38 @@
+---
+description: Convenções de código autodescritivo e JSDoc
+globs: packages/**,apps/**
+alwaysApply: false
+---
+
+# Documentação in-code
+
+## Camadas
+
+| Camada | Responsabilidade | Documentação |
+|--------|------------------|--------------|
+| `procedures/*.ts` | Colar ORPC → handler (≤6 linhas) | JSDoc de 1 linha: endpoint + auth |
+| `handlers/*.ts` | Orquestração do fluxo | JSDoc no export e em cada método público |
+| Funções auxiliares (`lib/` ou mesmo arquivo) | Uma responsabilidade cada | JSDoc com `@param`, `@returns` e regras de negócio |
+| Rotas/componentes complexos (`apps/`) | UI + gates de negócio | Bloco JSDoc no topo (estados, RBAC) |
+
+## Idioma
+
+- Nomes de funções auxiliares e texto JSDoc em **pt-BR**
+- Identificadores de integração externa permanecem técnicos (`asaasCustomerId`, `cloudPhoneNumberId`)
+
+## O que fazer
+
+- Procedures finas delegando para handlers (padrão `api-web`)
+- Funções com nomes que descrevem intenção (`buscarInstanciasAtivas`, `normalizarPaginacao`)
+- Eliminar ternários duplicados de query — montar `where` condicionalmente
+- Count e página em `Promise.all` quando independentes
+
+## O que NÃO fazer
+
+- Comentários linha a linha (`// importa drizzle`)
+- Repetir todos os campos do contrato ORPC no JSDoc
+- Documentar mappers triviais sem regra de negócio
+
+## Referência
+
+Piloto: `packages/api-office/src/handlers/administracao.ts` + `procedures/administracao/instancias/lista.ts`

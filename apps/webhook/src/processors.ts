@@ -1,11 +1,34 @@
-import { appCreateData, type Client } from "@whasap/db";
-
+/**
+ * Processadores de webhooks Evolution e Meta Cloud API.
+ * Cria/atualiza contato, conversa, mensagem e contagem de uso mensal.
+ * Mensagens com mídia disparam download assíncrono via `scheduleInboundMedia`.
+ */
+import {
+  colunasContatoCaixaEntrada,
+  colunasInstanciaWebhook,
+  colunasMensagemWebhook,
+  colunasSomenteId,
+  colunasUsoMensal,
+  colunasUsoMensalContato,
+  comCriadoEm,
+  comTimestampAtualizacao,
+  comTimestampsCriacao,
+  contato,
+  conversa,
+  type Db,
+  instancia,
+  mensagem,
+  usoMensal,
+  usoMensalContato,
+} from "@whasap/db";
+import { and, eq, isNull, or } from "drizzle-orm";
 import type { Env } from "./env";
-import { type InboundMediaJob, scheduleInboundMedia } from "./media";
+import { scheduleInboundMedia } from "./media";
 
 type EvolutionPayload = {
   event?: string;
   instance?: string;
+  instanceId?: string;
   data?: {
     state?: string;
     key?: { remoteJid?: string; fromMe?: boolean; id?: string };
@@ -69,33 +92,59 @@ function evolutionMediaFromMessage(messageObj: Record<string, unknown>) {
   return null;
 }
 
+async function buscarInstanciaEvolution(db: Db, payload: EvolutionPayload) {
+  const instanceKey = payload.instance;
+  const instanceId = payload.instanceId;
+
+  if (instanceId) {
+    return db.query.instancia.findFirst({
+      where: and(eq(instancia.evolucaoInstanceId, instanceId), isNull(instancia.excluidoEm)),
+      columns: colunasInstanciaWebhook,
+    });
+  }
+  if (instanceKey) {
+    return db.query.instancia.findFirst({
+      where: and(
+        or(
+          eq(instancia.evolucaoNomeInstancia, instanceKey),
+          eq(instancia.evolucaoInstanceId, instanceKey),
+        ),
+        isNull(instancia.excluidoEm),
+      ),
+      columns: colunasInstanciaWebhook,
+    });
+  }
+  return null;
+}
+
+/**
+ * Processa eventos Evolution (connection.update, messages.upsert, etc.).
+ * Idempotente por `idExterno` da mensagem.
+ */
 export async function processEvolutionWebhook(
-  client: Client,
+  db: Db,
   env: Env,
   ctx: ExecutionContext,
   body: string,
 ): Promise<void> {
   const payload = JSON.parse(body) as EvolutionPayload;
   const event = payload.event ?? "";
-  const instanceName = payload.instance;
 
-  if (!instanceName) return;
-
-  const instance = await client.instancia.findFirst({
-    where: { evolucaoNomeInstancia: instanceName },
-  });
+  const instance = await buscarInstanciaEvolution(db, payload);
   if (!instance) return;
 
   if (event === "connection.update") {
     const state = payload.data?.state;
     if (state === "open") {
-      await client.instancia.update({
-        where: { id: instance.id },
-        data: {
-          status: instance.asaasIdAssinatura ? "connected" : "pending_payment",
-          conectadoEm: new Date(),
-        },
-      });
+      await db
+        .update(instancia)
+        .set(
+          comTimestampAtualizacao({
+            status: instance.asaasIdAssinatura ? "connected" : "pending_payment",
+            conectadoEm: new Date(),
+          }),
+        )
+        .where(eq(instancia.id, instance.id));
     }
     return;
   }
@@ -138,7 +187,7 @@ export async function processEvolutionWebhook(
     id: messageId,
   };
 
-  const result = await ingestInboundMessage(client, {
+  const result = await ingerirMensagemEntrada(db, {
     instanciaId: instance.id,
     phone,
     contactName: pushName ?? null,
@@ -149,15 +198,16 @@ export async function processEvolutionWebhook(
   });
   if (!result) return;
 
-  if (mediaInfo && MEDIA_TYPES.has(type)) {
-    scheduleInboundMedia(ctx, env, client, {
+  if (mediaInfo && MEDIA_TYPES.has(type) && instance.evolucaoToken) {
+    scheduleInboundMedia(ctx, env, db, {
       provider: "evolution",
       instanceUuid: instance.uuid,
       messageId: result.messageId,
       externalId: messageId,
       type,
-      instanceName,
+      instanceToken: instance.evolucaoToken!,
       messageKey,
+      waMessage: messageObj,
       mimeType: mediaInfo.mimeType,
       base64: mediaInfo.base64,
       fileName: mediaInfo.fileName,
@@ -176,15 +226,17 @@ type MetaMessage = {
   video?: { id: string; caption?: string; mime_type?: string };
 };
 
+type MetaChangeValue = {
+  metadata?: { phone_number_id?: string };
+  messages?: MetaMessage[];
+  statuses?: Array<{ id: string; status: string }>;
+};
+
 type MetaPayload = {
   object?: string;
   entry?: Array<{
     changes?: Array<{
-      value?: {
-        metadata?: { phone_number_id?: string };
-        messages?: MetaMessage[];
-        statuses?: Array<{ id: string; status: string }>;
-      };
+      value?: MetaChangeValue;
     }>;
   }>;
 };
@@ -226,8 +278,20 @@ function metaMediaFromMessage(msg: MetaMessage) {
   return null;
 }
 
+async function findMetaWebhookInstance(db: Db, phoneNumberId: string) {
+  return db.query.instancia.findFirst({
+    where: and(eq(instancia.nuvemIdNumeroTelefone, phoneNumberId), isNull(instancia.excluidoEm)),
+    columns: colunasInstanciaWebhook,
+  });
+}
+
+type MetaWebhookInstance = NonNullable<Awaited<ReturnType<typeof findMetaWebhookInstance>>>;
+
+/**
+ * Processa eventos Meta Cloud API (mensagens inbound e status de entrega).
+ */
 export async function processMetaWebhook(
-  client: Client,
+  db: Db,
   env: Env,
   ctx: ExecutionContext,
   body: string,
@@ -235,85 +299,127 @@ export async function processMetaWebhook(
   const payload = JSON.parse(body) as MetaPayload;
   if (payload.object !== "whatsapp_business_account") return;
 
-  for (const entry of payload.entry ?? []) {
-    for (const change of entry.changes ?? []) {
-      const value = change.value;
-      if (!value) continue;
+  const changeValues = (payload.entry ?? []).flatMap((entry) =>
+    (entry.changes ?? []).flatMap((change) => (change.value ? [change.value] : [])),
+  );
+  if (changeValues.length === 0) return;
 
-      const phoneNumberId = value.metadata?.phone_number_id;
-      if (!phoneNumberId) continue;
+  const phoneNumberIds = [
+    ...new Set(
+      changeValues
+        .map((value) => value.metadata?.phone_number_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
 
-      const instance = await client.instancia.findFirst({
-        where: { nuvemIdNumeroTelefone: phoneNumberId },
-      });
-      if (!instance) continue;
+  const instanceRows = await Promise.all(
+    phoneNumberIds.map((phoneNumberId) => findMetaWebhookInstance(db, phoneNumberId)),
+  );
+  const instanceByPhoneNumberId = new Map(
+    phoneNumberIds.map((phoneNumberId, index) => [phoneNumberId, instanceRows[index]] as const),
+  );
 
-      for (const msg of value.messages ?? []) {
-        let bodyText: string | null = null;
-        let type = msg.type;
-        const mediaInfo = metaMediaFromMessage(msg);
+  await Promise.all(
+    changeValues.map((value) =>
+      processMetaChangeValue(db, env, ctx, value, instanceByPhoneNumberId),
+    ),
+  );
+}
 
-        if (msg.type === "text" && msg.text) {
-          bodyText = msg.text.body;
-        } else if (mediaInfo) {
-          type = mediaInfo.type;
-          bodyText = mediaInfo.body;
-        } else {
-          bodyText = `[${msg.type}]`;
-        }
-        if (!bodyText) continue;
+async function processMetaChangeValue(
+  db: Db,
+  env: Env,
+  ctx: ExecutionContext,
+  value: MetaChangeValue,
+  instanceByPhoneNumberId: Map<string, MetaWebhookInstance | undefined>,
+): Promise<void> {
+  const phoneNumberId = value.metadata?.phone_number_id;
+  if (!phoneNumberId) return;
 
-        const result = await ingestInboundMessage(client, {
-          instanciaId: instance.id,
-          phone: msg.from,
-          contactName: null,
-          body: bodyText,
-          type,
-          externalId: msg.id,
-          isCloud: true,
-        });
-        if (!result) continue;
+  const instance = instanceByPhoneNumberId.get(phoneNumberId);
+  if (!instance) return;
 
-        if (
-          mediaInfo &&
-          MEDIA_TYPES.has(type) &&
-          instance.nuvemTokenAcesso &&
-          instance.nuvemIdNumeroTelefone &&
-          instance.nuvemIdWaba
-        ) {
-          scheduleInboundMedia(ctx, env, client, {
-            provider: "meta",
-            instanceUuid: instance.uuid,
-            messageId: result.messageId,
-            externalId: msg.id,
-            type,
-            accessToken: instance.nuvemTokenAcesso,
-            phoneNumberId: instance.nuvemIdNumeroTelefone,
-            wabaId: instance.nuvemIdWaba,
-            mediaId: mediaInfo.mediaId,
-            mimeType: mediaInfo.mimeType,
-            fileName: mediaInfo.fileName,
-          });
-        }
-      }
+  await Promise.all(
+    (value.messages ?? []).map((msg) => processMetaInboundMessage(db, env, ctx, instance, msg)),
+  );
 
-      for (const status of value.statuses ?? []) {
-        const message = await client.mensagem.findFirst({
-          where: { idExterno: status.id },
-        });
-        if (message) {
-          await client.mensagem.update({
-            where: { id: message.id },
-            data: { status: status.status },
-          });
-        }
-      }
-    }
+  await Promise.all((value.statuses ?? []).map((status) => processMetaDeliveryStatus(db, status)));
+}
+
+async function processMetaInboundMessage(
+  db: Db,
+  env: Env,
+  ctx: ExecutionContext,
+  instance: MetaWebhookInstance,
+  msg: MetaMessage,
+): Promise<void> {
+  let bodyText: string | null = null;
+  let type = msg.type;
+  const mediaInfo = metaMediaFromMessage(msg);
+
+  if (msg.type === "text" && msg.text) {
+    bodyText = msg.text.body;
+  } else if (mediaInfo) {
+    type = mediaInfo.type;
+    bodyText = mediaInfo.body;
+  } else {
+    bodyText = `[${msg.type}]`;
+  }
+  if (!bodyText) return;
+
+  const result = await ingerirMensagemEntrada(db, {
+    instanciaId: instance.id,
+    phone: msg.from,
+    contactName: null,
+    body: bodyText,
+    type,
+    externalId: msg.id,
+    isCloud: true,
+  });
+  if (!result) return;
+
+  if (
+    mediaInfo &&
+    MEDIA_TYPES.has(type) &&
+    instance.nuvemTokenAcesso &&
+    instance.nuvemIdNumeroTelefone &&
+    instance.nuvemIdWaba
+  ) {
+    scheduleInboundMedia(ctx, env, db, {
+      provider: "meta",
+      instanceUuid: instance.uuid,
+      messageId: result.messageId,
+      externalId: msg.id,
+      type,
+      accessToken: instance.nuvemTokenAcesso,
+      phoneNumberId: instance.nuvemIdNumeroTelefone,
+      wabaId: instance.nuvemIdWaba,
+      mediaId: mediaInfo.mediaId,
+      mimeType: mediaInfo.mimeType,
+      fileName: mediaInfo.fileName,
+    });
   }
 }
 
-async function ingestInboundMessage(
-  client: Client,
+async function processMetaDeliveryStatus(
+  db: Db,
+  status: { id: string; status: string },
+): Promise<void> {
+  const message = await db.query.mensagem.findFirst({
+    where: and(eq(mensagem.idExterno, status.id), isNull(mensagem.excluidoEm)),
+    columns: colunasMensagemWebhook,
+  });
+  if (!message) return;
+
+  await db.update(mensagem).set({ status: status.status }).where(eq(mensagem.id, message.id));
+}
+
+/**
+ * Persiste mensagem inbound: contato, conversa, mensagem e uso mensal.
+ * Idempotente por `externalId` quando informado.
+ */
+async function ingerirMensagemEntrada(
+  db: Db,
   params: {
     instanciaId: number;
     phone: string;
@@ -324,92 +430,125 @@ async function ingestInboundMessage(
     isCloud: boolean;
   },
 ): Promise<{ messageId: number } | null> {
-  let contact = await client.contato.findFirst({
-    where: { instanciaId: params.instanciaId, telefone: params.phone },
+  let contact = await db.query.contato.findFirst({
+    where: and(
+      eq(contato.instanciaId, params.instanciaId),
+      eq(contato.telefone, params.phone),
+      isNull(contato.excluidoEm),
+    ),
+    columns: colunasContatoCaixaEntrada,
   });
   if (!contact) {
-    contact = await client.contato.create({
-      data: appCreateData({
-        instanciaId: params.instanciaId,
-        telefone: params.phone,
-        nome: params.contactName,
-      }),
-    });
+    [contact] = await db
+      .insert(contato)
+      .values(
+        comTimestampsCriacao({
+          instanciaId: params.instanciaId,
+          telefone: params.phone,
+          nome: params.contactName,
+        }),
+      )
+      .returning();
   }
 
-  let conversation = await client.conversa.findFirst({
-    where: { instanciaId: params.instanciaId, contatoId: contact.id, status: "open" },
+  let conversation = await db.query.conversa.findFirst({
+    where: and(
+      eq(conversa.instanciaId, params.instanciaId),
+      eq(conversa.contatoId, contact!.id),
+      eq(conversa.status, "open"),
+      isNull(conversa.excluidoEm),
+    ),
+    columns: colunasSomenteId,
   });
   if (!conversation) {
-    conversation = await client.conversa.create({
-      data: appCreateData({
-        instanciaId: params.instanciaId,
-        contatoId: contact.id,
-        ultimaMensagemEm: new Date(),
-        ...(params.isCloud
-          ? { nuvemJanelaExpiraEm: new Date(Date.now() + 24 * 60 * 60 * 1000) }
-          : {}),
-      }),
-    });
+    [conversation] = await db
+      .insert(conversa)
+      .values(
+        comTimestampsCriacao({
+          instanciaId: params.instanciaId,
+          contatoId: contact!.id,
+          ultimaMensagemEm: new Date(),
+          ...(params.isCloud
+            ? { nuvemJanelaExpiraEm: new Date(Date.now() + 24 * 60 * 60 * 1000) }
+            : {}),
+        }),
+      )
+      .returning();
   } else if (params.isCloud) {
-    await client.conversa.update({
-      where: { id: conversation.id },
-      data: { nuvemJanelaExpiraEm: new Date(Date.now() + 24 * 60 * 60 * 1000) },
-    });
+    await db
+      .update(conversa)
+      .set(
+        comTimestampAtualizacao({
+          nuvemJanelaExpiraEm: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        }),
+      )
+      .where(eq(conversa.id, conversation.id));
   }
 
   const existing = params.externalId
-    ? await client.mensagem.findFirst({ where: { idExterno: params.externalId } })
+    ? await db.query.mensagem.findFirst({
+        where: and(eq(mensagem.idExterno, params.externalId), isNull(mensagem.excluidoEm)),
+        columns: colunasSomenteId,
+      })
     : null;
   if (existing) return null;
 
-  const message = await client.mensagem.create({
-    data: appCreateData({
-      conversaId: conversation.id,
-      direcao: "inbound",
-      tipo: params.type,
-      corpo: params.body,
-      idExterno: params.externalId,
-      status: "delivered",
-    }),
-  });
+  const [message] = await db
+    .insert(mensagem)
+    .values(
+      comCriadoEm({
+        conversaId: conversation!.id,
+        direcao: "inbound",
+        tipo: params.type,
+        corpo: params.body,
+        idExterno: params.externalId,
+        status: "delivered",
+      }),
+    )
+    .returning();
 
-  await client.conversa.update({
-    where: { id: conversation.id },
-    data: { ultimaMensagemEm: new Date() },
-  });
+  await db
+    .update(conversa)
+    .set(comTimestampAtualizacao({ ultimaMensagemEm: new Date() }))
+    .where(eq(conversa.id, conversation!.id));
 
   const anoMes = new Date().toISOString().slice(0, 7);
-  const usageContact = await client.usoMensalContato.findFirst({
-    where: { instanciaId: params.instanciaId, contatoId: contact.id, anoMes },
+  const usageContact = await db.query.usoMensalContato.findFirst({
+    where: and(
+      eq(usoMensalContato.instanciaId, params.instanciaId),
+      eq(usoMensalContato.contatoId, contact!.id),
+      eq(usoMensalContato.anoMes, anoMes),
+    ),
+    columns: colunasUsoMensalContato,
   });
   if (!usageContact) {
-    await client.usoMensalContato.create({
-      data: appCreateData({
-        instanciaId: params.instanciaId,
-        contatoId: contact.id,
-        anoMes,
-        contadoEm: new Date(),
-      }),
+    await db.insert(usoMensalContato).values({
+      instanciaId: params.instanciaId,
+      contatoId: contact!.id,
+      anoMes,
+      contadoEm: new Date(),
     });
-    const usage = await client.usoMensal.findFirst({
-      where: { instanciaId: params.instanciaId, anoMes },
+    const usage = await db.query.usoMensal.findFirst({
+      where: and(eq(usoMensal.instanciaId, params.instanciaId), eq(usoMensal.anoMes, anoMes)),
+      columns: colunasUsoMensal,
     });
     if (usage) {
-      await client.usoMensal.update({
-        where: { id: usage.id },
-        data: { contatosUnicosContagem: usage.contatosUnicosContagem + 1 },
-      });
+      await db
+        .update(usoMensal)
+        .set({
+          contatosUnicosContagem: usage.contatosUnicosContagem + 1,
+          atualizadoEm: new Date(),
+        })
+        .where(eq(usoMensal.id, usage.id));
     } else {
-      await client.usoMensal.create({
-        data: appCreateData({
-          instanciaId: params.instanciaId,
-          anoMes,
-          contatosUnicosContagem: 1,
-        }),
+      await db.insert(usoMensal).values({
+        instanciaId: params.instanciaId,
+        anoMes,
+        contatosUnicosContagem: 1,
+        atualizadoEm: new Date(),
       });
     }
   }
 
-  return { messageId: message.id };
+  return { messageId: message!.id };
 }

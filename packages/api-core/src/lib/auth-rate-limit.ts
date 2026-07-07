@@ -37,6 +37,10 @@ async function consumeAttempt(env: BaseEnv, email: string): Promise<{ success: b
   return { success: true };
 }
 
+/**
+ * Registra tentativa de autenticação e aplica rate limit por e-mail.
+ * @throws 429 se o limite de tentativas for excedido.
+ */
 export async function beginAuthAttempt(env: BaseEnv, email: string): Promise<void> {
   const { success } = await consumeAttempt(env, email);
 
@@ -47,6 +51,10 @@ export async function beginAuthAttempt(env: BaseEnv, email: string): Promise<voi
   }
 }
 
+/**
+ * Falha a tentativa de auth com código ORPC e mensagem ao cliente.
+ * Sempre termina com throw (tipo `never`).
+ */
 export async function failAuthAttemptWithCode(
   env: BaseEnv,
   email: string,

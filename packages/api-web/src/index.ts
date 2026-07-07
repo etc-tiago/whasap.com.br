@@ -1,7 +1,12 @@
-import { createDb } from "@whasap/db";
+import { criarDb } from "@whasap/db";
 import { createRpcHandler, getClientIp } from "@whasap/api-core";
 
-import { resolveSession, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, getSessionTokenFromRequest } from "./lib/session";
+import {
+  resolveSession,
+  SESSION_COOKIE,
+  SESSION_MAX_AGE_SECONDS,
+  getSessionTokenFromRequest,
+} from "./lib/session";
 import { router } from "./router";
 import type { WebContext, WebEnv } from "./types";
 
@@ -15,13 +20,12 @@ const handleRpc = createRpcHandler<WebContext>({
   },
   buildContext: async (env, request, sessionToken) => {
     const webEnv = env as WebEnv;
-    const { db, client } = createDb(webEnv.HYPERDRIVE.connectionString);
-    const partialCtx = { db, client, env: webEnv, request, clientIp: undefined } as WebContext;
+    const { db } = criarDb(webEnv.HYPERDRIVE.connectionString);
+    const partialCtx = { db, env: webEnv, request, clientIp: undefined } as WebContext;
     const session = await resolveSession(partialCtx, sessionToken);
 
     return {
       db,
-      client,
       env: webEnv,
       request,
       clientIp: getClientIp(request),

@@ -1,70 +1,72 @@
 import { mvpDefaults } from "@whasap/config";
-import { appCreateData } from "@whasap/db";
+import { codigoOtp, colunasCodigoOtpVerificacao, comCriadoEm } from "@whasap/db";
+import { and, count, eq, gt, isNull } from "drizzle-orm";
 
 import type { DbContext } from "../types";
 
-function generateOtpCode(): string {
+function gerarCodigoOtp(): string {
   const n = crypto.getRandomValues(new Uint32Array(1))[0]! % 1_000_000;
   return n.toString().padStart(6, "0");
 }
 
-export async function countRecentOtps(ctx: DbContext, email: string): Promise<number> {
-  const since = new Date(
-    Date.now() - mvpDefaults.auth.otpRateLimitWindowMinutes * 60 * 1000,
-  );
-  return ctx.client.codigoOtp.count({
-    where: {
-      email: email.toLowerCase(),
-      criadoEm: { gt: since },
-    },
-  });
+/** Conta OTPs enviados recentemente para rate limit. */
+export async function contarOtpsRecentes(ctx: DbContext, email: string): Promise<number> {
+  const desde = new Date(Date.now() - mvpDefaults.auth.otpRateLimitWindowMinutes * 60 * 1000);
+  const [linha] = await ctx.db
+    .select({ n: count() })
+    .from(codigoOtp)
+    .where(and(eq(codigoOtp.email, email.toLowerCase()), gt(codigoOtp.criadoEm, desde)));
+  return linha?.n ?? 0;
 }
 
-export async function createOtp(
-  ctx: DbContext,
-  email: string,
-  purpose: string,
-): Promise<string> {
-  const code = generateOtpCode();
+/**
+ * Cria e persiste um código OTP.
+ * @returns Código de 6 dígitos (uso interno — enviar por email, não retornar ao cliente).
+ */
+export async function criarOtp(ctx: DbContext, email: string, finalidade: string): Promise<string> {
+  const codigo = gerarCodigoOtp();
   const expiraEm = new Date(Date.now() + mvpDefaults.auth.otpExpiresMinutes * 60 * 1000);
-  await ctx.client.codigoOtp.create({
-    data: appCreateData({
+  await ctx.db.insert(codigoOtp).values(
+    comCriadoEm({
       email: email.toLowerCase(),
-      codigo: code,
-      finalidade: purpose,
+      codigo,
+      finalidade,
       expiraEm,
     }),
-  });
-  return code;
+  );
+  return codigo;
 }
 
-export async function verifyOtp(
+/**
+ * Valida OTP e marca como usado.
+ * @returns `true` se válido; `false` se expirado, já usado ou inexistente.
+ */
+export async function verificarOtp(
   ctx: DbContext,
   email: string,
-  purpose: string,
-  code: string,
+  finalidade: string,
+  codigo: string,
 ): Promise<boolean> {
-  const now = new Date();
-  const row = await ctx.client.codigoOtp.findFirst({
-    where: {
-      email: email.toLowerCase(),
-      finalidade: purpose,
-      codigo: code,
-      expiraEm: { gt: now },
-      usadoEm: null,
-    },
+  const agora = new Date();
+  const linha = await ctx.db.query.codigoOtp.findFirst({
+    where: and(
+      eq(codigoOtp.email, email.toLowerCase()),
+      eq(codigoOtp.finalidade, finalidade),
+      eq(codigoOtp.codigo, codigo),
+      gt(codigoOtp.expiraEm, agora),
+      isNull(codigoOtp.usadoEm),
+    ),
+    columns: colunasCodigoOtpVerificacao,
   });
 
-  if (!row) return false;
+  if (!linha) return false;
 
-  await ctx.client.codigoOtp.update({
-    where: { id: row.id },
-    data: { usadoEm: now },
-  });
+  await ctx.db.update(codigoOtp).set({ usadoEm: agora }).where(eq(codigoOtp.id, linha.id));
 
   return true;
 }
 
+/** Gera slug URL-safe a partir de nome de organização. */
 export function slugify(value: string): string {
   return value
     .toLowerCase()

@@ -8,6 +8,7 @@ type SeoOptions = {
   ogImage?: string;
 };
 
+/** Gera meta tags SEO/OG para rotas do site marketing. */
 export function seo({ title, description, path = "/", ogImage = "/og-image.png" }: SeoOptions) {
   const url = `${SITE_URL}${path}`;
   const fullTitle = title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`;

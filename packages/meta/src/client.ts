@@ -13,6 +13,14 @@ export type MetaTemplate = {
   components: unknown[];
 };
 
+type MessageOptions = {
+  contextMessageId?: string;
+};
+
+function buildContext(options?: MessageOptions) {
+  return options?.contextMessageId ? { context: { message_id: options.contextMessageId } } : {};
+}
+
 export function createMetaClient(credentials: MetaCredentials) {
   const base = `https://graph.facebook.com/${API_VERSION}`;
 
@@ -30,67 +38,171 @@ export function createMetaClient(credentials: MetaCredentials) {
     return res.json() as Promise<T>;
   }
 
+  const messageBase = (to: string, options?: MessageOptions) => ({
+    messaging_product: "whatsapp" as const,
+    recipient_type: "individual" as const,
+    to,
+    ...buildContext(options),
+  });
+
   return {
-    sendText(to: string, text: string) {
-      return graph<{ messages: Array<{ id: string }> }>("POST", `/${credentials.phoneNumberId}/messages`, {
-        messaging_product: "whatsapp",
-        to,
-        type: "text",
-        text: { body: text },
-      });
-    },
-
-    sendTemplate(
-      to: string,
-      templateName: string,
-      languageCode: string,
-      components?: unknown[],
-    ) {
-      return graph<{ messages: Array<{ id: string }> }>("POST", `/${credentials.phoneNumberId}/messages`, {
-        messaging_product: "whatsapp",
-        to,
-        type: "template",
-        template: {
-          name: templateName,
-          language: { code: languageCode },
-          ...(components ? { components } : {}),
+    sendText(to: string, text: string, options?: MessageOptions) {
+      return graph<{ messages: Array<{ id: string }> }>(
+        "POST",
+        `/${credentials.phoneNumberId}/messages`,
+        {
+          ...messageBase(to, options),
+          type: "text",
+          text: { body: text },
         },
-      });
+      );
     },
 
-    sendImage(to: string, imageUrl: string, caption?: string) {
-      return graph<{ messages: Array<{ id: string }> }>("POST", `/${credentials.phoneNumberId}/messages`, {
-        messaging_product: "whatsapp",
-        to,
-        type: "image",
-        image: { link: imageUrl, ...(caption ? { caption } : {}) },
-      });
+    sendTemplate(to: string, templateName: string, languageCode: string, components?: unknown[]) {
+      return graph<{ messages: Array<{ id: string }> }>(
+        "POST",
+        `/${credentials.phoneNumberId}/messages`,
+        {
+          ...messageBase(to),
+          type: "template",
+          template: {
+            name: templateName,
+            language: { code: languageCode },
+            ...(components ? { components } : {}),
+          },
+        },
+      );
     },
 
-    sendDocument(to: string, documentUrl: string, filename?: string) {
-      return graph<{ messages: Array<{ id: string }> }>("POST", `/${credentials.phoneNumberId}/messages`, {
-        messaging_product: "whatsapp",
-        to,
-        type: "document",
-        document: { link: documentUrl, ...(filename ? { filename } : {}) },
-      });
+    sendImage(to: string, imageUrl: string, caption?: string, options?: MessageOptions) {
+      return graph<{ messages: Array<{ id: string }> }>(
+        "POST",
+        `/${credentials.phoneNumberId}/messages`,
+        {
+          ...messageBase(to, options),
+          type: "image",
+          image: { link: imageUrl, ...(caption ? { caption } : {}) },
+        },
+      );
+    },
+
+    sendAudio(to: string, audioUrl: string, voice?: boolean, options?: MessageOptions) {
+      return graph<{ messages: Array<{ id: string }> }>(
+        "POST",
+        `/${credentials.phoneNumberId}/messages`,
+        {
+          ...messageBase(to, options),
+          type: "audio",
+          audio: { link: audioUrl, ...(voice ? { voice: true } : {}) },
+        },
+      );
+    },
+
+    sendVideo(to: string, videoUrl: string, caption?: string, options?: MessageOptions) {
+      return graph<{ messages: Array<{ id: string }> }>(
+        "POST",
+        `/${credentials.phoneNumberId}/messages`,
+        {
+          ...messageBase(to, options),
+          type: "video",
+          video: { link: videoUrl, ...(caption ? { caption } : {}) },
+        },
+      );
+    },
+
+    sendDocument(to: string, documentUrl: string, filename?: string, options?: MessageOptions) {
+      return graph<{ messages: Array<{ id: string }> }>(
+        "POST",
+        `/${credentials.phoneNumberId}/messages`,
+        {
+          ...messageBase(to, options),
+          type: "document",
+          document: { link: documentUrl, ...(filename ? { filename } : {}) },
+        },
+      );
+    },
+
+    sendSticker(to: string, stickerUrl: string, options?: MessageOptions) {
+      return graph<{ messages: Array<{ id: string }> }>(
+        "POST",
+        `/${credentials.phoneNumberId}/messages`,
+        {
+          ...messageBase(to, options),
+          type: "sticker",
+          sticker: { link: stickerUrl },
+        },
+      );
     },
 
     sendLocation(to: string, latitude: number, longitude: number, name?: string, address?: string) {
-      return graph<{ messages: Array<{ id: string }> }>("POST", `/${credentials.phoneNumberId}/messages`, {
-        messaging_product: "whatsapp",
-        to,
-        type: "location",
-        location: { latitude, longitude, name, address },
-      });
+      return graph<{ messages: Array<{ id: string }> }>(
+        "POST",
+        `/${credentials.phoneNumberId}/messages`,
+        {
+          ...messageBase(to),
+          type: "location",
+          location: { latitude, longitude, name, address },
+        },
+      );
     },
 
     sendContacts(to: string, contacts: unknown[]) {
-      return graph<{ messages: Array<{ id: string }> }>("POST", `/${credentials.phoneNumberId}/messages`, {
+      return graph<{ messages: Array<{ id: string }> }>(
+        "POST",
+        `/${credentials.phoneNumberId}/messages`,
+        {
+          ...messageBase(to),
+          type: "contacts",
+          contacts,
+        },
+      );
+    },
+
+    sendInteractive(to: string, interactive: unknown, options?: MessageOptions) {
+      return graph<{ messages: Array<{ id: string }> }>(
+        "POST",
+        `/${credentials.phoneNumberId}/messages`,
+        {
+          ...messageBase(to, options),
+          type: "interactive",
+          interactive,
+        },
+      );
+    },
+
+    sendReaction(to: string, messageId: string, emoji: string) {
+      return graph<{ messages: Array<{ id: string }> }>(
+        "POST",
+        `/${credentials.phoneNumberId}/messages`,
+        {
+          ...messageBase(to),
+          type: "reaction",
+          reaction: { message_id: messageId, emoji },
+        },
+      );
+    },
+
+    markAsRead(messageId: string, typingIndicator?: { type: "text" }) {
+      return graph<{ success: boolean }>("POST", `/${credentials.phoneNumberId}/messages`, {
         messaging_product: "whatsapp",
-        to,
-        type: "contacts",
-        contacts,
+        status: "read",
+        message_id: messageId,
+        ...(typingIndicator ? { typing_indicator: typingIndicator } : {}),
+      });
+    },
+
+    uploadMedia(buffer: ArrayBuffer, mimeType: string, filename?: string) {
+      const form = new FormData();
+      form.append("messaging_product", "whatsapp");
+      form.append("type", mimeType);
+      form.append("file", new Blob([buffer], { type: mimeType }), filename ?? "media");
+      const url = `${base}/${credentials.phoneNumberId}/media?access_token=${encodeURIComponent(credentials.accessToken)}`;
+      return fetch(url, { method: "POST", body: form }).then(async (res) => {
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error(`Meta media upload error (${res.status}): ${err}`);
+        }
+        return res.json() as Promise<{ id: string }>;
       });
     },
 
@@ -120,4 +232,8 @@ export function createMetaClient(credentials: MetaCredentials) {
       };
     },
   };
+}
+
+export function extractMetaMessageId(res: { messages?: Array<{ id: string }> }) {
+  return res.messages?.[0]?.id ?? null;
 }

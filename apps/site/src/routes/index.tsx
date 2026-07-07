@@ -1,13 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@whasap/ui/components/button";
-import {
-  ArrowRight,
-  Cloud,
-  MessageCircle,
-  MessagesSquare,
-  Smartphone,
-  Users,
-} from "lucide-react";
+import { ArrowRight, Cloud, MessageCircle, MessagesSquare, Smartphone, Users } from "lucide-react";
 
 import { PANEL_URL } from "@/lib/panel-url";
 import { seo } from "@/lib/seo";
@@ -51,7 +44,8 @@ const steps = [
 const benefits = [
   {
     title: "Inbox unificado",
-    description: "WhatsApp Comercial e Cloud API no mesmo lugar, com interface familiar e objetiva.",
+    description:
+      "WhatsApp Comercial e Cloud API no mesmo lugar, com interface familiar e objetiva.",
     icon: MessageCircle,
   },
   {
@@ -137,10 +131,7 @@ function LandingPage() {
             </div>
             <div className="mt-10 grid gap-4 md:grid-cols-3">
               {["WhatsApp Comercial", "Cloud API", "Comercial + Cloud API"].map((item) => (
-                <div
-                  key={item}
-                  className="rounded-2xl border border-border bg-card p-6 shadow-sm"
-                >
+                <div key={item} className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                   <p className="text-sm font-medium text-wa-green-dark">Integração</p>
                   <p className="mt-2 text-lg font-semibold">{item}</p>
                 </div>
@@ -176,7 +167,9 @@ function LandingPage() {
 
         <section className="py-20" id="beneficios">
           <div className="mx-auto max-w-6xl px-6">
-            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Benefícios para sua equipe</h2>
+            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+              Benefícios para sua equipe
+            </h2>
             <div className="mt-12 grid gap-6 md:grid-cols-3">
               {benefits.map((benefit) => (
                 <article
@@ -201,8 +194,8 @@ function LandingPage() {
                 Pronto para simplificar seu atendimento?
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Experimente o Whasap e veja como é gerenciar WhatsApp Comercial e Cloud API em um
-                só lugar.
+                Experimente o Whasap e veja como é gerenciar WhatsApp Comercial e Cloud API em um só
+                lugar.
               </p>
             </div>
             <Button asChild size="lg" className="bg-wa-green text-white hover:bg-wa-green-dark">

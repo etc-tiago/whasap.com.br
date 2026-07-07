@@ -4,7 +4,7 @@ import { Button } from "@whasap/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/card";
 import { Plus } from "lucide-react";
 
-import { orgInput } from "@/lib/org-input";
+import { rotuloProvedor } from "@whasap/config";
 import { orpc, type InstanciaItem } from "@/lib/orpc";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
@@ -51,8 +51,8 @@ function HomePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              O painel está pronto. Contrate sua primeira instância WhatsApp (Cloud API ou
-              Business) para começar a receber mensagens.
+              O painel está pronto. Contrate sua primeira instância WhatsApp (Cloud API ou Business)
+              para começar a receber mensagens.
             </p>
             <Button asChild>
               <Link to="/$organizacaoHash/instancias" params={{ organizacaoHash }}>
@@ -70,7 +70,7 @@ function HomePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground mb-3">
-                  {inst.provider === "cloud_api" ? "Cloud API" : "WhatsApp Business"}
+                  {rotuloProvedor(inst.provider)}
                 </p>
                 <Button asChild size="sm" variant="outline">
                   <Link

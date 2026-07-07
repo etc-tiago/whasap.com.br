@@ -18,11 +18,13 @@ Se o schema mudar, altere apenas `packages/db/src/schema/` e informe o desenvolv
 
 ## Convenções
 
-- Schema em `packages/db/src/schema/`; acesso em runtime via `createDb()` → `{ db, client }`
+- Schema em `packages/db/src/schema/`; acesso em runtime via `criarDb()` → `{ db }`
 - **Chaves TS em pt-BR + `casing: "snake_case"`** — omitir o 2º argumento das colunas quando a chave TS já define o nome (`organizacaoId` → `organizacao_id`); o 1º arg de `pgTable` define o nome SQL da tabela
-- **Preferir `client.*`** (better-drizzle) para CRUD e lookups por `uuid`; plugins timestamps (`criadoEm`/`atualizadoEm`) e soft-delete (`excluidoEm`)
-- **`db` cru** só para agregações pesadas (relatórios, counts admin) ou SQL explícito — `drizzle()` também usa `casing: "snake_case"`
-- Workers usam Hyperdrive: `createDb(env.HYPERDRIVE.connectionString)`
+- **Exports em pt-BR com JSDoc** — funções descrevem retorno e se incluem `id` interno (`criarDb`, `resolverIdInterno`, `comTimestampsCriacao`, etc.)
+- **CRUD e lookups:** `db.query.*` sempre com `columns` via presets `colunas*`; `db.insert` / `db.update` / `db.delete` com helpers `comTimestampsCriacao`, `comTimestampAtualizacao`, `marcarExclusaoLogica`, `comCriadoEm`
+- **Soft-delete:** `isNull(excluidoEm)` no `where` da tabela raiz **e** nas relações `with:` (preferir `filtroNaoExcluido` / `incluir*`)
+- **`db.select`** para agregações pesadas (relatórios, counts admin) ou SQL explícito
+- Workers usam Hyperdrive: `criarDb(env.HYPERDRIVE.connectionString)`
 - Frontends nunca importam `@whasap/db`
 
 ## Índices

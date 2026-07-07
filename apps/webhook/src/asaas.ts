@@ -1,7 +1,17 @@
+import { and, eq, isNull } from "drizzle-orm";
 import { createAsaasClient, parseAsaasExternalReference } from "@whasap/asaas";
 import { getAsaasApiKey, isAsaasSandbox } from "@whasap/api-core";
 import { mvpDefaults } from "@whasap/config";
-import { appCreateData, type Client } from "@whasap/db";
+import {
+  colunasInstanciaAddon,
+  colunasInstanciaAsaasStatus,
+  colunasSomenteId,
+  comCriadoEm,
+  comTimestampAtualizacao,
+  instancia,
+  instanciaAddon,
+  type Db,
+} from "@whasap/db";
 
 import type { Env } from "./env";
 
@@ -39,58 +49,68 @@ function parseTrialEndsAt(nextDueDate: string | undefined | null): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-async function activateInstance(
-  client: Client,
+/** Ativa instância após pagamento/checkout Asaas (`status: connected`). */
+async function ativarInstanciaAposPagamento(
+  db: Db,
   instanceUuid: string,
   subscriptionId: string,
   trialEndsAt: Date | null,
 ): Promise<void> {
-  const instance = await client.instancia.findFirst({
-    where: { uuid: instanceUuid },
-    select: { id: true },
+  const row = await db.query.instancia.findFirst({
+    where: and(eq(instancia.uuid, instanceUuid), isNull(instancia.excluidoEm)),
+    columns: colunasSomenteId,
   });
-  if (!instance) return;
+  if (!row) return;
 
-  await client.instancia.update({
-    where: { id: instance.id },
-    data: {
-      status: "connected",
-      asaasIdAssinatura: subscriptionId,
-      trialTerminaEm: trialEndsAt,
-    },
-  });
+  await db
+    .update(instancia)
+    .set(
+      comTimestampAtualizacao({
+        status: "connected",
+        asaasIdAssinatura: subscriptionId,
+        trialTerminaEm: trialEndsAt,
+      }),
+    )
+    .where(eq(instancia.id, row.id));
 }
 
-async function activateConversationPack(
-  client: Client,
+/** Adiciona pacote de conversas à instância após assinatura de addon. */
+async function ativarPacoteConversas(
+  db: Db,
   instanceUuid: string,
   subscriptionId: string,
 ): Promise<void> {
-  const instance = await client.instancia.findFirst({
-    where: { uuid: instanceUuid },
+  const instance = await db.query.instancia.findFirst({
+    where: and(eq(instancia.uuid, instanceUuid), isNull(instancia.excluidoEm)),
+    columns: { id: true, limiteConversas: true },
   });
   if (!instance) return;
 
-  const existing = await client.instanciaAddon.findFirst({
-    where: { instanciaId: instance.id, asaasIdAssinatura: subscriptionId },
+  const existing = await db.query.instanciaAddon.findFirst({
+    where: and(
+      eq(instanciaAddon.instanciaId, instance.id),
+      eq(instanciaAddon.asaasIdAssinatura, subscriptionId),
+    ),
+    columns: colunasInstanciaAddon,
   });
   if (existing) return;
 
-  await client.instanciaAddon.create({
-    data: appCreateData({
+  await db.insert(instanciaAddon).values(
+    comCriadoEm({
       instanciaId: instance.id,
       asaasIdAssinatura: subscriptionId,
       tamanhoPacoteConversas: mvpDefaults.billing.conversationsPerPack,
     }),
-  });
+  );
 
-  await client.instancia.update({
-    where: { id: instance.id },
-    data: {
-      limiteConversas:
-        instance.limiteConversas + mvpDefaults.billing.conversationsPerPack,
-    },
-  });
+  await db
+    .update(instancia)
+    .set(
+      comTimestampAtualizacao({
+        limiteConversas: instance.limiteConversas + mvpDefaults.billing.conversationsPerPack,
+      }),
+    )
+    .where(eq(instancia.id, instance.id));
 }
 
 async function resolveSubscriptionId(
@@ -111,11 +131,8 @@ async function resolveSubscriptionId(
   return match?.id ?? data.at(-1)?.id ?? null;
 }
 
-export async function handleAsaasWebhook(
-  client: Client,
-  payload: string,
-  env: Env,
-): Promise<void> {
+/** Processa eventos de webhook do Asaas (assinaturas e pagamentos). */
+export async function handleAsaasWebhook(db: Db, payload: string, env: Env): Promise<void> {
   const event = JSON.parse(payload) as AsaasWebhookEvent;
 
   if (event.event === "SUBSCRIPTION_CREATED" && event.subscription) {
@@ -124,8 +141,8 @@ export async function handleAsaasWebhook(
     if (!ref) return;
 
     if (ref.type === "instance") {
-      await activateInstance(
-        client,
+      await ativarInstanciaAposPagamento(
+        db,
         ref.instanceUuid,
         sub.id,
         parseTrialEndsAt(sub.nextDueDate),
@@ -134,7 +151,7 @@ export async function handleAsaasWebhook(
     }
 
     if (ref.type === "pack") {
-      await activateConversationPack(client, ref.instanceUuid, sub.id);
+      await ativarPacoteConversas(db, ref.instanceUuid, sub.id);
     }
     return;
   }
@@ -151,8 +168,8 @@ export async function handleAsaasWebhook(
     if (!subscriptionId) return;
 
     if (ref.type === "instance") {
-      await activateInstance(
-        client,
+      await ativarInstanciaAposPagamento(
+        db,
         ref.instanceUuid,
         subscriptionId,
         parseTrialEndsAt(checkout.subscription?.nextDueDate),
@@ -161,41 +178,40 @@ export async function handleAsaasWebhook(
     }
 
     if (ref.type === "pack") {
-      await activateConversationPack(client, ref.instanceUuid, subscriptionId);
+      await ativarPacoteConversas(db, ref.instanceUuid, subscriptionId);
     }
     return;
   }
 
   if (event.event === "SUBSCRIPTION_DELETED" && event.subscription) {
     const subId = event.subscription.id;
-    const instance = await client.instancia.findFirst({
-      where: { asaasIdAssinatura: subId },
-      select: { id: true },
+    const row = await db.query.instancia.findFirst({
+      where: and(eq(instancia.asaasIdAssinatura, subId), isNull(instancia.excluidoEm)),
+      columns: colunasSomenteId,
     });
-    if (!instance) return;
+    if (!row) return;
 
-    await client.instancia.update({
-      where: { id: instance.id },
-      data: { status: "deactivated", desativadoEm: new Date() },
-    });
+    await db
+      .update(instancia)
+      .set(comTimestampAtualizacao({ status: "deactivated", desativadoEm: new Date() }))
+      .where(eq(instancia.id, row.id));
     return;
   }
 
   if (event.event === "PAYMENT_OVERDUE" && event.payment?.subscription) {
     const subId = event.payment.subscription;
-    const instance = await client.instancia.findFirst({
-      where: { asaasIdAssinatura: subId },
-      select: { id: true, trialTerminaEm: true },
+    const row = await db.query.instancia.findFirst({
+      where: and(eq(instancia.asaasIdAssinatura, subId), isNull(instancia.excluidoEm)),
+      columns: colunasInstanciaAsaasStatus,
     });
-    if (!instance) return;
+    if (!row) return;
 
-    const pastTrial =
-      !instance.trialTerminaEm || instance.trialTerminaEm.getTime() < Date.now();
+    const pastTrial = !row.trialTerminaEm || row.trialTerminaEm.getTime() < Date.now();
     if (pastTrial) {
-      await client.instancia.update({
-        where: { id: instance.id },
-        data: { status: "deactivated", desativadoEm: new Date() },
-      });
+      await db
+        .update(instancia)
+        .set(comTimestampAtualizacao({ status: "deactivated", desativadoEm: new Date() }))
+        .where(eq(instancia.id, row.id));
     }
   }
 }

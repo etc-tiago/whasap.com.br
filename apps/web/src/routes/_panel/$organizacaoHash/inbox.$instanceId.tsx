@@ -1,6 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+/**
+ * Caixa de entrada por instância: lista de conversas, mensagens e ações.
+ *
+ * RBAC (envio): admin em qualquer conversa; usuario só na atribuída;
+ * analista somente leitura. Cloud API bloqueia composer fora da janela 24h.
+ */
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import { Badge } from "@whasap/ui/components/badge";
 import { Button } from "@whasap/ui/components/button";
 import {
@@ -11,7 +16,6 @@ import {
   DialogTrigger,
 } from "@whasap/ui/components/dialog";
 import { Input } from "@whasap/ui/components/input";
-import { Label } from "@whasap/ui/components/label";
 import { ScrollArea } from "@whasap/ui/components/scroll-area";
 import {
   Select,
@@ -21,8 +25,10 @@ import {
   SelectValue,
 } from "@whasap/ui/components/select";
 import { cn } from "@whasap/ui/lib/utils";
+import { useEffect, useState } from "react";
 
 import { useSession } from "@/lib/auth";
+import { janelaCloudAberta, podeEnviarMensagem } from "@/lib/inbox-permissoes";
 import { orgInput } from "@/lib/org-input";
 import { orpc, type ConversaItem, type MensagemItem } from "@/lib/orpc";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
@@ -37,6 +43,10 @@ function InboxPage() {
   const organizacaoHash = useOrganizacaoHash();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [tipoMensagem, setTipoMensagem] = useState<
+    "text" | "image" | "audio" | "video" | "document"
+  >("text");
+  const [mediaUrl, setMediaUrl] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignUserId, setAssignUserId] = useState<string>("");
 
@@ -69,6 +79,9 @@ function InboxPage() {
       input: orgInput(organizacaoHash),
     }),
   );
+
+  const markRead = useMutation(orpc.caixaEntrada.mensagens.marcarLido.mutationOptions());
+  const { mutate: marcarComoLido } = markRead;
 
   const sendMessage = useMutation(
     orpc.caixaEntrada.mensagens.enviar.mutationOptions({
@@ -106,20 +119,45 @@ function InboxPage() {
 
   const selected = conversations.data?.find((c: ConversaItem) => c.id === selectedId);
   const isCloud = instance.data?.provider === "cloud_api";
-  const cloudWindowOpen =
-    selected?.janelaCloudExpiraEm && new Date(selected.janelaCloudExpiraEm) > new Date();
+  const cloudWindowOpen = janelaCloudAberta(selected?.janelaCloudExpiraEm);
 
-  const canSend =
-    org.data?.meuPapel === "admin" ||
-    (org.data?.meuPapel === "usuario" &&
-      (!selected?.usuarioAtribuidoId || selected.usuarioAtribuidoId === session?.usuario?.id));
+  const canSend = podeEnviarMensagem({
+    papel: org.data?.meuPapel,
+    usuarioId: session?.usuario?.id,
+    conversaAtribuidaId: selected?.usuarioAtribuidoId,
+  });
 
   const composerDisabled = isCloud && !cloudWindowOpen;
 
+  useEffect(() => {
+    if (!selectedId || !messages.data?.length) return;
+    const ultimaInbound = [...messages.data]
+      .toReversed()
+      .find((m) => m.direction === "inbound" && m.idExterno);
+    if (ultimaInbound?.idExterno) {
+      marcarComoLido({
+        conversaId: selectedId,
+        mensagemIdExterno: ultimaInbound.idExterno,
+      });
+    }
+  }, [selectedId, messages.data, marcarComoLido]);
+
   async function handleSend() {
-    if (!selectedId || !message.trim()) return;
-    await sendMessage.mutateAsync({ conversaId: selectedId, body: message, tipo: "text" });
+    if (!selectedId) return;
+    if (tipoMensagem === "text") {
+      if (!message.trim()) return;
+      await sendMessage.mutateAsync({ conversaId: selectedId, tipo: "text", body: message });
+    } else {
+      if (!mediaUrl.trim()) return;
+      await sendMessage.mutateAsync({
+        conversaId: selectedId,
+        tipo: tipoMensagem,
+        mediaUrl,
+        body: message || undefined,
+      });
+    }
     setMessage("");
+    setMediaUrl("");
   }
 
   return (
@@ -199,7 +237,11 @@ function InboxPage() {
                     </div>
                   </DialogContent>
                 </Dialog>
-                <Button size="sm" variant="ghost" onClick={() => fechar.mutate({ conversaId: selected.id })}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => fechar.mutate({ conversaId: selected.id })}
+                >
                   Fechar
                 </Button>
               </div>
@@ -218,6 +260,16 @@ function InboxPage() {
                     {m.enviadoPorNome && m.direction === "outbound" && (
                       <p className="mt-1 text-[10px] opacity-80">{m.enviadoPorNome}</p>
                     )}
+                    {m.mediaUrl && (
+                      <a
+                        href={m.mediaUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 block text-xs underline"
+                      >
+                        Ver mídia
+                      </a>
+                    )}
                     {m.templateNome && (
                       <p className="mt-1 text-[10px] opacity-80">Template: {m.templateNome}</p>
                     )}
@@ -231,21 +283,58 @@ function InboxPage() {
                   Fora da janela de 24h — use um template para responder (Cloud API).
                 </p>
               ) : (
-                <>
+                <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-end">
+                  <Select
+                    value={tipoMensagem}
+                    onValueChange={(v) =>
+                      setTipoMensagem(v as "text" | "image" | "audio" | "video" | "document")
+                    }
+                  >
+                    <SelectTrigger className="w-full sm:w-36">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="text">Texto</SelectItem>
+                      <SelectItem value="image">Imagem</SelectItem>
+                      <SelectItem value="audio">Áudio</SelectItem>
+                      <SelectItem value="video">Vídeo</SelectItem>
+                      <SelectItem value="document">Documento</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {tipoMensagem !== "text" && (
+                    <Input
+                      value={mediaUrl}
+                      onChange={(e) => setMediaUrl(e.target.value)}
+                      placeholder="URL da mídia (HTTPS)"
+                      disabled={!canSend || sendMessage.isPending}
+                      className="flex-1"
+                    />
+                  )}
                   <Input
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder={canSend ? "Digite uma mensagem..." : "Sem permissão para enviar"}
+                    placeholder={
+                      tipoMensagem === "text"
+                        ? canSend
+                          ? "Digite uma mensagem..."
+                          : "Sem permissão para enviar"
+                        : "Legenda (opcional)"
+                    }
                     disabled={!canSend || sendMessage.isPending}
                     onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                    className="flex-1"
                   />
                   <Button
                     onClick={handleSend}
-                    disabled={!canSend || !message.trim() || sendMessage.isPending}
+                    disabled={
+                      !canSend ||
+                      sendMessage.isPending ||
+                      (tipoMensagem === "text" ? !message.trim() : !mediaUrl.trim())
+                    }
                   >
                     Enviar
                   </Button>
-                </>
+                </div>
               )}
             </div>
           </>

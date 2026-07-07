@@ -1,4 +1,10 @@
-export function toOrganizacaoOutput(org: {
+import type { InstanceProvider } from "@whasap/config";
+
+/**
+ * Converte linha de organização do banco para o formato público da API.
+ * O uuid interno vira `id` na resposta.
+ */
+export function mapearOrganizacaoParaSaida(org: {
   uuid: string;
   nome: string;
   slug: string;
@@ -18,11 +24,15 @@ export function toOrganizacaoOutput(org: {
   };
 }
 
-export function toInstanciaOutput(
+/**
+ * Converte linha de instância do banco para o formato público da API.
+ * Requer o uuid da organização para preencher `organizacaoId`.
+ */
+export function mapearInstanciaParaSaida(
   instance: {
     uuid: string;
     nome: string;
-    provedor: "cloud_api" | "evolution";
+    provedor: InstanceProvider;
     status:
       | "pending_connection"
       | "pending_payment"

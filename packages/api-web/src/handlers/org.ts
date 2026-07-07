@@ -1,67 +1,89 @@
-import { forbidden, notFound } from "@whasap/api-core";
-import { sendInviteEmail, slugify, verifyOtp } from "@whasap/api-core";
-import { appCreateData, resolveInternalId } from "@whasap/db";
+import { forbidden, notFound, sendInviteEmail, slugify, verificarOtp } from "@whasap/api-core";
+import {
+  colunasConviteOrganizacao,
+  colunasMembroOrganizacao,
+  colunasOrganizacaoPublica,
+  colunasOrganizacaoSomenteId,
+  colunasUsuarioSessao,
+  comCriadoEm,
+  comTimestampAtualizacao,
+  comTimestampsCriacao,
+  incluirOrganizacaoPublica,
+  incluirUsuarioRelacao,
+  marcarExclusaoLogica,
+  organizacao,
+  organizacaoConvite,
+  organizacaoMembro,
+  resolverIdInterno,
+  usuario,
+} from "@whasap/db";
+import { and, eq, isNull } from "drizzle-orm";
 
-import { toOrganizacaoOutput } from "../lib/mappers";
 import { mvpDefaults } from "../lib/asaas";
+import { toOrganizacaoOutput } from "../lib/mappers";
+import { persistSessionOrganization } from "../lib/session";
 import type { WebContext } from "../types";
 import {
-  requireAdmin,
-  requireAdminInternal,
-  requireAuth,
-  requireOrg,
-  requireOrgInternal,
-  resolveMembership,
+  exigirAdmin,
+  exigirAdminPorIdInterno,
+  exigirAutenticacao,
+  exigirOrganizacaoPorIdInterno,
+  resolverMembro,
 } from "./auth";
-import { persistSessionOrganization } from "../lib/session";
 
 export const organizacaoHandlers = {
+  /** Lista organizações do usuário autenticado, ordenadas por data de ingresso. */
   lista: async (ctx: WebContext) => {
-    const current = requireAuth(ctx);
-    const rows = await ctx.client.organizacaoMembro.findMany({
-      where: { usuarioId: current.internalId },
-      include: { organizacao: true },
+    const current = exigirAutenticacao(ctx);
+    const rows = await ctx.db.query.organizacaoMembro.findMany({
+      where: and(
+        eq(organizacaoMembro.usuarioId, current.internalId),
+        isNull(organizacaoMembro.excluidoEm),
+      ),
+      columns: { ingressouEm: true },
+      with: { organizacao: incluirOrganizacaoPublica },
     });
     return rows
       .filter((r) => r.organizacao)
-      .sort((a, b) => a.ingressouEm.getTime() - b.ingressouEm.getTime())
+      .toSorted((a, b) => a.ingressouEm.getTime() - b.ingressouEm.getTime())
       .map((r) => toOrganizacaoOutput(r.organizacao!));
   },
 
+  /** Cria organização e adiciona o usuário como admin. */
   criar: async (ctx: WebContext, input: { nome: string }) => {
-    const current = requireAuth(ctx);
+    const current = exigirAutenticacao(ctx);
     const now = new Date();
 
     let slug = slugify(input.nome);
-    const slugConflict = await ctx.client.organizacao.findFirst({
-      where: { slug },
-      select: { id: true },
+    const slugConflict = await ctx.db.query.organizacao.findFirst({
+      where: and(eq(organizacao.slug, slug), isNull(organizacao.excluidoEm)),
+      columns: colunasOrganizacaoSomenteId,
     });
     if (slugConflict) slug = `${slug}-${crypto.randomUUID().slice(0, 8)}`;
 
-    const org = await ctx.client.organizacao.create({
-      data: appCreateData({
-        nome: input.nome,
-        slug,
-      }),
-    });
+    const [org] = await ctx.db
+      .insert(organizacao)
+      .values(comTimestampsCriacao({ nome: input.nome, slug }))
+      .returning();
 
-    await ctx.client.organizacaoMembro.create({
-      data: appCreateData({
-        organizacaoId: org.id,
+    await ctx.db.insert(organizacaoMembro).values(
+      comCriadoEm({
+        organizacaoId: org!.id,
         usuarioId: current.internalId,
         papel: "admin",
         ingressouEm: now,
       }),
-    });
+    );
 
-    return toOrganizacaoOutput(org);
+    return toOrganizacaoOutput(org!);
   },
 
+  /** Retorna organização e papel do membro na sessão. */
   obter: async (ctx: WebContext, input: { organizacaoHash: string }) => {
-    const { role } = await resolveMembership(ctx, input.organizacaoHash);
-    const org = await ctx.client.organizacao.findFirst({
-      where: { uuid: input.organizacaoHash },
+    const { role } = await resolverMembro(ctx, input.organizacaoHash);
+    const org = await ctx.db.query.organizacao.findFirst({
+      where: and(eq(organizacao.uuid, input.organizacaoHash), isNull(organizacao.excluidoEm)),
+      columns: colunasOrganizacaoPublica,
     });
     if (!org) notFound();
     return { ...toOrganizacaoOutput(org), meuPapel: role };
@@ -77,34 +99,35 @@ export const organizacaoHandlers = {
       razaoSocial?: string;
     },
   ) => {
-    await requireAdmin(ctx, input.organizacaoHash);
-    const org = await ctx.client.organizacao.update({
-      where: { uuid: input.organizacaoHash },
-      data: {
-        nome: input.nome,
-        documentoFiscal: input.documento,
-        tipoDocumento: input.tipoDocumento,
-        razaoSocial: input.razaoSocial,
-      },
-    });
+    await exigirAdmin(ctx, input.organizacaoHash);
+    const [org] = await ctx.db
+      .update(organizacao)
+      .set(
+        comTimestampAtualizacao({
+          nome: input.nome,
+          documentoFiscal: input.documento,
+          tipoDocumento: input.tipoDocumento,
+          razaoSocial: input.razaoSocial,
+        }),
+      )
+      .where(and(eq(organizacao.uuid, input.organizacaoHash), isNull(organizacao.excluidoEm)))
+      .returning();
     if (!org) notFound();
     return toOrganizacaoOutput(org);
   },
 
   trocar: async (ctx: WebContext, input: { organizacaoHash: string }) => {
-    const current = requireAuth(ctx);
-    const internalOrgId = await resolveInternalId(
-      ctx.client,
-      "organizacao",
-      input.organizacaoHash,
-    );
+    const current = exigirAutenticacao(ctx);
+    const internalOrgId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
     if (internalOrgId === null) notFound();
 
-    const membership = await ctx.client.organizacaoMembro.findFirst({
-      where: {
-        usuarioId: current.internalId,
-        organizacaoId: internalOrgId,
-      },
+    const membership = await ctx.db.query.organizacaoMembro.findFirst({
+      where: and(
+        eq(organizacaoMembro.usuarioId, current.internalId),
+        eq(organizacaoMembro.organizacaoId, internalOrgId),
+        isNull(organizacaoMembro.excluidoEm),
+      ),
+      columns: colunasMembroOrganizacao,
     });
     if (!membership) forbidden();
     ctx.organizationId = internalOrgId;
@@ -119,17 +142,20 @@ export const organizacaoHandlers = {
 
   membros: {
     lista: async (ctx: WebContext, input: { organizacaoHash: string }) => {
-      const internalOrgId = await resolveInternalId(
-        ctx.client,
-        "organizacao",
-        input.organizacaoHash,
-      );
+      const internalOrgId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
       if (internalOrgId === null) notFound();
-      await requireOrgInternal(ctx, internalOrgId);
+      await exigirOrganizacaoPorIdInterno(ctx, internalOrgId);
 
-      const rows = await ctx.client.organizacaoMembro.findMany({
-        where: { organizacaoId: internalOrgId },
-        include: { organizacao: true, usuario: true },
+      const rows = await ctx.db.query.organizacaoMembro.findMany({
+        where: and(
+          eq(organizacaoMembro.organizacaoId, internalOrgId),
+          isNull(organizacaoMembro.excluidoEm),
+        ),
+        columns: { uuid: true, papel: true },
+        with: {
+          organizacao: incluirOrganizacaoPublica,
+          usuario: incluirUsuarioRelacao,
+        },
       });
 
       return rows
@@ -153,16 +179,13 @@ export const organizacaoHandlers = {
         role: "admin" | "usuario" | "analista";
       },
     ) => {
-      const internalOrgId = await resolveInternalId(
-        ctx.client,
-        "organizacao",
-        input.organizacaoHash,
-      );
+      const internalOrgId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
       if (internalOrgId === null) notFound();
-      await requireAdminInternal(ctx, internalOrgId);
+      await exigirAdminPorIdInterno(ctx, internalOrgId);
 
-      const org = await ctx.client.organizacao.findFirst({
-        where: { id: internalOrgId },
+      const org = await ctx.db.query.organizacao.findFirst({
+        where: and(eq(organizacao.id, internalOrgId), isNull(organizacao.excluidoEm)),
+        columns: { id: true, uuid: true, nome: true },
       });
       if (!org) notFound();
 
@@ -170,66 +193,88 @@ export const organizacaoHandlers = {
       const expiraEm = new Date(
         Date.now() + mvpDefaults.team.inviteExpiresDays * 24 * 60 * 60 * 1000,
       );
-      const invite = await ctx.client.organizacaoConvite.create({
-        data: appCreateData({
-          organizacaoId: internalOrgId,
-          email: input.email.toLowerCase(),
-          nome: input.nome,
-          papel: input.role,
-          token,
-          expiraEm,
-          criadoPorUsuarioId: ctx.usuario!.internalId,
-        }),
-      });
+      const [invite] = await ctx.db
+        .insert(organizacaoConvite)
+        .values(
+          comCriadoEm({
+            organizacaoId: internalOrgId,
+            email: input.email.toLowerCase(),
+            nome: input.nome,
+            papel: input.role,
+            token,
+            expiraEm,
+            criadoPorUsuarioId: ctx.usuario!.internalId,
+          }),
+        )
+        .returning({ uuid: organizacaoConvite.uuid });
       const urlConvite = `${ctx.env.WEB_URL}/convite/${token}`;
       await sendInviteEmail(ctx.env, input.email, org.nome, urlConvite);
-      return { conviteId: invite.uuid, urlConvite };
+      return { conviteId: invite!.uuid, urlConvite };
     },
 
     atualizarPapel: async (
       ctx: WebContext,
       input: { membroId: string; role: "admin" | "usuario" | "analista" },
     ) => {
-      requireAuth(ctx);
-      const member = await ctx.client.organizacaoMembro.findFirst({
-        where: { uuid: input.membroId },
+      exigirAutenticacao(ctx);
+      const member = await ctx.db.query.organizacaoMembro.findFirst({
+        where: and(
+          eq(organizacaoMembro.uuid, input.membroId),
+          isNull(organizacaoMembro.excluidoEm),
+        ),
+        columns: colunasMembroOrganizacao,
       });
       if (!member) notFound();
-      await requireAdminInternal(ctx, member.organizacaoId);
+      await exigirAdminPorIdInterno(ctx, member.organizacaoId);
 
-      await ctx.client.organizacaoMembro.update({
-        where: { id: member.id },
-        data: { papel: input.role },
-      });
+      await ctx.db
+        .update(organizacaoMembro)
+        .set({ papel: input.role })
+        .where(eq(organizacaoMembro.id, member.id));
       return { ok: true };
     },
 
     desativar: async (ctx: WebContext, input: { membroId: string }) => {
-      requireAuth(ctx);
-      const member = await ctx.client.organizacaoMembro.findFirst({
-        where: { uuid: input.membroId },
+      exigirAutenticacao(ctx);
+      const member = await ctx.db.query.organizacaoMembro.findFirst({
+        where: and(
+          eq(organizacaoMembro.uuid, input.membroId),
+          isNull(organizacaoMembro.excluidoEm),
+        ),
+        columns: colunasMembroOrganizacao,
       });
       if (!member) notFound();
-      await requireAdminInternal(ctx, member.organizacaoId);
-      if (member.usuarioId === ctx.usuario!.internalId) forbidden("Não é possível remover a si mesmo");
+      await exigirAdminPorIdInterno(ctx, member.organizacaoId);
+      if (member.usuarioId === ctx.usuario!.internalId)
+        forbidden("Não é possível remover a si mesmo");
 
-      await ctx.client.organizacaoMembro.delete({ where: { id: member.id } });
+      await ctx.db
+        .update(organizacaoMembro)
+        .set(marcarExclusaoLogica())
+        .where(eq(organizacaoMembro.id, member.id));
       return { ok: true };
     },
   },
 
   convites: {
     lista: async (ctx: WebContext, input: { organizacaoHash: string }) => {
-      const internalOrgId = await resolveInternalId(
-        ctx.client,
-        "organizacao",
-        input.organizacaoHash,
-      );
+      const internalOrgId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
       if (internalOrgId === null) notFound();
-      await requireAdminInternal(ctx, internalOrgId);
+      await exigirAdminPorIdInterno(ctx, internalOrgId);
 
-      const rows = await ctx.client.organizacaoConvite.findMany({
-        where: { organizacaoId: internalOrgId },
+      const rows = await ctx.db.query.organizacaoConvite.findMany({
+        where: and(
+          eq(organizacaoConvite.organizacaoId, internalOrgId),
+          isNull(organizacaoConvite.excluidoEm),
+        ),
+        columns: {
+          uuid: true,
+          email: true,
+          nome: true,
+          papel: true,
+          expiraEm: true,
+          aceitoEm: true,
+        },
       });
 
       return rows.map((r) => ({
@@ -242,52 +287,64 @@ export const organizacaoHandlers = {
       }));
     },
 
-    aceitar: async (
-      ctx: WebContext,
-      input: { token: string; otp: string },
-    ) => {
-      const invite = await ctx.client.organizacaoConvite.findFirst({
-        where: { token: input.token },
-        include: { organizacao: true },
+    aceitar: async (ctx: WebContext, input: { token: string; otp: string }) => {
+      const invite = await ctx.db.query.organizacaoConvite.findFirst({
+        where: and(
+          eq(organizacaoConvite.token, input.token),
+          isNull(organizacaoConvite.excluidoEm),
+        ),
+        columns: colunasConviteOrganizacao,
+        with: { organizacao: incluirOrganizacaoPublica },
       });
       if (!invite?.organizacao) notFound();
       if (invite.aceitoEm) forbidden("Convite já aceito");
       if (invite.expiraEm < new Date()) forbidden("Convite expirado");
 
       const email = invite.email.toLowerCase();
-      const valid = await verifyOtp(ctx, email, "invite", input.otp);
+      const valid = await verificarOtp(ctx, email, "invite", input.otp);
       if (!valid) forbidden("Código inválido ou expirado");
 
-      let user = await ctx.client.usuario.findFirst({ where: { email } });
+      let user = await ctx.db.query.usuario.findFirst({
+        where: and(eq(usuario.email, email), isNull(usuario.excluidoEm)),
+        columns: colunasUsuarioSessao,
+      });
       if (!user) {
-        user = await ctx.client.usuario.create({
-          data: appCreateData({
-            email,
-            nome: invite.nome ?? email.split("@")[0] ?? email,
-            emailVerificadoEm: new Date(),
-          }),
-        });
+        [user] = await ctx.db
+          .insert(usuario)
+          .values(
+            comTimestampsCriacao({
+              email,
+              nome: invite.nome ?? email.split("@")[0] ?? email,
+              emailVerificadoEm: new Date(),
+            }),
+          )
+          .returning();
       }
 
-      const existing = await ctx.client.organizacaoMembro.findFirst({
-        where: { organizacaoId: invite.organizacaoId, usuarioId: user.id },
+      const existing = await ctx.db.query.organizacaoMembro.findFirst({
+        where: and(
+          eq(organizacaoMembro.organizacaoId, invite.organizacaoId),
+          eq(organizacaoMembro.usuarioId, user!.id),
+          isNull(organizacaoMembro.excluidoEm),
+        ),
+        columns: colunasOrganizacaoSomenteId,
       });
       if (!existing) {
-        await ctx.client.organizacaoMembro.create({
-          data: appCreateData({
+        await ctx.db.insert(organizacaoMembro).values(
+          comCriadoEm({
             organizacaoId: invite.organizacaoId,
-            usuarioId: user.id,
+            usuarioId: user!.id,
             papel: invite.papel,
             convidadoEm: invite.criadoEm,
             ingressouEm: new Date(),
           }),
-        });
+        );
       }
 
-      await ctx.client.organizacaoConvite.update({
-        where: { id: invite.id },
-        data: { aceitoEm: new Date() },
-      });
+      await ctx.db
+        .update(organizacaoConvite)
+        .set({ aceitoEm: new Date() })
+        .where(eq(organizacaoConvite.id, invite.id));
 
       return { ok: true, organizacaoHash: invite.organizacao.uuid };
     },

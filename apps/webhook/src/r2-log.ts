@@ -81,7 +81,9 @@ export function cloudLogKeyFromBody(body: string): string {
     const field = change?.field ?? "unknown";
     const phoneNumberId = change?.value?.metadata?.phone_number_id ?? "unknown";
     const objectId =
-      change?.value?.messages?.[0]?.id ?? change?.value?.statuses?.[0]?.id ?? payload.entry?.[0]?.id;
+      change?.value?.messages?.[0]?.id ??
+      change?.value?.statuses?.[0]?.id ??
+      payload.entry?.[0]?.id;
     return buildCloudLogKey(phoneNumberId, field, objectId);
   } catch {
     return buildCloudLogKey("unknown", "parse_error");

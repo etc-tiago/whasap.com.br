@@ -1,14 +1,16 @@
+import { and, eq, isNull } from "drizzle-orm";
 import {
   beginAuthAttempt,
-  createOtp,
+  criarOtp,
   failAuthAttemptWithCode,
   sendOtpEmail,
-  verifyOtp,
+  verificarOtp,
 } from "@whasap/api-core";
+import { colunasOfficeUsuarioSessao, colunasUsuarioSomenteId, officeUsuario } from "@whasap/db";
 
 import { createSession } from "../lib/session";
 import type { OfficeContext } from "../types";
-import { requireOfficeAuth, toOfficeSessionOutput } from "./auth-session";
+import { exigirAutenticacaoOffice, mapearSessaoOfficeParaSaida } from "./auth-session";
 
 type EnviarOtpInput = {
   email: string;
@@ -20,64 +22,62 @@ type EntrarInput = {
 };
 
 export const autenticacaoHandlers = {
+  /**
+   * Envia OTP por e-mail para login no painel office.
+   * Só usuários pré-cadastrados em `officeUsuario` recebem código.
+   */
   enviarOtp: async (ctx: OfficeContext, input: EnviarOtpInput) => {
     const email = input.email.toLowerCase();
     await beginAuthAttempt(ctx.env, email);
 
-    const existing = await ctx.client.officeUsuario.findFirst({ where: { email } });
+    const existing = await ctx.db.query.officeUsuario.findFirst({
+      where: and(eq(officeUsuario.email, email), isNull(officeUsuario.excluidoEm)),
+      columns: colunasUsuarioSomenteId,
+    });
 
     if (!existing) {
-      await failAuthAttemptWithCode(
-        ctx.env,
-        email,
-        "NOT_FOUND",
-        "Acesso não autorizado.",
-      );
+      await failAuthAttemptWithCode(ctx.env, email, "NOT_FOUND", "Acesso não autorizado.");
     }
 
-    const code = await createOtp(ctx, email, "office_login");
+    const code = await criarOtp(ctx, email, "office_login");
     await sendOtpEmail(ctx.env, email, code, "office_login");
     return { ok: true };
   },
 
+  /**
+   * Valida OTP e cria sessão office (cookie).
+   */
   entrar: async (ctx: OfficeContext, input: EntrarInput) => {
     const email = input.email.toLowerCase();
     await beginAuthAttempt(ctx.env, email);
 
-    const valid = await verifyOtp(ctx, email, "office_login", input.otp);
+    const valid = await verificarOtp(ctx, email, "office_login", input.otp);
     if (!valid) {
-      await failAuthAttemptWithCode(
-        ctx.env,
-        email,
-        "UNAUTHORIZED",
-        "Código inválido ou expirado.",
-      );
+      await failAuthAttemptWithCode(ctx.env, email, "UNAUTHORIZED", "Código inválido ou expirado.");
     }
 
-    const user = await ctx.client.officeUsuario.findFirst({ where: { email } });
+    const loggedInUser = await ctx.db.query.officeUsuario.findFirst({
+      where: and(eq(officeUsuario.email, email), isNull(officeUsuario.excluidoEm)),
+      columns: colunasOfficeUsuarioSessao,
+    });
 
-    if (!user) {
-      await failAuthAttemptWithCode(
-        ctx.env,
-        email,
-        "NOT_FOUND",
-        "Acesso não autorizado.",
-      );
+    if (!loggedInUser) {
+      await failAuthAttemptWithCode(ctx.env, email, "NOT_FOUND", "Acesso não autorizado.");
     }
 
-    const loggedInUser = user!;
-    const token = await createSession(ctx, loggedInUser.id);
+    const token = await createSession(ctx, loggedInUser!.id);
     ctx.sessionToken = token;
     ctx.officeUsuario = {
-      id: loggedInUser.uuid,
-      internalId: loggedInUser.id,
-      email: loggedInUser.email,
-      nome: loggedInUser.nome,
+      id: loggedInUser!.uuid,
+      internalId: loggedInUser!.id,
+      email: loggedInUser!.email,
+      nome: loggedInUser!.nome,
     };
 
-    return toOfficeSessionOutput(ctx);
+    return mapearSessaoOfficeParaSaida(ctx);
   },
 
+  /** Encerra sessão office e invalida cookie. */
   sair: async (ctx: OfficeContext) => {
     if (ctx.sessionToken) {
       const { deleteSession } = await import("../lib/session");
@@ -86,10 +86,11 @@ export const autenticacaoHandlers = {
     return { ok: true };
   },
 
+  /** Retorna usuário da sessão office atual. */
   eu: async (ctx: OfficeContext) => {
-    requireOfficeAuth(ctx);
-    return toOfficeSessionOutput(ctx);
+    exigirAutenticacaoOffice(ctx);
+    return mapearSessaoOfficeParaSaida(ctx);
   },
 };
 
-export { requireOfficeAuth, toOfficeSessionOutput } from "./auth-session";
+export { exigirAutenticacaoOffice, mapearSessaoOfficeParaSaida } from "./auth-session";

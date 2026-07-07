@@ -1,6 +1,7 @@
+import { eq } from "drizzle-orm";
 import { buildMediaR2Key, mimeToExtension } from "@whasap/config";
-import type { Client } from "@whasap/db";
-import { createEvolutionClient } from "@whasap/evolution";
+import { mensagem, type Db } from "@whasap/db";
+import { createEvolutionGoClient } from "@whasap/evolution";
 import { createMetaClient } from "@whasap/meta";
 
 import type { Env } from "./env";
@@ -12,8 +13,9 @@ export type InboundMediaJob =
       messageId: number;
       externalId: string;
       type: string;
-      instanceName: string;
+      instanceToken: string;
       messageKey: { remoteJid: string; fromMe: boolean; id: string };
+      waMessage?: Record<string, unknown>;
       mimeType?: string;
       base64?: string;
       fileName?: string;
@@ -43,22 +45,18 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
 export function scheduleInboundMedia(
   ctx: ExecutionContext,
   env: Env,
-  client: Client,
+  db: Db,
   job: InboundMediaJob | null,
 ): void {
   if (!job) return;
   ctx.waitUntil(
-    storeInboundMedia(env, client, job).catch((err) => {
+    storeInboundMedia(env, db, job).catch((err) => {
       console.error("[webhook] media store failed:", err);
     }),
   );
 }
 
-export async function storeInboundMedia(
-  env: Env,
-  client: Client,
-  job: InboundMediaJob,
-): Promise<void> {
+export async function storeInboundMedia(env: Env, db: Db, job: InboundMediaJob): Promise<void> {
   let buffer: ArrayBuffer;
   let mimeType: string;
 
@@ -73,14 +71,19 @@ export async function storeInboundMedia(
         console.error("[webhook] Evolution API não configurada no worker");
         return;
       }
-      const evo = createEvolutionClient({ baseUrl, apiKey });
-      const result = await evo.getBase64FromMediaMessage(
-        job.instanceName,
-        job.messageKey,
-        job.type === "audio",
+
+      const client = createEvolutionGoClient(
+        { baseUrl, apiKey },
+        { instanceToken: job.instanceToken },
       );
+      const result = await client.downloadMedia(job.waMessage ?? { key: job.messageKey });
+      const b64 = result.base64 ?? result.data;
+      if (!b64) {
+        console.error("[webhook] Evolution downloadmedia sem base64");
+        return;
+      }
       mimeType = result.mimetype ?? job.mimeType ?? "application/octet-stream";
-      buffer = base64ToArrayBuffer(result.base64);
+      buffer = base64ToArrayBuffer(b64);
     }
   } else {
     const meta = createMetaClient({
@@ -100,8 +103,5 @@ export async function storeInboundMedia(
     httpMetadata: { contentType: mimeType },
   });
 
-  await client.mensagem.update({
-    where: { id: job.messageId },
-    data: { midiaR2Chave: r2Key },
-  });
+  await db.update(mensagem).set({ midiaR2Chave: r2Key }).where(eq(mensagem.id, job.messageId));
 }

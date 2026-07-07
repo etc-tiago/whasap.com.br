@@ -78,6 +78,79 @@ export const messageTypeSchema = z.enum([
   "contacts",
   "template",
   "interactive",
+  "button",
+  "list",
+  "carousel",
+  "poll",
+  "link",
+  "reaction",
+]);
+
+const enviarMensagemBase = z.object({
+  conversaId: z.string().uuid(),
+});
+
+const quotedFields = {
+  contextoMensagemId: z.string().optional(),
+};
+
+export const enviarMensagemTextoSchema = enviarMensagemBase.extend({
+  tipo: z.literal("text"),
+  body: z.string().min(1),
+  ...quotedFields,
+});
+
+export const enviarMensagemMidiaSchema = enviarMensagemBase.extend({
+  tipo: z.enum(["image", "audio", "video", "document", "sticker"]),
+  mediaUrl: z.string().url(),
+  body: z.string().optional(),
+  mediaR2Key: z.string().optional(),
+  filename: z.string().optional(),
+  voice: z.boolean().optional(),
+  ...quotedFields,
+});
+
+export const enviarMensagemLocalizacaoSchema = enviarMensagemBase.extend({
+  tipo: z.literal("location"),
+  latitude: z.number(),
+  longitude: z.number(),
+  localNome: z.string().optional(),
+  localEndereco: z.string().optional(),
+  ...quotedFields,
+});
+
+export const enviarMensagemContatosSchema = enviarMensagemBase.extend({
+  tipo: z.literal("contacts"),
+  contatos: z.array(z.unknown()).min(1),
+  ...quotedFields,
+});
+
+export const enviarMensagemInteractiveSchema = enviarMensagemBase.extend({
+  tipo: z.literal("interactive"),
+  interactive: z.unknown(),
+  ...quotedFields,
+});
+
+export const enviarMensagemReacaoSchema = enviarMensagemBase.extend({
+  tipo: z.literal("reaction"),
+  mensagemIdExterno: z.string().min(1),
+  emoji: z.string(),
+});
+
+export const enviarMensagemPayloadSchema = enviarMensagemBase.extend({
+  tipo: z.enum(["button", "list", "carousel", "poll", "link"]),
+  payload: z.unknown(),
+  ...quotedFields,
+});
+
+export const enviarMensagemInputSchema = z.discriminatedUnion("tipo", [
+  enviarMensagemTextoSchema,
+  enviarMensagemMidiaSchema,
+  enviarMensagemLocalizacaoSchema,
+  enviarMensagemContatosSchema,
+  enviarMensagemInteractiveSchema,
+  enviarMensagemReacaoSchema,
+  enviarMensagemPayloadSchema,
 ]);
 
 export const messageTemplateSchema = z.object({

@@ -28,7 +28,7 @@ export const mvpDefaults = {
     webhookPath: "/cloud",
   },
   evolution: {
-    version: "v2",
+    engine: "go" as const,
     hostRegion: "br",
     redisPerContainer: true,
     provisionMaxRetries: 3,

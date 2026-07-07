@@ -1,9 +1,18 @@
 import { forbidden, notFound } from "@whasap/api-core";
-import { conversa, instancia, mensagem } from "@whasap/db";
-import { and, count, eq, gte, inArray, lte } from "drizzle-orm";
+import {
+  conversa,
+  instancia,
+  mensagem,
+  organizacao,
+  organizacaoMembro,
+  colunasOrganizacaoSomenteId,
+  incluirUsuarioRelacao,
+  resolverIdInterno,
+} from "@whasap/db";
+import { and, count, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 
 import type { WebContext } from "../types";
-import { requireAuth, requireOrgInternal, resolveMembershipInternal } from "./auth";
+import { exigirAutenticacao, resolverMembroPorIdInterno } from "./auth";
 
 const visaoGeralVazia = {
   totalConversas: 0,
@@ -22,6 +31,10 @@ const visaoGeralVazia = {
 };
 
 export const relatoriosHandlers = {
+  /**
+   * Visão geral de conversas e mensagens no período.
+   * Bloqueado para membros com papel `usuario` (apenas admin/analista).
+   */
   visaoGeral: async (
     ctx: WebContext,
     input: {
@@ -31,12 +44,14 @@ export const relatoriosHandlers = {
       instanciaId?: string;
     },
   ) => {
-    requireAuth(ctx);
-    const internalOrgId = await ctx.client.organizacao
-      .findFirst({ where: { uuid: input.organizacaoHash }, select: { id: true } })
-      .then((row) => row?.id ?? null);
+    exigirAutenticacao(ctx);
+    const orgRow = await ctx.db.query.organizacao.findFirst({
+      where: and(eq(organizacao.uuid, input.organizacaoHash), isNull(organizacao.excluidoEm)),
+      columns: colunasOrganizacaoSomenteId,
+    });
+    const internalOrgId = orgRow?.id ?? null;
     if (internalOrgId === null) notFound();
-    const { role } = await resolveMembershipInternal(ctx, internalOrgId);
+    const { role } = await resolverMembroPorIdInterno(ctx, internalOrgId);
     if (role === "usuario") {
       forbidden("Relatórios não disponíveis para usuário");
     }
@@ -47,12 +62,10 @@ export const relatoriosHandlers = {
     let instanceRows = await ctx.db
       .select()
       .from(instancia)
-      .where(eq(instancia.organizacaoId, internalOrgId));
+      .where(and(eq(instancia.organizacaoId, internalOrgId), isNull(instancia.excluidoEm)));
 
     if (input.instanciaId) {
-      const filterId = await ctx.client.instancia
-        .findFirst({ where: { uuid: input.instanciaId }, select: { id: true } })
-        .then((row) => row?.id ?? null);
+      const filterId = await resolverIdInterno(ctx.db, "instancia", input.instanciaId);
       if (filterId === null) return visaoGeralVazia;
       instanceRows = instanceRows.filter((i) => i.id === filterId);
     }
@@ -67,6 +80,7 @@ export const relatoriosHandlers = {
       .where(
         and(
           inArray(conversa.instanciaId, instanceIds),
+          isNull(conversa.excluidoEm),
           gte(conversa.criadoEm, from),
           lte(conversa.criadoEm, to),
         ),
@@ -75,62 +89,77 @@ export const relatoriosHandlers = {
     const conversasAbertas = convRows.filter((c) => c.status === "open").length;
     const conversasFechadas = convRows.filter((c) => c.status === "closed").length;
 
-    let mensagensEnviadas = 0;
-    let mensagensRecebidas = 0;
-    for (const conv of convRows) {
-      const [sent] = await ctx.db
-        .select({ n: count() })
-        .from(mensagem)
-        .where(
-          and(
-            eq(mensagem.conversaId, conv.id),
-            eq(mensagem.direcao, "outbound"),
-            gte(mensagem.criadoEm, from),
-            lte(mensagem.criadoEm, to),
-          ),
-        );
-      const [recv] = await ctx.db
-        .select({ n: count() })
-        .from(mensagem)
-        .where(
-          and(
-            eq(mensagem.conversaId, conv.id),
-            eq(mensagem.direcao, "inbound"),
-            gte(mensagem.criadoEm, from),
-            lte(mensagem.criadoEm, to),
-          ),
-        );
-      mensagensEnviadas += sent?.n ?? 0;
-      mensagensRecebidas += recv?.n ?? 0;
-    }
+    const messageCounts = await Promise.all(
+      convRows.map(async (conv) => {
+        const [[sent], [recv]] = await Promise.all([
+          ctx.db
+            .select({ n: count() })
+            .from(mensagem)
+            .where(
+              and(
+                eq(mensagem.conversaId, conv.id),
+                isNull(mensagem.excluidoEm),
+                eq(mensagem.direcao, "outbound"),
+                gte(mensagem.criadoEm, from),
+                lte(mensagem.criadoEm, to),
+              ),
+            ),
+          ctx.db
+            .select({ n: count() })
+            .from(mensagem)
+            .where(
+              and(
+                eq(mensagem.conversaId, conv.id),
+                isNull(mensagem.excluidoEm),
+                eq(mensagem.direcao, "inbound"),
+                gte(mensagem.criadoEm, from),
+                lte(mensagem.criadoEm, to),
+              ),
+            ),
+        ]);
+        return { sent: sent?.n ?? 0, recv: recv?.n ?? 0 };
+      }),
+    );
+    const mensagensEnviadas = messageCounts.reduce((sum, c) => sum + c.sent, 0);
+    const mensagensRecebidas = messageCounts.reduce((sum, c) => sum + c.recv, 0);
 
-    const members = await ctx.client.organizacaoMembro.findMany({
-      where: { organizacaoId: internalOrgId },
-      include: { usuario: true },
+    const members = await ctx.db.query.organizacaoMembro.findMany({
+      where: and(
+        eq(organizacaoMembro.organizacaoId, internalOrgId),
+        isNull(organizacaoMembro.excluidoEm),
+      ),
+      columns: { usuarioId: true },
+      with: { usuario: incluirUsuarioRelacao },
     });
 
-    const porAgente = [];
-    for (const member of members) {
-      if (!member.usuario) continue;
-      const assigned = convRows.filter((c) => c.atribuidoUsuarioId === member.usuarioId).length;
-      const [sent] = await ctx.db
-        .select({ n: count() })
-        .from(mensagem)
-        .where(
-          and(
-            eq(mensagem.enviadoPorUsuarioId, member.usuarioId),
-            eq(mensagem.direcao, "outbound"),
-            gte(mensagem.criadoEm, from),
-            lte(mensagem.criadoEm, to),
-          ),
-        );
-      porAgente.push({
-        usuarioId: member.usuario.uuid,
-        nome: member.usuario.nome,
-        conversasAtribuidas: assigned,
-        mensagensEnviadas: sent?.n ?? 0,
-      });
-    }
+    const porAgente = await Promise.all(
+      members
+        .filter(
+          (member): member is typeof member & { usuario: NonNullable<typeof member.usuario> } =>
+            Boolean(member.usuario),
+        )
+        .map(async (member) => {
+          const assigned = convRows.filter((c) => c.atribuidoUsuarioId === member.usuarioId).length;
+          const [sent] = await ctx.db
+            .select({ n: count() })
+            .from(mensagem)
+            .where(
+              and(
+                eq(mensagem.enviadoPorUsuarioId, member.usuarioId),
+                isNull(mensagem.excluidoEm),
+                eq(mensagem.direcao, "outbound"),
+                gte(mensagem.criadoEm, from),
+                lte(mensagem.criadoEm, to),
+              ),
+            );
+          return {
+            usuarioId: member.usuario.uuid,
+            nome: member.usuario.nome,
+            conversasAtribuidas: assigned,
+            mensagensEnviadas: sent?.n ?? 0,
+          };
+        }),
+    );
 
     const porInstancia = instanceRows.map((inst) => ({
       instanciaId: inst.uuid,

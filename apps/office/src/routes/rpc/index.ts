@@ -1,3 +1,4 @@
+/** Monta API ORPC office em `/rpc` (todos os verbos HTTP). */
 import { createFileRoute } from "@tanstack/react-router";
 
 import { handleRpcRequest } from "@/lib/rpc-handler";

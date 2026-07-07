@@ -1,4 +1,7 @@
-import type { Client } from "./client";
+import { and, eq, inArray, isNull } from "drizzle-orm";
+
+import { colunasIdUuid, colunasSomenteId } from "./colunas";
+import type { Db } from "./client";
 import {
   contato,
   conversa,
@@ -9,7 +12,7 @@ import {
   usuario,
 } from "./schema";
 
-export type ExportableTableName =
+export type NomeTabelaExportavel =
   | "usuario"
   | "organizacao"
   | "organizacaoMembro"
@@ -18,101 +21,140 @@ export type ExportableTableName =
   | "contato"
   | "conversa";
 
-export async function resolveInternalId(
-  client: Client,
-  table: ExportableTableName,
-  publicUuid: string,
+/**
+ * Converte uuid público da API em PK serial interna.
+ * @returns `number` (id interno) ou `null` se não encontrado / excluído.
+ */
+export async function resolverIdInterno(
+  db: Db,
+  tabela: NomeTabelaExportavel,
+  uuidPublico: string,
 ): Promise<number | null> {
-  const select = { id: true } as const;
-
-  switch (table) {
+  switch (tabela) {
     case "usuario": {
-      const row = await client.usuario.findFirst({ where: { uuid: publicUuid }, select });
-      return row?.id ?? null;
+      const linha = await db.query.usuario.findFirst({
+        where: and(eq(usuario.uuid, uuidPublico), isNull(usuario.excluidoEm)),
+        columns: colunasSomenteId,
+      });
+      return linha?.id ?? null;
     }
     case "organizacao": {
-      const row = await client.organizacao.findFirst({ where: { uuid: publicUuid }, select });
-      return row?.id ?? null;
+      const linha = await db.query.organizacao.findFirst({
+        where: and(eq(organizacao.uuid, uuidPublico), isNull(organizacao.excluidoEm)),
+        columns: colunasSomenteId,
+      });
+      return linha?.id ?? null;
     }
     case "organizacaoMembro": {
-      const row = await client.organizacaoMembro.findFirst({
-        where: { uuid: publicUuid },
-        select,
+      const linha = await db.query.organizacaoMembro.findFirst({
+        where: and(eq(organizacaoMembro.uuid, uuidPublico), isNull(organizacaoMembro.excluidoEm)),
+        columns: colunasSomenteId,
       });
-      return row?.id ?? null;
+      return linha?.id ?? null;
     }
     case "organizacaoConvite": {
-      const row = await client.organizacaoConvite.findFirst({
-        where: { uuid: publicUuid },
-        select,
+      const linha = await db.query.organizacaoConvite.findFirst({
+        where: and(eq(organizacaoConvite.uuid, uuidPublico), isNull(organizacaoConvite.excluidoEm)),
+        columns: colunasSomenteId,
       });
-      return row?.id ?? null;
+      return linha?.id ?? null;
     }
     case "instancia": {
-      const row = await client.instancia.findFirst({ where: { uuid: publicUuid }, select });
-      return row?.id ?? null;
+      const linha = await db.query.instancia.findFirst({
+        where: and(eq(instancia.uuid, uuidPublico), isNull(instancia.excluidoEm)),
+        columns: colunasSomenteId,
+      });
+      return linha?.id ?? null;
     }
     case "contato": {
-      const row = await client.contato.findFirst({ where: { uuid: publicUuid }, select });
-      return row?.id ?? null;
+      const linha = await db.query.contato.findFirst({
+        where: and(eq(contato.uuid, uuidPublico), isNull(contato.excluidoEm)),
+        columns: colunasSomenteId,
+      });
+      return linha?.id ?? null;
     }
     case "conversa": {
-      const row = await client.conversa.findFirst({ where: { uuid: publicUuid }, select });
-      return row?.id ?? null;
+      const linha = await db.query.conversa.findFirst({
+        where: and(eq(conversa.uuid, uuidPublico), isNull(conversa.excluidoEm)),
+        columns: colunasSomenteId,
+      });
+      return linha?.id ?? null;
     }
   }
 }
 
-export async function resolveInternalIds(
-  client: Client,
-  table: ExportableTableName,
-  publicUuids: string[],
+/**
+ * Converte vários uuids públicos em mapa uuid → id interno.
+ * @returns `Map<uuid, id>` apenas para registros ativos encontrados.
+ */
+export async function resolverIdsInternos(
+  db: Db,
+  tabela: NomeTabelaExportavel,
+  uuidsPublicos: string[],
 ): Promise<Map<string, number>> {
-  if (publicUuids.length === 0) return new Map();
+  if (uuidsPublicos.length === 0) return new Map();
 
-  const unique = [...new Set(publicUuids)];
-  const select = { id: true, uuid: true } as const;
+  const unicos = [...new Set(uuidsPublicos)];
 
-  switch (table) {
+  switch (tabela) {
     case "usuario": {
-      const rows = await client.usuario.findMany({ where: { uuid: { in: unique } }, select });
-      return new Map(rows.map((row) => [row.uuid, row.id]));
+      const linhas = await db.query.usuario.findMany({
+        where: and(inArray(usuario.uuid, unicos), isNull(usuario.excluidoEm)),
+        columns: colunasIdUuid,
+      });
+      return new Map(linhas.map((linha) => [linha.uuid, linha.id]));
     }
     case "organizacao": {
-      const rows = await client.organizacao.findMany({ where: { uuid: { in: unique } }, select });
-      return new Map(rows.map((row) => [row.uuid, row.id]));
+      const linhas = await db.query.organizacao.findMany({
+        where: and(inArray(organizacao.uuid, unicos), isNull(organizacao.excluidoEm)),
+        columns: colunasIdUuid,
+      });
+      return new Map(linhas.map((linha) => [linha.uuid, linha.id]));
     }
     case "organizacaoMembro": {
-      const rows = await client.organizacaoMembro.findMany({
-        where: { uuid: { in: unique } },
-        select,
+      const linhas = await db.query.organizacaoMembro.findMany({
+        where: and(inArray(organizacaoMembro.uuid, unicos), isNull(organizacaoMembro.excluidoEm)),
+        columns: colunasIdUuid,
       });
-      return new Map(rows.map((row) => [row.uuid, row.id]));
+      return new Map(linhas.map((linha) => [linha.uuid, linha.id]));
     }
     case "organizacaoConvite": {
-      const rows = await client.organizacaoConvite.findMany({
-        where: { uuid: { in: unique } },
-        select,
+      const linhas = await db.query.organizacaoConvite.findMany({
+        where: and(inArray(organizacaoConvite.uuid, unicos), isNull(organizacaoConvite.excluidoEm)),
+        columns: colunasIdUuid,
       });
-      return new Map(rows.map((row) => [row.uuid, row.id]));
+      return new Map(linhas.map((linha) => [linha.uuid, linha.id]));
     }
     case "instancia": {
-      const rows = await client.instancia.findMany({ where: { uuid: { in: unique } }, select });
-      return new Map(rows.map((row) => [row.uuid, row.id]));
+      const linhas = await db.query.instancia.findMany({
+        where: and(inArray(instancia.uuid, unicos), isNull(instancia.excluidoEm)),
+        columns: colunasIdUuid,
+      });
+      return new Map(linhas.map((linha) => [linha.uuid, linha.id]));
     }
     case "contato": {
-      const rows = await client.contato.findMany({ where: { uuid: { in: unique } }, select });
-      return new Map(rows.map((row) => [row.uuid, row.id]));
+      const linhas = await db.query.contato.findMany({
+        where: and(inArray(contato.uuid, unicos), isNull(contato.excluidoEm)),
+        columns: colunasIdUuid,
+      });
+      return new Map(linhas.map((linha) => [linha.uuid, linha.id]));
     }
     case "conversa": {
-      const rows = await client.conversa.findMany({ where: { uuid: { in: unique } }, select });
-      return new Map(rows.map((row) => [row.uuid, row.id]));
+      const linhas = await db.query.conversa.findMany({
+        where: and(inArray(conversa.uuid, unicos), isNull(conversa.excluidoEm)),
+        columns: colunasIdUuid,
+      });
+      return new Map(linhas.map((linha) => [linha.uuid, linha.id]));
     }
   }
 }
 
-export function exportUuid(row: { uuid: string }): string {
-  return row.uuid;
+/**
+ * Extrai uuid exportável de uma linha já carregada.
+ * @returns uuid público da entidade.
+ */
+export function exportarUuid(linha: { uuid: string }): string {
+  return linha.uuid;
 }
 
 export {

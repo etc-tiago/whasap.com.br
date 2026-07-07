@@ -9,15 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@whasap/ui/components/select";
-import {
-  MessageCircle,
-  LogOut,
-  Settings,
-  Smartphone,
-  BarChart3,
-  Users,
-  Plus,
-} from "lucide-react";
+import { MessageCircle, LogOut, Settings, Smartphone, BarChart3, Users, Plus } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { useSession } from "@/lib/auth";
@@ -134,7 +126,9 @@ export function PanelShell({
           </Link>
         </nav>
         <div className="border-t border-border p-2">
-          <p className="truncate px-3 py-1 text-xs text-muted-foreground">{session?.usuario?.email}</p>
+          <p className="truncate px-3 py-1 text-xs text-muted-foreground">
+            {session?.usuario?.email}
+          </p>
           <Button
             variant="ghost"
             size="sm"

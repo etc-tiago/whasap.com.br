@@ -10,18 +10,14 @@ const paginacaoInput = z.object({
 
 export const officeAdministracaoContract = {
   organizacoes: {
-    lista: oc
-      .input(paginacaoInput.optional())
-      .output(
-        z.object({
-          itens: z.array(organizacaoSchema),
-          total: z.number().int(),
-        }),
-      ),
+    lista: oc.input(paginacaoInput.optional()).output(
+      z.object({
+        itens: z.array(organizacaoSchema),
+        total: z.number().int(),
+      }),
+    ),
 
-    obter: oc
-      .input(z.object({ organizacaoHash: organizacaoHashSchema }))
-      .output(organizacaoSchema),
+    obter: oc.input(z.object({ organizacaoHash: organizacaoHashSchema })).output(organizacaoSchema),
   },
 
   instancias: {
@@ -40,8 +36,6 @@ export const officeAdministracaoContract = {
         }),
       ),
 
-    obter: oc
-      .input(z.object({ instanciaId: z.string().uuid() }))
-      .output(instanciaSchema),
+    obter: oc.input(z.object({ instanciaId: z.string().uuid() })).output(instanciaSchema),
   },
 };

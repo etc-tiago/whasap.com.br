@@ -22,15 +22,13 @@ export const instanciaContract = {
     .input(z.object({ instanciaId: z.string().uuid() }))
     .output(z.object({ ok: z.boolean() })),
 
-  obterQr: oc
-    .input(z.object({ instanciaId: z.string().uuid() }))
-    .output(
-      z.object({
-        base64: z.string().nullable(),
-        pairingCode: z.string().nullable(),
-        estado: z.string(),
-      }),
-    ),
+  obterQr: oc.input(z.object({ instanciaId: z.string().uuid() })).output(
+    z.object({
+      base64: z.string().nullable(),
+      pairingCode: z.string().nullable(),
+      estado: z.string(),
+    }),
+  ),
 
   statusConexao: oc
     .input(z.object({ instanciaId: z.string().uuid() }))
@@ -58,9 +56,7 @@ export const instanciaContract = {
     )
     .output(z.object({ urlCheckout: z.string().url() })),
 
-  obter: oc
-    .input(z.object({ instanciaId: z.string().uuid() }))
-    .output(instanciaSchema),
+  obter: oc.input(z.object({ instanciaId: z.string().uuid() })).output(instanciaSchema),
 
   adicionarPacoteConversas: oc
     .input(z.object({ instanciaId: z.string().uuid() }))

@@ -12,9 +12,7 @@ import {
 export const organizacaoContract = {
   lista: oc.output(z.array(organizacaoSchema)),
 
-  criar: oc
-    .input(z.object({ nome: z.string().min(2) }))
-    .output(organizacaoSchema),
+  criar: oc.input(z.object({ nome: z.string().min(2) })).output(organizacaoSchema),
 
   obter: oc
     .input(z.object({ organizacaoHash: organizacaoHashSchema }))
@@ -67,20 +65,18 @@ export const organizacaoContract = {
   },
 
   convites: {
-    lista: oc
-      .input(z.object({ organizacaoHash: organizacaoHashSchema }))
-      .output(
-        z.array(
-          z.object({
-            id: z.string().uuid(),
-            email: z.string(),
-            nome: z.string().nullable(),
-            role: memberRoleSchema,
-            expiraEm: z.string().datetime(),
-            aceitoEm: z.string().datetime().nullable(),
-          }),
-        ),
+    lista: oc.input(z.object({ organizacaoHash: organizacaoHashSchema })).output(
+      z.array(
+        z.object({
+          id: z.string().uuid(),
+          email: z.string(),
+          nome: z.string().nullable(),
+          role: memberRoleSchema,
+          expiraEm: z.string().datetime(),
+          aceitoEm: z.string().datetime().nullable(),
+        }),
       ),
+    ),
 
     aceitar: oc
       .input(

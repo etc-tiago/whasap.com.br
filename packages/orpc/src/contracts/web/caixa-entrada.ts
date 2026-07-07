@@ -1,7 +1,7 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-import { messageTemplateSchema, messageTypeSchema } from "../../schemas";
+import { enviarMensagemInputSchema, messageTemplateSchema } from "../../schemas";
 
 const conversaSchema = z.object({
   id: z.string().uuid(),
@@ -19,6 +19,7 @@ const conversaSchema = z.object({
 
 const mensagemSchema = z.object({
   id: z.string().uuid(),
+  idExterno: z.string().nullable(),
   direction: z.enum(["inbound", "outbound"]),
   type: z.string(),
   body: z.string().nullable(),
@@ -32,9 +33,7 @@ const mensagemSchema = z.object({
 
 export const caixaEntradaContract = {
   conversas: {
-    lista: oc
-      .input(z.object({ instanciaId: z.string().uuid() }))
-      .output(z.array(conversaSchema)),
+    lista: oc.input(z.object({ instanciaId: z.string().uuid() })).output(z.array(conversaSchema)),
 
     iniciar: oc
       .input(
@@ -64,25 +63,9 @@ export const caixaEntradaContract = {
   },
 
   mensagens: {
-    lista: oc
-      .input(z.object({ conversaId: z.string().uuid() }))
-      .output(z.array(mensagemSchema)),
+    lista: oc.input(z.object({ conversaId: z.string().uuid() })).output(z.array(mensagemSchema)),
 
-    enviar: oc
-      .input(
-        z.object({
-          conversaId: z.string().uuid(),
-          body: z.string().min(1).optional(),
-          tipo: messageTypeSchema.default("text"),
-          mediaUrl: z.string().url().optional(),
-          mediaR2Key: z.string().optional(),
-          latitude: z.number().optional(),
-          longitude: z.number().optional(),
-          localNome: z.string().optional(),
-          localEndereco: z.string().optional(),
-        }),
-      )
-      .output(mensagemSchema),
+    enviar: oc.input(enviarMensagemInputSchema).output(mensagemSchema),
 
     enviarTemplate: oc
       .input(
@@ -93,6 +76,15 @@ export const caixaEntradaContract = {
         }),
       )
       .output(mensagemSchema),
+
+    marcarLido: oc
+      .input(
+        z.object({
+          conversaId: z.string().uuid(),
+          mensagemIdExterno: z.string().min(1),
+        }),
+      )
+      .output(z.object({ ok: z.boolean() })),
   },
 
   templates: {
@@ -106,19 +98,17 @@ export const caixaEntradaContract = {
   },
 
   anotacoes: {
-    lista: oc
-      .input(z.object({ conversaId: z.string().uuid() }))
-      .output(
-        z.array(
-          z.object({
-            id: z.string().uuid(),
-            body: z.string(),
-            autorUsuarioId: z.string().uuid(),
-            autorNome: z.string(),
-            criadoEm: z.string().datetime(),
-          }),
-        ),
+    lista: oc.input(z.object({ conversaId: z.string().uuid() })).output(
+      z.array(
+        z.object({
+          id: z.string().uuid(),
+          body: z.string(),
+          autorUsuarioId: z.string().uuid(),
+          autorNome: z.string(),
+          criadoEm: z.string().datetime(),
+        }),
       ),
+    ),
 
     criar: oc
       .input(

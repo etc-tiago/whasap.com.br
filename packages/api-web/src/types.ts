@@ -1,4 +1,4 @@
-import type { Client, Db } from "@whasap/db";
+import type { Db } from "@whasap/db";
 import type { BaseEnv, SecretsStoreSecretBinding } from "@whasap/api-core";
 
 export type MemberRole = "admin" | "usuario" | "analista";
@@ -13,7 +13,6 @@ export type WebUsuario = {
 
 export type WebContext = {
   db: Db;
-  client: Client;
   env: WebEnv;
   request: Request;
   clientIp: string | undefined;

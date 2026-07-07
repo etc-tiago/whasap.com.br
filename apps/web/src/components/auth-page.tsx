@@ -1,3 +1,7 @@
+/**
+ * Página de autenticação OTP: login, cadastro com LGPD e redirects pós-sessão.
+ * Após login/cadastro invalida `autenticacao.eu` e navega para `/`.
+ */
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@whasap/ui/components/button";
@@ -11,6 +15,15 @@ import { useState } from "react";
 
 import { getOrpcErrorMessage } from "@/lib/orpc-error";
 import { orpc } from "@/lib/orpc";
+
+const OTP_DIGIT_SLOTS = [
+  { id: "digit-1", index: 0 },
+  { id: "digit-2", index: 1 },
+  { id: "digit-3", index: 2 },
+  { id: "digit-4", index: 3 },
+  { id: "digit-5", index: 4 },
+  { id: "digit-6", index: 5 },
+] as const;
 
 export function AuthPage() {
   const navigate = useNavigate();
@@ -122,8 +135,8 @@ export function AuthPage() {
                   <Label>Código OTP</Label>
                   <InputOTP maxLength={6} value={otp} onChange={setOtp}>
                     <InputOTPGroup>
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <InputOTPSlot key={`otp-login-${i}`} index={i} />
+                      {OTP_DIGIT_SLOTS.map((slot) => (
+                        <InputOTPSlot key={slot.id} index={slot.index} />
                       ))}
                     </InputOTPGroup>
                   </InputOTP>
@@ -167,8 +180,8 @@ export function AuthPage() {
                   <Label>Código OTP</Label>
                   <InputOTP maxLength={6} value={otp} onChange={setOtp}>
                     <InputOTPGroup>
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <InputOTPSlot key={`otp-signup-${i}`} index={i} />
+                      {OTP_DIGIT_SLOTS.map((slot) => (
+                        <InputOTPSlot key={slot.id} index={slot.index} />
                       ))}
                     </InputOTPGroup>
                   </InputOTP>

@@ -62,15 +62,32 @@ cd apps/cdn && bun run deploy
 
 ## Evolution API (WhatsApp Business)
 
-1. Suba uma instância [Evolution API v2](https://doc.evolution-api.com/) com Redis.
-2. Configure no worker `apps/web` e `apps/webhook`:
-   - `EVOLUTION_BASE_URL` — URL do servidor Evolution da plataforma
-   - `EVOLUTION_API_KEY` — secret do worker (`wrangler secret put`)
-   - `WEBHOOK_URL` — URL pública do worker webhook (ex. `https://webhook.whasap.com.br`)
-3. A Evolution envia webhooks para `https://<webhook-worker>/evo`.
-4. Cada cliente recebe um `evolucao_nome_instancia` no Neon; URL e API key são da plataforma, não por organização.
+Motor único **Evolution GO** (whatsmeow), provedor `evolution` no Neon.
+
+| Provedor | Motor | Identificação no Neon |
+|----------|-------|------------------------|
+| `evolution` | Evolution GO (whatsmeow) | `evolucao_instance_id`, `evolucao_token`, `evolucao_nome_instancia` |
+
+Spec OpenAPI oficial: [`packages/evolution/swagger.json`](../packages/evolution/swagger.json) e [`packages/evolution/README.md`](../packages/evolution/README.md).
+
+1. Suba Evolution GO na plataforma.
+2. Configure nos workers `apps/web` e `apps/webhook`:
+   - `EVOLUTION_BASE_URL` — URL do servidor Evolution
+   - `EVOLUTION_API_KEY` — chave global (`apikey` header)
+   - `WEBHOOK_URL` — ex. `https://webhook.whasap.com.br`
+3. Webhooks em `POST /evo` (lookup por `instance` ou `instanceId`).
+4. Token por instância gerado no provisionamento; chamadas `/send/*` usam esse token no header `apikey`.
+
+Migração de instâncias antigas:
+
+```sql
+UPDATE instancia SET provedor = 'evolution'
+WHERE provedor IN ('evolution_v2', 'evolution_go', 'evolution');
+```
 
 ## Meta Cloud API
+
+Collection Postman de referência: [`packages/meta/whatsapp-cloud-api.postman_collection.json`](../packages/meta/whatsapp-cloud-api.postman_collection.json) e [`packages/meta/README.md`](../packages/meta/README.md).
 
 ### App Meta
 

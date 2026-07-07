@@ -1,4 +1,4 @@
-import type { Client, Db } from "@whasap/db";
+import type { Db } from "@whasap/db";
 import type { BaseEnv } from "@whasap/api-core";
 
 export type OfficeUsuario = {
@@ -10,7 +10,6 @@ export type OfficeUsuario = {
 
 export type OfficeContext = {
   db: Db;
-  client: Client;
   env: OfficeEnv;
   request: Request;
   clientIp: string | undefined;

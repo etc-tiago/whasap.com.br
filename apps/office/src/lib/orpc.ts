@@ -1,3 +1,7 @@
+/**
+ * Cliente ORPC do painel office (`officeContract`).
+ * Porta dev: 3001. Cookies de sessão via `credentials: "include"`.
+ */
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";

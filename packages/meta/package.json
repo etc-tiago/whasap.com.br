@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "files": ["src", "whatsapp-cloud-api.postman_collection.json", "README.md"],
   "exports": {
     ".": "./src/index.ts"
   },

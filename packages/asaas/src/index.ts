@@ -8,7 +8,4 @@ export {
   type AsaasSubscription,
 } from "./client";
 
-export {
-  parseAsaasExternalReference,
-  type AsaasExternalReference,
-} from "./external-reference";
+export { parseAsaasExternalReference, type AsaasExternalReference } from "./external-reference";

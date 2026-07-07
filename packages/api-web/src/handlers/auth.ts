@@ -1,25 +1,31 @@
 import {
   beginAuthAttempt,
-  createOtp,
+  criarOtp,
   failAuthAttemptWithCode,
   sendOtpEmail,
-  verifyOtp,
+  verificarOtp,
 } from "@whasap/api-core";
-import { appCreateData } from "@whasap/db";
+import {
+  colunasUsuarioSessao,
+  colunasUsuarioSomenteId,
+  comTimestampsCriacao,
+  usuario,
+} from "@whasap/db";
+import { and, eq, isNull } from "drizzle-orm";
 
 import { createSession } from "../lib/session";
 import type { WebContext } from "../types";
-import { toSessionOutput } from "./auth-session";
+import { mapearSessaoParaSaida } from "./auth-session";
 
 export {
-  requireAdmin,
-  requireAdminInternal,
-  requireAuth,
-  requireOrg,
-  requireOrgInternal,
-  resolveMembership,
-  resolveMembershipInternal,
-  toSessionOutput,
+  exigirAdmin,
+  exigirAdminPorIdInterno,
+  exigirAutenticacao,
+  exigirOrganizacao,
+  exigirOrganizacaoPorIdInterno,
+  mapearSessaoParaSaida,
+  resolverMembro,
+  resolverMembroPorIdInterno,
 } from "./auth-session";
 
 const propositoInterno = {
@@ -46,122 +52,117 @@ type CadastrarInput = {
 };
 
 export const autenticacaoHandlers = {
+  /**
+   * Envia OTP por e-mail conforme propósito (`entrar`, `cadastrar`, `convite`).
+   * Valida existência da conta antes de enviar.
+   */
   enviarOtp: async (ctx: WebContext, input: EnviarOtpInput) => {
     const email = input.email.toLowerCase();
     await beginAuthAttempt(ctx.env, email);
     const finalidade = propositoInterno[input.proposito];
 
     if (input.proposito === "cadastrar") {
-      const existing = await ctx.client.usuario.findFirst({ where: { email } });
-      if (existing) {
-        await failAuthAttemptWithCode(
-          ctx.env,
-          email,
-          "CONFLICT",
-          "Email já cadastrado.",
-        );
+      const existente = await ctx.db.query.usuario.findFirst({
+        where: and(eq(usuario.email, email), isNull(usuario.excluidoEm)),
+        columns: colunasUsuarioSomenteId,
+      });
+      if (existente) {
+        await failAuthAttemptWithCode(ctx.env, email, "CONFLICT", "Email já cadastrado.");
       }
     }
 
     if (input.proposito === "entrar") {
-      const existing = await ctx.client.usuario.findFirst({ where: { email } });
-      if (!existing) {
-        await failAuthAttemptWithCode(
-          ctx.env,
-          email,
-          "NOT_FOUND",
-          "Conta não encontrada.",
-        );
+      const existente = await ctx.db.query.usuario.findFirst({
+        where: and(eq(usuario.email, email), isNull(usuario.excluidoEm)),
+        columns: colunasUsuarioSomenteId,
+      });
+      if (!existente) {
+        await failAuthAttemptWithCode(ctx.env, email, "NOT_FOUND", "Conta não encontrada.");
       }
     }
 
-    const code = await createOtp(ctx, email, finalidade);
+    const code = await criarOtp(ctx, email, finalidade);
     await sendOtpEmail(ctx.env, email, code, finalidade);
     return { ok: true };
   },
 
+  /**
+   * Cria conta após validar OTP de cadastro e consentimento LGPD.
+   * Inicia sessão web sem organização ativa.
+   */
   cadastrar: async (ctx: WebContext, input: CadastrarInput) => {
     const email = input.email.toLowerCase();
     await beginAuthAttempt(ctx.env, email);
 
-    const valid = await verifyOtp(ctx, email, "signup", input.otp);
+    const valid = await verificarOtp(ctx, email, "signup", input.otp);
     if (!valid) {
-      await failAuthAttemptWithCode(
-        ctx.env,
-        email,
-        "UNAUTHORIZED",
-        "Código inválido ou expirado.",
-      );
+      await failAuthAttemptWithCode(ctx.env, email, "UNAUTHORIZED", "Código inválido ou expirado.");
     }
 
     const now = new Date();
 
-    const user = await ctx.client.usuario.create({
-      data: appCreateData({
-        email,
-        nome: input.nome,
-        emailVerificadoEm: now,
-        lgpdConsentidoEm: now,
-      }),
-    });
+    const [user] = await ctx.db
+      .insert(usuario)
+      .values(
+        comTimestampsCriacao({
+          email,
+          nome: input.nome,
+          emailVerificadoEm: now,
+          lgpdConsentidoEm: now,
+        }),
+      )
+      .returning();
 
-    const token = await createSession(ctx, user.id);
+    const token = await createSession(ctx, user!.id);
     ctx.sessionToken = token;
     ctx.usuario = {
-      id: user.uuid,
-      internalId: user.id,
-      email: user.email,
-      nome: user.nome,
-      emailVerificadoEm: user.emailVerificadoEm,
+      id: user!.uuid,
+      internalId: user!.id,
+      email: user!.email,
+      nome: user!.nome,
+      emailVerificadoEm: user!.emailVerificadoEm,
     };
     ctx.organizationId = null;
     ctx.role = null;
 
-    return toSessionOutput(ctx, null);
+    return mapearSessaoParaSaida(ctx, null);
   },
 
+  /** Valida OTP de login e cria sessão web. */
   entrar: async (ctx: WebContext, input: EntrarInput) => {
     const email = input.email.toLowerCase();
     await beginAuthAttempt(ctx.env, email);
 
-    const valid = await verifyOtp(ctx, email, "login", input.otp);
+    const valid = await verificarOtp(ctx, email, "login", input.otp);
     if (!valid) {
-      await failAuthAttemptWithCode(
-        ctx.env,
-        email,
-        "UNAUTHORIZED",
-        "Código inválido ou expirado.",
-      );
+      await failAuthAttemptWithCode(ctx.env, email, "UNAUTHORIZED", "Código inválido ou expirado.");
     }
 
-    const user = await ctx.client.usuario.findFirst({ where: { email } });
+    const loggedInUser = await ctx.db.query.usuario.findFirst({
+      where: and(eq(usuario.email, email), isNull(usuario.excluidoEm)),
+      columns: colunasUsuarioSessao,
+    });
 
-    if (!user) {
-      await failAuthAttemptWithCode(
-        ctx.env,
-        email,
-        "NOT_FOUND",
-        "Conta não encontrada.",
-      );
+    if (!loggedInUser) {
+      await failAuthAttemptWithCode(ctx.env, email, "NOT_FOUND", "Conta não encontrada.");
     }
 
-    const loggedInUser = user!;
-
-    const token = await createSession(ctx, loggedInUser.id);
+    const token = await createSession(ctx, loggedInUser!.id);
     ctx.sessionToken = token;
     ctx.usuario = {
-      id: loggedInUser.uuid,
-      internalId: loggedInUser.id,
-      email: loggedInUser.email,
-      nome: loggedInUser.nome,
-      emailVerificadoEm: loggedInUser.emailVerificadoEm,
+      id: loggedInUser!.uuid,
+      internalId: loggedInUser!.id,
+      email: loggedInUser!.email,
+      nome: loggedInUser!.nome,
+      emailVerificadoEm: loggedInUser!.emailVerificadoEm,
     };
     ctx.organizationId = null;
     ctx.role = null;
 
-    return toSessionOutput(ctx, null);
+    return mapearSessaoParaSaida(ctx, null);
   },
 
+  /** Encerra sessão web e invalida cookie. */
   sair: async (ctx: WebContext) => {
     if (ctx.sessionToken) {
       const { deleteSession } = await import("../lib/session");
@@ -170,9 +171,19 @@ export const autenticacaoHandlers = {
     return { ok: true };
   },
 
+  /**
+   * Retorna usuário, organização ativa e papel na sessão.
+   * Reidrata `ctx.organizationId` e `ctx.role` a partir do banco.
+   */
   eu: async (ctx: WebContext) => {
-    const { requireAuth } = await import("./auth-session");
-    requireAuth(ctx);
-    return toSessionOutput(ctx, null);
+    const { getOrganizationForUser } = await import("../lib/session");
+    const orgData = ctx.usuario
+      ? await getOrganizationForUser(ctx, ctx.usuario.internalId, ctx.organizationId ?? undefined)
+      : null;
+    if (orgData) {
+      ctx.organizationId = orgData.organization.id;
+      ctx.role = orgData.role;
+    }
+    return mapearSessaoParaSaida(ctx, orgData?.organization ?? null);
   },
 };

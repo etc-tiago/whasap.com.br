@@ -1,4 +1,12 @@
-import { createDb, appCreateData } from "@whasap/db";
+/**
+ * Worker de webhooks: Evolution (`/evo`), Meta Cloud (`/cloud`) e Asaas (`/asaas`).
+ *
+ * - Evolution/Meta: persiste em `webhookEvento`, processa, marca `processadoEm`, loga payload no R2.
+ * - Asaas: persiste em `asaasWebhookRegistro` (idempotente por `asaasIdEvento`), sem R2 nem `processadoEm`.
+ *   Checkout é criado no api-web; ativação de instância/pacote ocorre aqui via `handleAsaasWebhook`.
+ */
+import { eq } from "drizzle-orm";
+import { asaasWebhookRegistro, comCriadoEm, criarDb, webhookEvento } from "@whasap/db";
 
 import { handleAsaasWebhook } from "./asaas";
 import type { Env } from "./env";
@@ -15,13 +23,17 @@ async function timingSafeEqual(a: string, b: string): Promise<boolean> {
   return crypto.subtle.timingSafeEqual(aBytes, bBytes);
 }
 
-async function handleProviderWebhook(
+/**
+ * Pipeline Evolution/Meta: log R2 → insert `webhookEvento` → processar → marcar `processadoEm`.
+ * Erros no processor são logados; o evento permanece sem `processadoEm` para reprocessamento manual.
+ */
+async function processarWebhookProvedor(
   ctx: ExecutionContext,
   env: Env,
   source: "evo" | "cloud",
   body: string,
 ): Promise<Response> {
-  const { client } = createDb(env.HYPERDRIVE.connectionString);
+  const { db } = criarDb(env.HYPERDRIVE.connectionString);
   const r2Key = source === "evo" ? evolutionLogKeyFromBody(body) : cloudLogKeyFromBody(body);
 
   ctx.waitUntil(
@@ -30,24 +42,27 @@ async function handleProviderWebhook(
     }),
   );
 
-  const event = await client.webhookEvento.create({
-    data: appCreateData({
-      origem: source,
-      idEvento: r2Key,
-      payload: body,
-    }),
-  });
+  const [event] = await db
+    .insert(webhookEvento)
+    .values(
+      comCriadoEm({
+        origem: source,
+        idEvento: r2Key,
+        payload: body,
+      }),
+    )
+    .returning({ id: webhookEvento.id });
 
   try {
     if (source === "cloud") {
-      await processMetaWebhook(client, env, ctx, body);
+      await processMetaWebhook(db, env, ctx, body);
     } else {
-      await processEvolutionWebhook(client, env, ctx, body);
+      await processEvolutionWebhook(db, env, ctx, body);
     }
-    await client.webhookEvento.update({
-      where: { id: event.id },
-      data: { processadoEm: new Date() },
-    });
+    await db
+      .update(webhookEvento)
+      .set({ processadoEm: new Date() })
+      .where(eq(webhookEvento.id, event!.id));
   } catch (err) {
     console.error(`[webhook] processor error (${source}):`, err);
   }
@@ -79,7 +94,7 @@ export default {
     const body = await request.text();
 
     if (url.pathname === "/asaas") {
-      const { client } = createDb(env.HYPERDRIVE.connectionString);
+      const { db } = criarDb(env.HYPERDRIVE.connectionString);
       const token = request.headers.get("asaas-access-token") ?? "";
       const valid = await timingSafeEqual(token, env.ASAAS_WEBHOOK_TOKEN);
       if (!valid) {
@@ -87,20 +102,20 @@ export default {
       }
       const event = JSON.parse(body) as { id: string; event: string };
       try {
-        await client.asaasWebhookRegistro.create({
-          data: appCreateData({
+        await db.insert(asaasWebhookRegistro).values(
+          comCriadoEm({
             asaasIdEvento: event.id,
             tipo: event.event,
             payload: body,
           }),
-        });
+        );
       } catch {
         return new Response(JSON.stringify({ received: true }), {
           status: 200,
           headers: { "content-type": "application/json" },
         });
       }
-      await handleAsaasWebhook(client, body, env);
+      await handleAsaasWebhook(db, body, env);
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
         headers: { "content-type": "application/json" },
@@ -108,11 +123,11 @@ export default {
     }
 
     if (url.pathname === "/evo") {
-      return handleProviderWebhook(ctx, env, "evo", body);
+      return processarWebhookProvedor(ctx, env, "evo", body);
     }
 
     if (url.pathname === "/cloud") {
-      return handleProviderWebhook(ctx, env, "cloud", body);
+      return processarWebhookProvedor(ctx, env, "cloud", body);
     }
 
     return new Response("Not found", { status: 404 });

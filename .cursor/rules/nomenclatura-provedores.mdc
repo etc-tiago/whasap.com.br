@@ -1,0 +1,18 @@
+---
+description: Rótulos de provedor WhatsApp na UI vs identificadores técnicos no código
+alwaysApply: true
+---
+
+# Nomenclatura de provedores
+
+| Contexto | `evolution` | `cloud_api` |
+|----------|-------------|-------------|
+| **UI / copy / marketing** (`apps/site`, `apps/web`, `apps/office`) | WhatsApp Comercial (business) | WhatsApp Cloud API |
+| **Código / banco / ORPC / logs** | `evolution`, Evolution GO | `cloud_api`, Meta Graph API |
+
+## Regras
+
+- **Proibido** na interface: "Evolution GO", "GO", "Baileys", "whatsmeow", `cloud_api`, `evolution_v2`, `evolution_go`
+- **Obrigatório:** usar `rotuloProvedor()` de `@whasap/config` em qualquer exibição de provedor ao usuário
+- Docs técnicos (`SETUP.md`, `SCHEMA.md`, READMEs de pacote) podem usar identificadores técnicos; docs voltadas ao cliente final seguem os rótulos acima
+- `apps/site` (marketing): mesma convenção ao mencionar tipos de conexão

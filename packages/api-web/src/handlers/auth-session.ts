@@ -1,36 +1,50 @@
+import { and, eq, isNull } from "drizzle-orm";
 import { forbidden, unauthorized } from "@whasap/api-core";
-import { resolveInternalId, type organizacao as OrganizacaoTable } from "@whasap/db";
+import { colunasMembroPapel, organizacao, organizacaoMembro, resolverIdInterno } from "@whasap/db";
 
 import { toOrganizacaoOutput } from "../lib/mappers";
 import type { MemberRole, WebContext } from "../types";
 
-export type ResolvedMembership = {
+export type MembroResolvido = {
   internalOrgId: number;
   role: MemberRole;
 };
 
-export function requireAuth(ctx: WebContext) {
+/** @deprecated Use `MembroResolvido` */
+export type ResolvedMembership = MembroResolvido;
+
+/**
+ * Garante que a requisição tem sessão web válida.
+ * @throws 401 se `ctx.usuario` estiver ausente.
+ */
+export function exigirAutenticacao(ctx: WebContext) {
   if (!ctx.usuario) {
     unauthorized("Não autenticado");
   }
   return ctx.usuario;
 }
 
-export async function resolveMembership(
+/**
+ * Resolve vínculo do usuário com a organização pelo uuid público.
+ * @throws 403 se a org não existir ou o usuário não for membro.
+ */
+export async function resolverMembro(
   ctx: WebContext,
   organizacaoHash: string,
-): Promise<ResolvedMembership> {
-  const usuario = requireAuth(ctx);
-  const internalOrgId = await resolveInternalId(ctx.client, "organizacao", organizacaoHash);
+): Promise<MembroResolvido> {
+  const usuario = exigirAutenticacao(ctx);
+  const internalOrgId = await resolverIdInterno(ctx.db, "organizacao", organizacaoHash);
   if (internalOrgId === null) {
     forbidden("Sem acesso à organização");
   }
 
-  const membership = await ctx.client.organizacaoMembro.findFirst({
-    where: {
-      usuarioId: usuario.internalId,
-      organizacaoId: internalOrgId,
-    },
+  const membership = await ctx.db.query.organizacaoMembro.findFirst({
+    where: and(
+      eq(organizacaoMembro.usuarioId, usuario.internalId),
+      eq(organizacaoMembro.organizacaoId, internalOrgId),
+      isNull(organizacaoMembro.excluidoEm),
+    ),
+    columns: colunasMembroPapel,
   });
 
   if (!membership) {
@@ -40,17 +54,23 @@ export async function resolveMembership(
   return { internalOrgId, role: membership.papel as MemberRole };
 }
 
-export async function resolveMembershipInternal(
+/**
+ * Resolve vínculo do usuário com a organização pelo id interno (PK).
+ * @throws 403 se o usuário não for membro.
+ */
+export async function resolverMembroPorIdInterno(
   ctx: WebContext,
   organizationId: number,
-): Promise<ResolvedMembership> {
-  const usuario = requireAuth(ctx);
+): Promise<MembroResolvido> {
+  const usuario = exigirAutenticacao(ctx);
 
-  const membership = await ctx.client.organizacaoMembro.findFirst({
-    where: {
-      usuarioId: usuario.internalId,
-      organizacaoId: organizationId,
-    },
+  const membership = await ctx.db.query.organizacaoMembro.findFirst({
+    where: and(
+      eq(organizacaoMembro.usuarioId, usuario.internalId),
+      eq(organizacaoMembro.organizacaoId, organizationId),
+      isNull(organizacaoMembro.excluidoEm),
+    ),
+    columns: colunasMembroPapel,
   });
 
   if (!membership) {
@@ -60,35 +80,62 @@ export async function resolveMembershipInternal(
   return { internalOrgId: organizationId, role: membership.papel as MemberRole };
 }
 
-export async function requireOrg(ctx: WebContext, organizacaoHash: string) {
-  await resolveMembership(ctx, organizacaoHash);
-  return requireAuth(ctx);
+/**
+ * Exige autenticação e membro da organização (por uuid público).
+ */
+export async function exigirOrganizacao(ctx: WebContext, organizacaoHash: string) {
+  await resolverMembro(ctx, organizacaoHash);
+  return exigirAutenticacao(ctx);
 }
 
-export async function requireOrgInternal(ctx: WebContext, organizationId: number) {
-  await resolveMembershipInternal(ctx, organizationId);
-  return requireAuth(ctx);
+/**
+ * Exige autenticação e membro da organização (por id interno).
+ */
+export async function exigirOrganizacaoPorIdInterno(ctx: WebContext, organizationId: number) {
+  await resolverMembroPorIdInterno(ctx, organizationId);
+  return exigirAutenticacao(ctx);
 }
 
-export async function requireAdmin(ctx: WebContext, organizacaoHash: string) {
-  const { role } = await resolveMembership(ctx, organizacaoHash);
+/**
+ * Exige papel `admin` na organização (por uuid público).
+ * @throws 403 se o usuário não for administrador.
+ */
+export async function exigirAdmin(ctx: WebContext, organizacaoHash: string) {
+  const { role } = await resolverMembro(ctx, organizacaoHash);
   if (role !== "admin") {
     forbidden("Apenas administradores");
   }
-  return requireAuth(ctx);
+  return exigirAutenticacao(ctx);
 }
 
-export async function requireAdminInternal(ctx: WebContext, organizationId: number) {
-  const { role } = await resolveMembershipInternal(ctx, organizationId);
+/**
+ * Exige papel `admin` na organização (por id interno).
+ * @throws 403 se o usuário não for administrador.
+ */
+export async function exigirAdminPorIdInterno(ctx: WebContext, organizationId: number) {
+  const { role } = await resolverMembroPorIdInterno(ctx, organizationId);
   if (role !== "admin") {
     forbidden("Apenas administradores");
   }
-  return requireAuth(ctx);
+  return exigirAutenticacao(ctx);
 }
 
-export function toSessionOutput(
+/**
+ * Monta resposta de sessão web para `autenticacao.eu` e login.
+ * Inclui organização ativa e papel do membro quando disponíveis.
+ */
+export function mapearSessaoParaSaida(
   ctx: WebContext,
-  org: typeof OrganizacaoTable.$inferSelect | null,
+  org: Pick<
+    typeof organizacao.$inferSelect,
+    | "uuid"
+    | "nome"
+    | "slug"
+    | "documentoFiscal"
+    | "tipoDocumento"
+    | "razaoSocial"
+    | "asaasIdCliente"
+  > | null,
 ) {
   if (!ctx.usuario) {
     unauthorized();
@@ -104,3 +151,20 @@ export function toSessionOutput(
     role: ctx.role as MemberRole | null,
   };
 }
+
+/** @deprecated Use `exigirAutenticacao` */
+export const requireAuth = exigirAutenticacao;
+/** @deprecated Use `resolverMembro` */
+export const resolveMembership = resolverMembro;
+/** @deprecated Use `resolverMembroPorIdInterno` */
+export const resolveMembershipInternal = resolverMembroPorIdInterno;
+/** @deprecated Use `exigirOrganizacao` */
+export const requireOrg = exigirOrganizacao;
+/** @deprecated Use `exigirOrganizacaoPorIdInterno` */
+export const requireOrgInternal = exigirOrganizacaoPorIdInterno;
+/** @deprecated Use `exigirAdmin` */
+export const requireAdmin = exigirAdmin;
+/** @deprecated Use `exigirAdminPorIdInterno` */
+export const requireAdminInternal = exigirAdminPorIdInterno;
+/** @deprecated Use `mapearSessaoParaSaida` */
+export const toSessionOutput = mapearSessaoParaSaida;

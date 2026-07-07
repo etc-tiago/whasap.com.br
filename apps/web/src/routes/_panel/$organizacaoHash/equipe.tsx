@@ -99,7 +99,9 @@ function EquipePage() {
           {(membros.data ?? []).map((m) => (
             <div key={m.id} className="flex items-center justify-between rounded-lg border p-3">
               <div>
-                <p className="text-sm font-medium">{m.usuarioNome ?? m.usuarioEmail ?? m.usuarioId}</p>
+                <p className="text-sm font-medium">
+                  {m.usuarioNome ?? m.usuarioEmail ?? m.usuarioId}
+                </p>
                 <Badge variant="secondary">{m.role}</Badge>
               </div>
               {m.usuarioId !== session?.usuario?.id && (

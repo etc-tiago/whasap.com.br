@@ -1,4 +1,4 @@
-import { createDb } from "@whasap/db";
+import { criarDb } from "@whasap/db";
 import { createRpcHandler, getClientIp } from "@whasap/api-core";
 
 import { resolveSession, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from "./lib/session";
@@ -15,13 +15,12 @@ const handleRpc = createRpcHandler<OfficeContext>({
   },
   buildContext: async (env, request, sessionToken) => {
     const officeEnv = env as OfficeEnv;
-    const { db, client } = createDb(officeEnv.HYPERDRIVE.connectionString);
-    const partialCtx = { db, client, env: officeEnv, request, clientIp: undefined } as OfficeContext;
+    const { db } = criarDb(officeEnv.HYPERDRIVE.connectionString);
+    const partialCtx = { db, env: officeEnv, request, clientIp: undefined } as OfficeContext;
     const session = await resolveSession(partialCtx, sessionToken);
 
     return {
       db,
-      client,
       env: officeEnv,
       request,
       clientIp: getClientIp(request),

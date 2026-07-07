@@ -1,3 +1,9 @@
+/**
+ * Cliente ORPC do painel web (`webContract`).
+ * - Browser: `/rpc` na mesma origem com cookies de sessão (`credentials: "include"`).
+ * - SSR: aponta para `localhost:3000/rpc`.
+ * Use `orpc` para TanStack Query; `orpcClient` para chamadas imperativas.
+ */
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
@@ -23,9 +29,7 @@ const link = new RPCLink({
 export const orpcClient = createORPCClient<ContractRouterClient<typeof webContract>>(link);
 export const orpc = createTanstackQueryUtils(orpcClient);
 
-export type InstanciaItem = Awaited<
-  ReturnType<typeof orpcClient.instancia.lista>
->[number];
+export type InstanciaItem = Awaited<ReturnType<typeof orpcClient.instancia.lista>>[number];
 
 export type ConversaItem = Awaited<
   ReturnType<typeof orpcClient.caixaEntrada.conversas.lista>

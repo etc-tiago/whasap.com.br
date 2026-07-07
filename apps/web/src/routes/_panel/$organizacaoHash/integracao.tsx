@@ -1,3 +1,7 @@
+/**
+ * Wizard de onboarding: escolha de provider, conexão, trial e checkout Asaas.
+ * Auto-provisiona instâncias Evolution em `pending_connection` via `useEffect`.
+ */
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { skipToken, useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -15,7 +19,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@whasap/ui/components/tabs";
 import { Check, Gift, Smartphone } from "lucide-react";
 
-import { orgInput } from "@/lib/org-input";
+import { isEvolutionProvider, rotuloProvedor, type InstanceProvider } from "@whasap/config";
+import { derivarPassoOnboarding, type PassoOnboarding } from "@/lib/onboarding";
 import { orpc } from "@/lib/orpc";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
@@ -27,13 +32,13 @@ export const Route = createFileRoute("/_panel/$organizacaoHash/integracao")({
   component: OnboardingPage,
 });
 
-type WizardStep = "tipo" | "conexao" | "trial" | "pagamento" | "concluido";
+type WizardStep = PassoOnboarding;
 
 function OnboardingPage() {
   const navigate = useNavigate();
   const { instance: instanceId, step: searchStep } = Route.useSearch();
   const organizacaoHash = useOrganizacaoHash();
-  const [provider, setProvider] = useState<"evolution" | "cloud_api">("evolution");
+  const [provider, setProvider] = useState<InstanceProvider>("evolution");
   const [documento, setDocumento] = useState("");
   const [tipoDocumento, setTipoDocumento] = useState<"cpf" | "cnpj">("cnpj");
   const [razaoSocial, setRazaoSocial] = useState("");
@@ -51,10 +56,17 @@ function OnboardingPage() {
 
   const criar = useMutation(orpc.instancia.criar.mutationOptions());
   const provisionar = useMutation(orpc.instancia.provisionar.mutationOptions());
+  const {
+    mutate: provisionarInstancia,
+    isPending: provisionando,
+    isSuccess: provisionado,
+  } = provisionar;
   const obterQr = useQuery(
     orpc.instancia.obterQr.queryOptions({
       input: activeInstanceId ? { instanciaId: activeInstanceId } : skipToken,
-      enabled: Boolean(activeInstanceId && instance.data?.provider === "evolution"),
+      enabled: Boolean(
+        activeInstanceId && instance.data && isEvolutionProvider(instance.data.provider),
+      ),
       refetchInterval: 5000,
     }),
   );
@@ -71,15 +83,11 @@ function OnboardingPage() {
   const inst = instance.data;
   const conectado = statusConexao.data?.conectado ?? false;
 
-  const wizardStep: WizardStep = (() => {
-    if (searchStep === "concluido" || inst?.status === "connected") return "concluido";
-    if (!activeInstanceId) return "tipo";
-    if (inst?.status === "pending_payment") {
-      if (searchStep === "pagamento") return "pagamento";
-      return "trial";
-    }
-    return "conexao";
-  })();
+  const wizardStep: WizardStep = derivarPassoOnboarding({
+    searchStep,
+    activeInstanceId,
+    instancia: inst,
+  });
 
   useEffect(() => {
     if (wizardStep === "concluido" && activeInstanceId && organizacaoHash) {
@@ -94,14 +102,15 @@ function OnboardingPage() {
   useEffect(() => {
     if (
       activeInstanceId &&
-      inst?.provider === "evolution" &&
+      inst &&
+      isEvolutionProvider(inst.provider) &&
       inst.status === "pending_connection" &&
-      !provisionar.isPending &&
-      !provisionar.isSuccess
+      !provisionando &&
+      !provisionado
     ) {
-      provisionar.mutate({ instanciaId: activeInstanceId });
+      provisionarInstancia({ instanciaId: activeInstanceId });
     }
-  }, [activeInstanceId, inst?.provider, inst?.status, provisionar.isPending, provisionar.isSuccess]);
+  }, [activeInstanceId, inst, provisionando, provisionado, provisionarInstancia]);
 
   async function handleCriarInstancia() {
     if (!organizacaoHash || !nome.trim()) return;
@@ -164,8 +173,8 @@ function OnboardingPage() {
                 }`}
               >
                 <Smartphone className="mb-2 h-5 w-5" />
-                <p className="font-medium">WhatsApp Business</p>
-                <p className="text-xs text-muted-foreground">Conexão via QR Code (Evolution)</p>
+                <p className="font-medium">{rotuloProvedor("evolution")}</p>
+                <p className="text-xs text-muted-foreground">Conexão via QR Code</p>
               </button>
               <button
                 type="button"
@@ -175,8 +184,8 @@ function OnboardingPage() {
                 }`}
               >
                 <Smartphone className="mb-2 h-5 w-5" />
-                <p className="font-medium">WhatsApp Cloud API</p>
-                <p className="text-xs text-muted-foreground">Meta Embedded ou manual</p>
+                <p className="font-medium">{rotuloProvedor("cloud_api")}</p>
+                <p className="text-xs text-muted-foreground">API oficial da Meta</p>
               </button>
             </div>
             <div className="space-y-2">
@@ -206,10 +215,10 @@ function OnboardingPage() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <p className="text-muted-foreground">
-              Instância: <strong>{inst.nome}</strong> ({inst.provider === "evolution" ? "Business" : "Cloud API"})
+              Instância: <strong>{inst.nome}</strong> ({rotuloProvedor(inst.provider)})
             </p>
 
-            {inst.provider === "evolution" && (
+            {isEvolutionProvider(inst.provider) && (
               <>
                 {obterQr.data?.base64 ? (
                   <img
@@ -314,8 +323,8 @@ function OnboardingPage() {
           <CardContent className="space-y-4">
             <ul className="space-y-2 text-sm">
               <li className="flex items-start gap-2">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-wa-green" />
-                3 dias gratuitos para testar tudo
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-wa-green" />3 dias gratuitos para
+                testar tudo
               </li>
               <li className="flex items-start gap-2">
                 <Check className="mt-0.5 h-4 w-4 shrink-0 text-wa-green" />
@@ -330,9 +339,7 @@ function OnboardingPage() {
               <p>
                 <strong>{inst.nome}</strong>
               </p>
-              <p className="text-muted-foreground">
-                {inst.provider === "evolution" ? "WhatsApp Business" : "WhatsApp Cloud API"}
-              </p>
+              <p className="text-muted-foreground">{rotuloProvedor(inst.provider)}</p>
             </div>
             <p className="text-xs text-muted-foreground">
               Cadastre PIX ou cartão de crédito para iniciar o trial. A primeira cobrança ocorre
