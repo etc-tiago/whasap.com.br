@@ -11,6 +11,8 @@ import {
 
 export const papelMembroEnum = pgEnum("papel_membro", ["admin", "usuario", "analista"]);
 
+export const tipoFluxoAutenticacaoEnum = pgEnum("tipo_fluxo_autenticacao", ["entrar", "cadastrar"]);
+
 export const usuario = pgTable("usuario", {
   id: serial().primaryKey(),
   uuid: uuid().notNull().unique().defaultRandom(),
@@ -53,4 +55,21 @@ export const codigoOtp = pgTable(
     index("codigo_otp_email_finalidade_criado_idx").on(t.email, t.finalidade, t.criadoEm),
     index("codigo_otp_email_finalidade_codigo_idx").on(t.email, t.finalidade, t.codigo),
   ],
+);
+
+export const fluxoAutenticacao = pgTable(
+  "fluxo_autenticacao",
+  {
+    id: serial().primaryKey(),
+    hash: uuid().notNull().unique(),
+    email: text().notNull(),
+    tipo: tipoFluxoAutenticacaoEnum().notNull(),
+    pedidosOtp: integer().notNull().default(0),
+    tentativasOtpInvalidas: integer().notNull().default(0),
+    bloqueadoEm: timestamp(),
+    expiraEm: timestamp().notNull(),
+    criadoEm: timestamp().notNull(),
+    atualizadoEm: timestamp().notNull(),
+  },
+  (t) => [index("fluxo_autenticacao_email_idx").on(t.email)],
 );

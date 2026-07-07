@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 
-import { AuthPage } from "@/components/auth-page";
 import { useSession } from "@/lib/auth";
 import { orpc } from "@/lib/orpc";
 
@@ -19,7 +18,12 @@ function RootPage() {
   });
 
   useEffect(() => {
-    if (!session?.usuario || !orgs.isSuccess) return;
+    if (isPending) return;
+    if (!session?.usuario) {
+      void navigate({ to: "/~", replace: true });
+      return;
+    }
+    if (!orgs.isSuccess) return;
 
     if (orgs.data.length === 0) {
       navigate({ to: "/integracao", replace: true });
@@ -31,19 +35,7 @@ function RootPage() {
       params: { organizacaoHash: orgs.data[0]!.id },
       replace: true,
     });
-  }, [session?.usuario, orgs.isSuccess, orgs.data, navigate]);
-
-  if (isPending) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
-        Aguarde...
-      </div>
-    );
-  }
-
-  if (!session?.usuario) {
-    return <AuthPage />;
-  }
+  }, [session?.usuario, isPending, orgs.isSuccess, orgs.data, navigate]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">

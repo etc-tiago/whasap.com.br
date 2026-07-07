@@ -6,6 +6,7 @@ export {
 export { beginAuthAttempt, failAuthAttemptWithCode } from "./lib/auth-rate-limit";
 export { sendInviteEmail, sendOtpEmail } from "./lib/email";
 export { contarOtpsRecentes, criarOtp, slugify, verificarOtp } from "./lib/otp";
+export { derivarNomeDoEmail, mascararEmail } from "./lib/derivar-nome-email";
 export {
   badRequest,
   conflict,

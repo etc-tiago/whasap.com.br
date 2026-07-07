@@ -15,7 +15,12 @@ const handleRpc = createRpcHandler<WebContext>({
   session: {
     cookieName: SESSION_COOKIE,
     maxAgeSeconds: SESSION_MAX_AGE_SECONDS,
-    loginPaths: ["/autenticacao/cadastrar", "/autenticacao/entrar"],
+    loginPaths: [
+      "/autenticacao/cadastrar",
+      "/autenticacao/entrar",
+      "/autenticacao/cadastrarFluxo",
+      "/autenticacao/entrarFluxo",
+    ],
     logoutPath: "/autenticacao/sair",
   },
   buildContext: async (env, request, sessionToken) => {

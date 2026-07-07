@@ -9,21 +9,30 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as Char126RouteImport } from './routes/~'
 import { Route as PanelRouteRouteImport } from './routes/_panel/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RpcIndexRouteImport } from './routes/rpc/index'
+import { Route as Char126HashRouteImport } from './routes/~.$hash'
 import { Route as RpcSplatRouteImport } from './routes/rpc/$'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as PanelIntegracaoRouteImport } from './routes/_panel/integracao'
 import { Route as PanelOrganizacaoHashRouteRouteImport } from './routes/_panel/$organizacaoHash/route'
 import { Route as PanelOrganizacaoHashIndexRouteImport } from './routes/_panel/$organizacaoHash/index'
+import { Route as Char126EmailEmailHashRouteImport } from './routes/~/email.$emailHash'
 import { Route as PanelOrganizacaoHashRelatoriosRouteImport } from './routes/_panel/$organizacaoHash/relatorios'
 import { Route as PanelOrganizacaoHashIntegracaoRouteImport } from './routes/_panel/$organizacaoHash/integracao'
 import { Route as PanelOrganizacaoHashInstanciasRouteImport } from './routes/_panel/$organizacaoHash/instancias'
 import { Route as PanelOrganizacaoHashEquipeRouteImport } from './routes/_panel/$organizacaoHash/equipe'
 import { Route as PanelOrganizacaoHashAjustesRouteImport } from './routes/_panel/$organizacaoHash/ajustes'
+import { Route as Char126EmailEmailHashBloqueadoRouteImport } from './routes/~/email.$emailHash.bloqueado'
 import { Route as PanelOrganizacaoHashInboxInstanceIdRouteImport } from './routes/_panel/$organizacaoHash/inbox.$instanceId'
 
+const Char126Route = Char126RouteImport.update({
+  id: '/~',
+  path: '/~',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PanelRouteRoute = PanelRouteRouteImport.update({
   id: '/_panel',
   getParentRoute: () => rootRouteImport,
@@ -37,6 +46,11 @@ const RpcIndexRoute = RpcIndexRouteImport.update({
   id: '/rpc/',
   path: '/rpc/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const Char126HashRoute = Char126HashRouteImport.update({
+  id: '/$hash',
+  path: '/$hash',
+  getParentRoute: () => Char126Route,
 } as any)
 const RpcSplatRoute = RpcSplatRouteImport.update({
   id: '/rpc/$',
@@ -65,6 +79,11 @@ const PanelOrganizacaoHashIndexRoute =
     path: '/',
     getParentRoute: () => PanelOrganizacaoHashRouteRoute,
   } as any)
+const Char126EmailEmailHashRoute = Char126EmailEmailHashRouteImport.update({
+  id: '/email/$emailHash',
+  path: '/email/$emailHash',
+  getParentRoute: () => Char126Route,
+} as any)
 const PanelOrganizacaoHashRelatoriosRoute =
   PanelOrganizacaoHashRelatoriosRouteImport.update({
     id: '/relatorios',
@@ -95,6 +114,12 @@ const PanelOrganizacaoHashAjustesRoute =
     path: '/ajustes',
     getParentRoute: () => PanelOrganizacaoHashRouteRoute,
   } as any)
+const Char126EmailEmailHashBloqueadoRoute =
+  Char126EmailEmailHashBloqueadoRouteImport.update({
+    id: '/bloqueado',
+    path: '/bloqueado',
+    getParentRoute: () => Char126EmailEmailHashRoute,
+  } as any)
 const PanelOrganizacaoHashInboxInstanceIdRoute =
   PanelOrganizacaoHashInboxInstanceIdRouteImport.update({
     id: '/inbox/$instanceId',
@@ -104,101 +129,126 @@ const PanelOrganizacaoHashInboxInstanceIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/~': typeof Char126RouteWithChildren
   '/$organizacaoHash': typeof PanelOrganizacaoHashRouteRouteWithChildren
   '/integracao': typeof PanelIntegracaoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/rpc/$': typeof RpcSplatRoute
+  '/~/$hash': typeof Char126HashRoute
   '/rpc/': typeof RpcIndexRoute
   '/$organizacaoHash/ajustes': typeof PanelOrganizacaoHashAjustesRoute
   '/$organizacaoHash/equipe': typeof PanelOrganizacaoHashEquipeRoute
   '/$organizacaoHash/instancias': typeof PanelOrganizacaoHashInstanciasRoute
   '/$organizacaoHash/integracao': typeof PanelOrganizacaoHashIntegracaoRoute
   '/$organizacaoHash/relatorios': typeof PanelOrganizacaoHashRelatoriosRoute
+  '/~/email/$emailHash': typeof Char126EmailEmailHashRouteWithChildren
   '/$organizacaoHash/': typeof PanelOrganizacaoHashIndexRoute
   '/$organizacaoHash/inbox/$instanceId': typeof PanelOrganizacaoHashInboxInstanceIdRoute
+  '/~/email/$emailHash/bloqueado': typeof Char126EmailEmailHashBloqueadoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/~': typeof Char126RouteWithChildren
   '/integracao': typeof PanelIntegracaoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/rpc/$': typeof RpcSplatRoute
+  '/~/$hash': typeof Char126HashRoute
   '/rpc': typeof RpcIndexRoute
   '/$organizacaoHash/ajustes': typeof PanelOrganizacaoHashAjustesRoute
   '/$organizacaoHash/equipe': typeof PanelOrganizacaoHashEquipeRoute
   '/$organizacaoHash/instancias': typeof PanelOrganizacaoHashInstanciasRoute
   '/$organizacaoHash/integracao': typeof PanelOrganizacaoHashIntegracaoRoute
   '/$organizacaoHash/relatorios': typeof PanelOrganizacaoHashRelatoriosRoute
+  '/~/email/$emailHash': typeof Char126EmailEmailHashRouteWithChildren
   '/$organizacaoHash': typeof PanelOrganizacaoHashIndexRoute
   '/$organizacaoHash/inbox/$instanceId': typeof PanelOrganizacaoHashInboxInstanceIdRoute
+  '/~/email/$emailHash/bloqueado': typeof Char126EmailEmailHashBloqueadoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_panel': typeof PanelRouteRouteWithChildren
+  '/~': typeof Char126RouteWithChildren
   '/_panel/$organizacaoHash': typeof PanelOrganizacaoHashRouteRouteWithChildren
   '/_panel/integracao': typeof PanelIntegracaoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/rpc/$': typeof RpcSplatRoute
+  '/~/$hash': typeof Char126HashRoute
   '/rpc/': typeof RpcIndexRoute
   '/_panel/$organizacaoHash/ajustes': typeof PanelOrganizacaoHashAjustesRoute
   '/_panel/$organizacaoHash/equipe': typeof PanelOrganizacaoHashEquipeRoute
   '/_panel/$organizacaoHash/instancias': typeof PanelOrganizacaoHashInstanciasRoute
   '/_panel/$organizacaoHash/integracao': typeof PanelOrganizacaoHashIntegracaoRoute
   '/_panel/$organizacaoHash/relatorios': typeof PanelOrganizacaoHashRelatoriosRoute
+  '/~/email/$emailHash': typeof Char126EmailEmailHashRouteWithChildren
   '/_panel/$organizacaoHash/': typeof PanelOrganizacaoHashIndexRoute
   '/_panel/$organizacaoHash/inbox/$instanceId': typeof PanelOrganizacaoHashInboxInstanceIdRoute
+  '/~/email/$emailHash/bloqueado': typeof Char126EmailEmailHashBloqueadoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/~'
     | '/$organizacaoHash'
     | '/integracao'
     | '/convite/$token'
     | '/rpc/$'
+    | '/~/$hash'
     | '/rpc/'
     | '/$organizacaoHash/ajustes'
     | '/$organizacaoHash/equipe'
     | '/$organizacaoHash/instancias'
     | '/$organizacaoHash/integracao'
     | '/$organizacaoHash/relatorios'
+    | '/~/email/$emailHash'
     | '/$organizacaoHash/'
     | '/$organizacaoHash/inbox/$instanceId'
+    | '/~/email/$emailHash/bloqueado'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/~'
     | '/integracao'
     | '/convite/$token'
     | '/rpc/$'
+    | '/~/$hash'
     | '/rpc'
     | '/$organizacaoHash/ajustes'
     | '/$organizacaoHash/equipe'
     | '/$organizacaoHash/instancias'
     | '/$organizacaoHash/integracao'
     | '/$organizacaoHash/relatorios'
+    | '/~/email/$emailHash'
     | '/$organizacaoHash'
     | '/$organizacaoHash/inbox/$instanceId'
+    | '/~/email/$emailHash/bloqueado'
   id:
     | '__root__'
     | '/'
     | '/_panel'
+    | '/~'
     | '/_panel/$organizacaoHash'
     | '/_panel/integracao'
     | '/convite/$token'
     | '/rpc/$'
+    | '/~/$hash'
     | '/rpc/'
     | '/_panel/$organizacaoHash/ajustes'
     | '/_panel/$organizacaoHash/equipe'
     | '/_panel/$organizacaoHash/instancias'
     | '/_panel/$organizacaoHash/integracao'
     | '/_panel/$organizacaoHash/relatorios'
+    | '/~/email/$emailHash'
     | '/_panel/$organizacaoHash/'
     | '/_panel/$organizacaoHash/inbox/$instanceId'
+    | '/~/email/$emailHash/bloqueado'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PanelRouteRoute: typeof PanelRouteRouteWithChildren
+  Char126Route: typeof Char126RouteWithChildren
   ConviteTokenRoute: typeof ConviteTokenRoute
   RpcSplatRoute: typeof RpcSplatRoute
   RpcIndexRoute: typeof RpcIndexRoute
@@ -206,6 +256,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/~': {
+      id: '/~'
+      path: '/~'
+      fullPath: '/~'
+      preLoaderRoute: typeof Char126RouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_panel': {
       id: '/_panel'
       path: ''
@@ -226,6 +283,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/rpc/'
       preLoaderRoute: typeof RpcIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/~/$hash': {
+      id: '/~/$hash'
+      path: '/$hash'
+      fullPath: '/~/$hash'
+      preLoaderRoute: typeof Char126HashRouteImport
+      parentRoute: typeof Char126Route
     }
     '/rpc/$': {
       id: '/rpc/$'
@@ -262,6 +326,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelOrganizacaoHashIndexRouteImport
       parentRoute: typeof PanelOrganizacaoHashRouteRoute
     }
+    '/~/email/$emailHash': {
+      id: '/~/email/$emailHash'
+      path: '/email/$emailHash'
+      fullPath: '/~/email/$emailHash'
+      preLoaderRoute: typeof Char126EmailEmailHashRouteImport
+      parentRoute: typeof Char126Route
+    }
     '/_panel/$organizacaoHash/relatorios': {
       id: '/_panel/$organizacaoHash/relatorios'
       path: '/relatorios'
@@ -296,6 +367,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$organizacaoHash/ajustes'
       preLoaderRoute: typeof PanelOrganizacaoHashAjustesRouteImport
       parentRoute: typeof PanelOrganizacaoHashRouteRoute
+    }
+    '/~/email/$emailHash/bloqueado': {
+      id: '/~/email/$emailHash/bloqueado'
+      path: '/bloqueado'
+      fullPath: '/~/email/$emailHash/bloqueado'
+      preLoaderRoute: typeof Char126EmailEmailHashBloqueadoRouteImport
+      parentRoute: typeof Char126EmailEmailHashRoute
     }
     '/_panel/$organizacaoHash/inbox/$instanceId': {
       id: '/_panel/$organizacaoHash/inbox/$instanceId'
@@ -348,9 +426,36 @@ const PanelRouteRouteWithChildren = PanelRouteRoute._addFileChildren(
   PanelRouteRouteChildren,
 )
 
+interface Char126EmailEmailHashRouteChildren {
+  Char126EmailEmailHashBloqueadoRoute: typeof Char126EmailEmailHashBloqueadoRoute
+}
+
+const Char126EmailEmailHashRouteChildren: Char126EmailEmailHashRouteChildren = {
+  Char126EmailEmailHashBloqueadoRoute: Char126EmailEmailHashBloqueadoRoute,
+}
+
+const Char126EmailEmailHashRouteWithChildren =
+  Char126EmailEmailHashRoute._addFileChildren(
+    Char126EmailEmailHashRouteChildren,
+  )
+
+interface Char126RouteChildren {
+  Char126HashRoute: typeof Char126HashRoute
+  Char126EmailEmailHashRoute: typeof Char126EmailEmailHashRouteWithChildren
+}
+
+const Char126RouteChildren: Char126RouteChildren = {
+  Char126HashRoute: Char126HashRoute,
+  Char126EmailEmailHashRoute: Char126EmailEmailHashRouteWithChildren,
+}
+
+const Char126RouteWithChildren =
+  Char126Route._addFileChildren(Char126RouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PanelRouteRoute: PanelRouteRouteWithChildren,
+  Char126Route: Char126RouteWithChildren,
   ConviteTokenRoute: ConviteTokenRoute,
   RpcSplatRoute: RpcSplatRoute,
   RpcIndexRoute: RpcIndexRoute,
