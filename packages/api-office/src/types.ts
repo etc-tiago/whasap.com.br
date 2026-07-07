@@ -20,5 +20,4 @@ export type OfficeContext = {
 
 export type OfficeEnv = BaseEnv & {
   OFFICE_URL: string;
-  AUTH_SECRET: string;
 };

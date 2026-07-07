@@ -25,7 +25,7 @@ Guia para configurar Asaas, Evolution API e Meta Cloud API.
 
    Em `wrangler.jsonc`, substitua `store_id` pelo UUID real. Workers `web` e `webhook` declaram o binding Asaas.
 
-   Secrets Worker clássicos (`wrangler secret put`): `AUTH_SECRET` (`web`/`office`), `WEBHOOK_SECRET` e `ASAAS_WEBHOOK_TOKEN` (`webhook`).
+   Secrets Worker clássicos (`wrangler secret put`): `WEBHOOK_SECRET` e `ASAAS_WEBHOOK_TOKEN` (`webhook`).
 
 7. Em desenvolvimento local, defina `ASSAS_API_KEY` e `ASAAS_SANDBOX=true` em `.dev.vars`.
 

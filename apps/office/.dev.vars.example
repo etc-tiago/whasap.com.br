@@ -1,1 +1,1 @@
-AUTH_SECRET=dev-secret-change-me
+# Nenhum secret Worker obrigatório para desenvolvimento local.

@@ -176,16 +176,6 @@ Nenhum.
 | `CDN_URL` | `https://cdn.whasap.com.br` |
 | `EMAIL_FROM` | `noreply@whasap.com.br` (ou domínio verificado) |
 
-#### Secrets Worker (`wrangler secret put`)
-
-| Secret | Descrição |
-|--------|-----------|
-| `AUTH_SECRET` | Chave para assinar cookies de sessão (≥ 32 bytes aleatórios) |
-
-```bash
-cd apps/web && wrangler secret put AUTH_SECRET
-```
-
 #### Vars opcionais (dashboard ou `wrangler.jsonc`)
 
 | Var | Quando usar |
@@ -232,16 +222,6 @@ bun run deploy
 | `WEB_URL` | `https://web.whasap.com.br` |
 | `OFFICE_URL` | `https://office.whasap.com.br` |
 | `EMAIL_FROM` | `noreply@whasap.com.br` |
-
-#### Secrets Worker
-
-| Secret | Descrição |
-|--------|-----------|
-| `AUTH_SECRET` | **Pode ser diferente** do `web` (cookie `whasap_office` separado) |
-
-```bash
-cd apps/office && wrangler secret put AUTH_SECRET
-```
 
 #### Build-time
 
@@ -373,8 +353,6 @@ Ou na raiz: `bun run deploy` (Turbo), desde que as vars de build estejam no ambi
 
 ### Workers — secrets
 
-- [ ] `web`: `AUTH_SECRET`
-- [ ] `office`: `AUTH_SECRET`
 - [ ] `webhook`: `WEBHOOK_SECRET`, `ASAAS_WEBHOOK_TOKEN`
 
 ### Build (CI)
@@ -400,7 +378,7 @@ Ou na raiz: `bun run deploy` (Turbo), desde que as vars de build estejam no ambi
 | URLs públicas dos apps | `vars` no `wrangler.jsonc` de cada app |
 | API key Asaas | Secrets Store → binding `ASSAS_API_KEY` |
 | Token webhook Asaas | `wrangler secret` → `ASAAS_WEBHOOK_TOKEN` no webhook |
-| Sessão usuário / office | `wrangler secret` → `AUTH_SECRET` em cada app |
+| Sessão usuário / office | Token opaco em cookie + tabela `sessao` / `office_sessao` no Postgres |
 | Verify token Meta | `wrangler secret` → `WEBHOOK_SECRET` no webhook |
 | Connection string DB | Hyperdrive (nunca em var plain) |
 | Credenciais WhatsApp por instância | Meta: colunas em `instancia` no Neon; Evolution: só `evolucao_nome_instancia` |

@@ -28,9 +28,9 @@ alwaysApply: false
 ]
 ```
 
-Secrets Worker clássicos (`wrangler secret put`): `AUTH_SECRET` (`web`, `office`).
+Secrets Worker clássicos (`wrangler secret put`): `WEBHOOK_SECRET` e `ASAAS_WEBHOOK_TOKEN` (`webhook`).
 
-Local: `.dev.vars` com `ASSAS_API_KEY` (string).
+Local: `.dev.vars` com `ASSAS_API_KEY` (string) em `web` e `webhook`.
 
 ## Hyperdrive (sempre igual)
 

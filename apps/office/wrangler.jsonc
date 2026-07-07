@@ -17,11 +17,6 @@
     "OFFICE_URL": "http://localhost:3001",
     "EMAIL_FROM": "noreply@localhost"
   },
-  "secrets": {
-    "required": [
-      "AUTH_SECRET"
-    ]
-  },
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",

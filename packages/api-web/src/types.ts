@@ -28,7 +28,6 @@ export type WebEnv = BaseEnv & {
   OFFICE_URL: string;
   WEBHOOK_URL: string;
   CDN_URL: string;
-  AUTH_SECRET: string;
   ASSAS_API_KEY?: SecretsStoreSecretBinding | string;
   ASAAS_SANDBOX?: string;
   EVOLUTION_BASE_URL?: string;
