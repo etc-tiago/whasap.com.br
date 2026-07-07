@@ -8,6 +8,9 @@
     "#lib/*": "./src/lib/*.ts",
     "#hooks/*": "./src/hooks/*.ts"
   },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "exports": {
     "./globals.css": "./src/styles/globals.css",
     "./components/*": "./src/components/*.tsx",

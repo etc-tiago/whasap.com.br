@@ -21,6 +21,7 @@ import {
   usoMensal,
   usoMensalContato,
 } from "@whasap/db";
+import type { WorkerExecutionContext } from "@whasap/evlog/workers";
 import { and, eq, isNull, or } from "drizzle-orm";
 import type { Env } from "./env";
 import { scheduleInboundMedia } from "./media";
@@ -124,7 +125,7 @@ async function buscarInstanciaEvolution(db: Db, payload: EvolutionPayload) {
 export async function processEvolutionWebhook(
   db: Db,
   env: Env,
-  ctx: ExecutionContext,
+  ctx: WorkerExecutionContext,
   body: string,
 ): Promise<void> {
   const payload = JSON.parse(body) as EvolutionPayload;
@@ -293,7 +294,7 @@ type MetaWebhookInstance = NonNullable<Awaited<ReturnType<typeof findMetaWebhook
 export async function processMetaWebhook(
   db: Db,
   env: Env,
-  ctx: ExecutionContext,
+  ctx: WorkerExecutionContext,
   body: string,
 ): Promise<void> {
   const payload = JSON.parse(body) as MetaPayload;
@@ -329,7 +330,7 @@ export async function processMetaWebhook(
 async function processMetaChangeValue(
   db: Db,
   env: Env,
-  ctx: ExecutionContext,
+  ctx: WorkerExecutionContext,
   value: MetaChangeValue,
   instanceByPhoneNumberId: Map<string, MetaWebhookInstance | undefined>,
 ): Promise<void> {
@@ -349,7 +350,7 @@ async function processMetaChangeValue(
 async function processMetaInboundMessage(
   db: Db,
   env: Env,
-  ctx: ExecutionContext,
+  ctx: WorkerExecutionContext,
   instance: MetaWebhookInstance,
   msg: MetaMessage,
 ): Promise<void> {

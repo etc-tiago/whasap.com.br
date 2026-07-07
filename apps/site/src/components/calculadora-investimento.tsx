@@ -23,11 +23,7 @@ import {
 import { Calendar, MessageCircle, Minus, Plus, Video } from "lucide-react";
 import { useState } from "react";
 
-import {
-  montarUrlAgendamento,
-  montarUrlWhatsapp,
-  VENDAS_WHATSAPP,
-} from "@/lib/contato-vendas";
+import { montarUrlAgendamento, montarUrlWhatsapp, VENDAS_WHATSAPP } from "@/lib/contato-vendas";
 import {
   calcularOrcamento,
   FAIXAS_CONVERSAS,
@@ -168,8 +164,8 @@ function ResultadoOrcamento({
         <p className="text-sm font-medium text-wa-green-dark">Seu orçamento estimado</p>
         <p className="mt-1 text-3xl font-bold tracking-tight">{totalLabel}</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          {orcamento.numerosWhatsapp} número{orcamento.numerosWhatsapp > 1 ? "s" : ""} do WhatsApp
-          · {orcamento.atendentes} atendentes · {orcamento.faixaConversas}
+          {orcamento.numerosWhatsapp} número{orcamento.numerosWhatsapp > 1 ? "s" : ""} do WhatsApp ·{" "}
+          {orcamento.atendentes} atendentes · {orcamento.faixaConversas}
         </p>
         <p className="mt-3 text-sm text-muted-foreground">
           Esse valor é uma estimativa transparente. Para fechar o plano certo — sem pagar a mais —
@@ -214,8 +210,8 @@ function ResultadoOrcamento({
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-muted-foreground">
             <p>
-              Conte como sua equipe atende hoje — contabilidade, farmácia, distribuidora ou
-              operação com vários atendentes.
+              Conte como sua equipe atende hoje — contabilidade, farmácia, distribuidora ou operação
+              com vários atendentes.
             </p>
             <p>
               Quem agenda uma call consegue condições melhores: montamos um plano sob medida, com

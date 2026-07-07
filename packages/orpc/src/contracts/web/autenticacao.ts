@@ -49,19 +49,15 @@ export const autenticacaoContract = {
 
   eu: oc.output(sessaoSchema),
 
-  iniciarFluxo: oc
-    .input(z.object({ email: z.string().email() }))
-    .output(
-      z.object({
-        hash: z.string().uuid(),
-        tipo: z.enum(["entrar", "cadastrar"]),
-        redirectPath: z.string(),
-      }),
-    ),
+  iniciarFluxo: oc.input(z.object({ email: z.string().email() })).output(
+    z.object({
+      hash: z.string().uuid(),
+      tipo: z.enum(["entrar", "cadastrar"]),
+      redirectPath: z.string(),
+    }),
+  ),
 
-  obterFluxo: oc
-    .input(z.object({ hash: z.string().uuid() }))
-    .output(fluxoPublicoSchema),
+  obterFluxo: oc.input(z.object({ hash: z.string().uuid() })).output(fluxoPublicoSchema),
 
   enviarOtpFluxo: oc
     .input(z.object({ hash: z.string().uuid() }))

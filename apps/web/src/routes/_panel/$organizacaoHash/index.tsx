@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 
 import { rotuloProvedor } from "@whasap/config";
 import { orpc, type InstanciaItem } from "@/lib/orpc";
+import { orgInput } from "@/lib/org-input";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
 export const Route = createFileRoute("/_panel/$organizacaoHash/")({

@@ -229,7 +229,11 @@ function LandingPage() {
                   {description}
                 </p>
                 <div className="mt-8 flex flex-wrap gap-3">
-                  <Button asChild size="lg" className="bg-wa-green text-white hover:bg-wa-green-dark">
+                  <Button
+                    asChild
+                    size="lg"
+                    className="bg-wa-green text-white hover:bg-wa-green-dark"
+                  >
                     <a href={PANEL_URL}>
                       Começar agora
                       <ArrowRight />
@@ -248,7 +252,9 @@ function LandingPage() {
         <section className="border-b border-border/60 py-20" id="para-quem">
           <div className="mx-auto max-w-6xl px-6">
             <div className="max-w-2xl">
-              <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Para quem é o Whasap</h2>
+              <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+                Para quem é o Whasap
+              </h2>
               <p className="mt-4 text-lg text-muted-foreground">
                 Pensado para operações com vários atendentes — de contabilidades a restaurantes,
                 clínicas, e-commerce e muito mais. Escale o atendimento sem escalar a fatura por

@@ -277,7 +277,10 @@ export const instanciaHandlers = {
       await meta.listTemplates();
     } catch (err) {
       log.warn({
-        meta: { validacaoTokenFalhou: true, erro: err instanceof Error ? err.message : String(err) },
+        meta: {
+          validacaoTokenFalhou: true,
+          erro: err instanceof Error ? err.message : String(err),
+        },
       });
     }
 

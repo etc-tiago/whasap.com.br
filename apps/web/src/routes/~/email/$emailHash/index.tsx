@@ -1,14 +1,15 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@whasap/ui/components/button";
 import { Checkbox } from "@whasap/ui/components/checkbox";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@whasap/ui/components/input-otp";
 import { Label } from "@whasap/ui/components/label";
+import { useEffect, useState } from "react";
 
 import { EntradaShell } from "@/components/entrada-shell";
-import { getOrpcErrorMessage } from "@/lib/orpc-error";
 import { orpc } from "@/lib/orpc";
+import { getOrpcErrorMessage } from "@/lib/orpc-error";
+import { SITE_URL } from "@/lib/site-url";
 
 const OTP_DIGIT_SLOTS = [0, 1, 2, 3, 4, 5] as const;
 
@@ -103,7 +104,6 @@ function EntradaCadastroPage() {
   }
 
   const emailLabel = fluxo.data?.emailMascarado ?? "seu e-mail";
-  const nomeSugerido = fluxo.data?.nomeSugerido ?? "";
 
   return (
     <EntradaShell
@@ -117,10 +117,6 @@ function EntradaCadastroPage() {
       <div className="space-y-4">
         {!otpEnviado ? (
           <>
-            <p className="text-sm text-muted-foreground">
-              Vamos criar sua conta com o nome <strong>{nomeSugerido}</strong> (parte antes do @ do
-              e-mail).
-            </p>
             <div className="flex items-start gap-2">
               <Checkbox
                 id="lgpd"
@@ -128,7 +124,27 @@ function EntradaCadastroPage() {
                 onCheckedChange={(v) => setLgpdConsent(v === true)}
               />
               <Label htmlFor="lgpd" className="text-sm font-normal leading-snug">
-                Li e aceito os Termos de Uso e a Política de Privacidade (LGPD).
+                Li e aceito os{" "}
+                <a
+                  href={`${SITE_URL}/legal#termos`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Termos de Uso
+                </a>{" "}
+                e a{" "}
+                <a
+                  href={`${SITE_URL}/legal#privacidade`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Política de Privacidade
+                </a>{" "}
+                (LGPD).
               </Label>
             </div>
             <Button

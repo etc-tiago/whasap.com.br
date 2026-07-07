@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { SITE_URL } from "@/lib/seo";
 
-const pages = ["/"];
+const pages = ["/", "/legal"];
 
 export const Route = createFileRoute("/sitemap.xml")({
   server: {

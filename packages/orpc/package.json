@@ -8,6 +8,9 @@
     "./web": "./src/web-contract.ts",
     "./office": "./src/office-contract.ts"
   },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "@orpc/contract": "^1.9.3",
     "zod": "^3.24.2"

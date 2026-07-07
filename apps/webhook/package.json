@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "wrangler dev --port 8788",
     "build": "wrangler deploy --dry-run",
-    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "deploy": "bun run build && wrangler deploy",
     "cf-typegen": "wrangler types"
   },
   "dependencies": {

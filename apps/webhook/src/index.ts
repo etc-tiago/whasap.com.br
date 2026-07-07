@@ -6,7 +6,7 @@
  *   Checkout é criado no api-web; ativação de instância/pacote ocorre aqui via `handleAsaasWebhook`.
  */
 import type { RequestLogger } from "@whasap/evlog";
-import { envolverWorkerFetch } from "@whasap/evlog/workers";
+import { envolverWorkerFetch, type WorkerExecutionContext } from "@whasap/evlog/workers";
 import { eq } from "drizzle-orm";
 import { asaasWebhookRegistro, comCriadoEm, criarDb, webhookEvento } from "@whasap/db";
 
@@ -30,7 +30,7 @@ async function timingSafeEqual(a: string, b: string): Promise<boolean> {
  * Erros no processor são logados; o evento permanece sem `processadoEm` para reprocessamento manual.
  */
 async function processarWebhookProvedor(
-  ctx: ExecutionContext,
+  ctx: WorkerExecutionContext,
   env: Env,
   source: "evo" | "cloud",
   body: string,

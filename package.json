@@ -1,12 +1,18 @@
 {
   "name": "whasap",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "packageManager": "bun@1.3.7",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
-    "deploy": "turbo deploy",
-    "cf-typegen": "turbo cf-typegen",
+    "check:pr": "bun run lint:fix && bun run format:fix && bun run typecheck && bun run build",
+    "dev": "vp run -r --parallel --no-cache dev",
+    "build": "vp run -r --cache build",
+    "typecheck": "vp run -r --cache typecheck",
+    "deploy": "vp run -r --no-cache deploy",
+    "cf-typegen": "vp run -r --no-cache cf-typegen",
     "db:generate": "bun run --filter @whasap/db db:generate",
     "db:migrate": "bun run --filter @whasap/db db:migrate",
     "lint": "oxlint .",
@@ -18,8 +24,8 @@
   "devDependencies": {
     "oxfmt": "^0.16.0",
     "oxlint": "^1.16.0",
-    "turbo": "^2.5.4",
     "typescript": "^5.8.3",
+    "vite-plus": "^0.2.2",
     "wrangler": "^4.54.0"
   }
 }

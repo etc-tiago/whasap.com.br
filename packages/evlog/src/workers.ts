@@ -1,5 +1,5 @@
 import type { RequestLogger } from "evlog";
-import { defineWorkerFetch, initWorkersLogger } from "evlog/workers";
+import { defineWorkerFetch, initWorkersLogger, type WorkerExecutionContext } from "evlog/workers";
 
 import type { ServicoEvlog } from "./servicos";
 import { SERVICOS } from "./servicos";
@@ -17,7 +17,7 @@ export function garantirWorkersLogger(servico: ServicoEvlog): void {
 type HandlerWorker<TEnv> = (
   request: Request,
   env: TEnv,
-  ctx: ExecutionContext,
+  ctx: WorkerExecutionContext,
   log: RequestLogger,
 ) => Response | Promise<Response>;
 
@@ -26,3 +26,5 @@ export function envolverWorkerFetch<TEnv>(servico: ServicoEvlog, handler: Handle
   garantirWorkersLogger(servico);
   return defineWorkerFetch(handler);
 }
+
+export type { WorkerExecutionContext } from "evlog/workers";

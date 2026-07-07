@@ -31,7 +31,9 @@ export function createSessionCookieHelpers(cookieName: string) {
  * Monta handler HTTP `/rpc` com contexto, cookies de sessão e interceptors.
  * Usado por `apps/web` e `apps/office`.
  */
-export function createRpcHandler<TContext extends { sessionToken: string | null; fecharDb?: () => Promise<void> }>(options: {
+export function createRpcHandler<
+  TContext extends { sessionToken: string | null; fecharDb?: () => Promise<void> },
+>(options: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   router: any;
   session: RpcSessionConfig;

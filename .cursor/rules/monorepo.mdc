@@ -11,5 +11,5 @@ alwaysApply: true
 - `web` e `office` têm APIs ORPC separadas — não compartilhar handlers entre painéis
 - Domain logic (WhatsApp UI) stays in `apps/web`, not in shared packages
 - Marketing pages stay in `apps/site` only — not in `apps/web`
-- Run `bun install` from root; use `bun run dev` via turbo
+- Run `bun install` from root; use `bun run dev` via Vite+ (`vp run`)
 - Migrations Drizzle (`db:generate`, `db:migrate`) são exclusivas do desenvolvedor — o agente nunca executa nem gera SQL

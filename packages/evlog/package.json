@@ -9,6 +9,9 @@
     "./tanstack-server": "./src/tanstack-server.ts",
     "./workers": "./src/workers.ts"
   },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "evlog": "^2.20.0"
   },

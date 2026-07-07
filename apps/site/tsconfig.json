@@ -1,6 +1,6 @@
 {
   "extends": "@whasap/typescript-config/react.json",
-  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "worker-configuration.d.ts"],
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"]

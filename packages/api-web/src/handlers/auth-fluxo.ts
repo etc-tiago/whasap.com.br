@@ -40,10 +40,7 @@ function redirectPathFluxo(tipo: TipoFluxo, hash: string): string {
 
 async function carregarFluxoPorHash(ctx: WebContext, hash: string) {
   const fluxo = await ctx.db.query.fluxoAutenticacao.findFirst({
-    where: and(
-      eq(fluxoAutenticacao.hash, hash),
-      gt(fluxoAutenticacao.expiraEm, new Date()),
-    ),
+    where: and(eq(fluxoAutenticacao.hash, hash), gt(fluxoAutenticacao.expiraEm, new Date())),
   });
 
   if (!fluxo) {
@@ -72,7 +69,10 @@ function mapaFluxoPublico(
     nomeSugerido: fluxo.tipo === "cadastrar" ? derivarNomeDoEmail(fluxo.email) : null,
     bloqueado,
     pedidosOtpRestantes: Math.max(0, LIMITE_PEDIDOS_OTP - fluxo.pedidosOtp),
-    tentativasInvalidasRestantes: Math.max(0, LIMITE_TENTATIVAS_INVALIDAS - fluxo.tentativasOtpInvalidas),
+    tentativasInvalidasRestantes: Math.max(
+      0,
+      LIMITE_TENTATIVAS_INVALIDAS - fluxo.tentativasOtpInvalidas,
+    ),
     redirectPathBloqueado:
       fluxo.tipo === "cadastrar" && bloqueado ? `/~/email/${fluxo.hash}/bloqueado` : null,
     otpEnviado: extras?.otpEnviado,
@@ -221,7 +221,10 @@ export const fluxoAutenticacaoHandlers = {
   },
 
   /** Valida OTP e cria conta via fluxo de cadastro. */
-  cadastrarFluxo: async (ctx: WebContext, input: { hash: string; otp: string; lgpdConsent: true }) => {
+  cadastrarFluxo: async (
+    ctx: WebContext,
+    input: { hash: string; otp: string; lgpdConsent: true },
+  ) => {
     const fluxo = await carregarFluxoPorHash(ctx, input.hash);
 
     if (fluxo.tipo !== "cadastrar") {

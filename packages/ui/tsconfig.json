@@ -2,6 +2,7 @@
   "extends": "@whasap/typescript-config/react.json",
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "compilerOptions": {
+    "types": [],
     "paths": {
       "#components/*": ["./src/components/*"],
       "#lib/*": ["./src/lib/*"],

@@ -1,3 +1,4 @@
+import type { WorkerExecutionContext } from "@whasap/evlog/workers";
 import { log } from "@whasap/evlog";
 import { eq } from "drizzle-orm";
 import { buildMediaR2Key, mimeToExtension } from "@whasap/config";
@@ -44,7 +45,7 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
 }
 
 export function scheduleInboundMedia(
-  ctx: ExecutionContext,
+  ctx: WorkerExecutionContext,
   env: Env,
   db: Db,
   job: InboundMediaJob | null,
@@ -85,7 +86,11 @@ export async function storeInboundMedia(env: Env, db: Db, job: InboundMediaJob):
       const result = await client.downloadMedia(job.waMessage ?? { key: job.messageKey });
       const b64 = result.base64 ?? result.data;
       if (!b64) {
-        log.error({ contexto: "webhook.media", erro: "Evolution downloadmedia sem base64", externalId: job.externalId });
+        log.error({
+          contexto: "webhook.media",
+          erro: "Evolution downloadmedia sem base64",
+          externalId: job.externalId,
+        });
         return;
       }
       mimeType = result.mimetype ?? job.mimeType ?? "application/octet-stream";
