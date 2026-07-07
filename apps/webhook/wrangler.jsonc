@@ -37,7 +37,7 @@
   },
   "secrets": {
     "required": [
-      "WEBHOOK_SECRET",
+      "WHATSAPP_CLOUD_WEBHOOK_SECRET",
       "ASAAS_WEBHOOK_TOKEN"
     ]
   },

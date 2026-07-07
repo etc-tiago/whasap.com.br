@@ -25,7 +25,7 @@ Guia para configurar Asaas, Evolution API e Meta Cloud API.
 
    Em `wrangler.jsonc`, substitua `store_id` pelo UUID real. Workers `web` e `webhook` declaram o binding Asaas.
 
-   Secrets Worker clássicos (`wrangler secret put`): `WEBHOOK_SECRET` e `ASAAS_WEBHOOK_TOKEN` (`webhook`).
+   Secrets Worker clássicos (`wrangler secret put`): ver requisitos em [SECRETS-WEBHOOK.md](./SECRETS-WEBHOOK.md) (`WHATSAPP_CLOUD_WEBHOOK_SECRET`, `ASAAS_WEBHOOK_TOKEN`).
 
 7. Em desenvolvimento local, defina `ASSAS_API_KEY` e `ASAAS_SANDBOX=true` em `.dev.vars`.
 
@@ -115,7 +115,7 @@ No onboarding, aba **Manual**:
 ### Webhook Meta
 
 1. URL: `https://<webhook-worker>/cloud`
-2. Verify token: mesmo valor de `WEBHOOK_SECRET` no worker webhook
+2. Verify token: mesmo valor de `WHATSAPP_CLOUD_WEBHOOK_SECRET` no worker webhook (ver [SECRETS-WEBHOOK.md](./SECRETS-WEBHOOK.md))
 3. Campos: `messages`, `message_template_status_update`
 
 ### Credenciais no painel

@@ -81,7 +81,7 @@ export default {
       const mode = url.searchParams.get("hub.mode");
       const token = url.searchParams.get("hub.verify_token");
       const challenge = url.searchParams.get("hub.challenge");
-      if (mode === "subscribe" && token === env.WEBHOOK_SECRET && challenge) {
+      if (mode === "subscribe" && token === env.WHATSAPP_CLOUD_WEBHOOK_SECRET && challenge) {
         return new Response(challenge, { status: 200 });
       }
       return new Response("Forbidden", { status: 403 });

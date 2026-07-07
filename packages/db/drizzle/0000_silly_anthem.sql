@@ -115,6 +115,8 @@ CREATE TABLE "instancia" (
 	"asaas_id_assinatura" text,
 	"limite_conversas" integer DEFAULT 1000 NOT NULL,
 	"evolucao_nome_instancia" text,
+	"evolucao_instance_id" text,
+	"evolucao_token" text,
 	"nuvem_id_numero_telefone" text,
 	"nuvem_id_waba" text,
 	"nuvem_token_acesso" text,
@@ -128,6 +130,7 @@ CREATE TABLE "instancia" (
 	CONSTRAINT "instancia_uuid_unique" UNIQUE("uuid"),
 	CONSTRAINT "instancia_asaasIdAssinatura_unique" UNIQUE("asaas_id_assinatura"),
 	CONSTRAINT "instancia_evolucaoNomeInstancia_unique" UNIQUE("evolucao_nome_instancia"),
+	CONSTRAINT "instancia_evolucaoInstanceId_unique" UNIQUE("evolucao_instance_id"),
 	CONSTRAINT "instancia_nuvemIdNumeroTelefone_unique" UNIQUE("nuvem_id_numero_telefone")
 );
 --> statement-breakpoint

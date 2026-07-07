@@ -28,7 +28,7 @@ alwaysApply: false
 ]
 ```
 
-Secrets Worker clássicos (`wrangler secret put`): `WEBHOOK_SECRET` e `ASAAS_WEBHOOK_TOKEN` (`webhook`).
+Secrets Worker clássicos (`wrangler secret put`): ver [docs/SECRETS-WEBHOOK.md](../../docs/SECRETS-WEBHOOK.md).
 
 Local: `.dev.vars` com `ASSAS_API_KEY` (string) em `web` e `webhook`.
 

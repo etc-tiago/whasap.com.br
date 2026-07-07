@@ -254,17 +254,19 @@ Inserir ao menos um usuário em `office_usuario` (ver [README.md](../README.md))
 
 #### Secrets Worker
 
+Requisitos detalhados (formato, entropia, onde cadastrar): **[SECRETS-WEBHOOK.md](./SECRETS-WEBHOOK.md)**
+
 | Secret | Descrição | Quem valida |
 |--------|-----------|-------------|
-| `WEBHOOK_SECRET` | Token de verificação Meta (`hub.verify_token`) | `GET /cloud` |
+| `WHATSAPP_CLOUD_WEBHOOK_SECRET` | Token de verificação Meta (`hub.verify_token`) | `GET /cloud` |
 | `ASAAS_WEBHOOK_TOKEN` | `authToken` configurado no painel Asaas | header `asaas-access-token` em `POST /asaas` |
 
 ```bash
-cd apps/webhook && wrangler secret put WEBHOOK_SECRET
+cd apps/webhook && wrangler secret put WHATSAPP_CLOUD_WEBHOOK_SECRET
 cd apps/webhook && wrangler secret put ASAAS_WEBHOOK_TOKEN
 ```
 
-Use o **mesmo** valor de `WEBHOOK_SECRET` no app Meta (Webhook → Verify token).
+Use o **mesmo** valor de `WHATSAPP_CLOUD_WEBHOOK_SECRET` no app Meta (Webhook → Verify token).
 
 #### Vars opcionais
 
@@ -302,7 +304,7 @@ Configure **depois** que `webhook` estiver no ar.
 | Serviço | URL | Credencial no Whasap |
 |---------|-----|----------------------|
 | **Asaas** webhook | `https://webhook.whasap.com.br/asaas` | `ASAAS_WEBHOOK_TOKEN` |
-| **Meta** webhook | `https://webhook.whasap.com.br/cloud` | `WEBHOOK_SECRET` (verify token) |
+| **Meta** webhook | `https://webhook.whasap.com.br/cloud` | `WHATSAPP_CLOUD_WEBHOOK_SECRET` (verify token) |
 | **Evolution** webhook | `https://webhook.whasap.com.br/evo` | — (Evolution envia para URL configurada no provisionamento) |
 
 Asaas: eventos `CHECKOUT_PAID`, `SUBSCRIPTION_CREATED`, `SUBSCRIPTION_DELETED`, `PAYMENT_OVERDUE`.
@@ -353,7 +355,7 @@ Ou na raiz: `bun run deploy` (Turbo), desde que as vars de build estejam no ambi
 
 ### Workers — secrets
 
-- [ ] `webhook`: `WEBHOOK_SECRET`, `ASAAS_WEBHOOK_TOKEN`
+- [ ] `webhook`: `WHATSAPP_CLOUD_WEBHOOK_SECRET`, `ASAAS_WEBHOOK_TOKEN`
 
 ### Build (CI)
 
@@ -379,7 +381,7 @@ Ou na raiz: `bun run deploy` (Turbo), desde que as vars de build estejam no ambi
 | API key Asaas | Secrets Store → binding `ASSAS_API_KEY` |
 | Token webhook Asaas | `wrangler secret` → `ASAAS_WEBHOOK_TOKEN` no webhook |
 | Sessão usuário / office | Token opaco em cookie + tabela `sessao` / `office_sessao` no Postgres |
-| Verify token Meta | `wrangler secret` → `WEBHOOK_SECRET` no webhook |
+| Verify token Meta | `wrangler secret` → `WHATSAPP_CLOUD_WEBHOOK_SECRET` no webhook |
 | Connection string DB | Hyperdrive (nunca em var plain) |
 | Credenciais WhatsApp por instância | Meta: `nuvem_*`; Evolution: `evolucao_instance_id` + `evolucao_token` + `evolucao_nome_instancia` |
 | Servidor Evolution | `EVOLUTION_BASE_URL` + secret `EVOLUTION_API_KEY` nos workers `web` e `webhook` |

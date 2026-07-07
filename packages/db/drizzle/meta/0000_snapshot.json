@@ -1,5 +1,5 @@
 {
-  "id": "0932e942-afd9-4566-b298-040347607f30",
+  "id": "0377b0d9-371e-4194-9061-cd663082c062",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -883,6 +883,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "evolucao_instance_id": {
+          "name": "evolucao_instance_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "evolucao_token": {
+          "name": "evolucao_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "nuvem_id_numero_telefone": {
           "name": "nuvem_id_numero_telefone",
           "type": "text",
@@ -998,6 +1010,13 @@
           "nullsNotDistinct": false,
           "columns": [
             "evolucao_nome_instancia"
+          ]
+        },
+        "instancia_evolucaoInstanceId_unique": {
+          "name": "instancia_evolucaoInstanceId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "evolucao_instance_id"
           ]
         },
         "instancia_nuvemIdNumeroTelefone_unique": {
