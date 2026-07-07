@@ -34,6 +34,15 @@ function EntradaLoginPage() {
   const entrar = useMutation(orpc.autenticacao.entrarFluxo.mutationOptions());
 
   useEffect(() => {
+    setOtp("");
+    setError(null);
+    otpEnviadoRef.current = false;
+    void queryClient.removeQueries({
+      queryKey: orpc.autenticacao.obterFluxo.key({ input: { hash } }),
+    });
+  }, [hash, queryClient]);
+
+  useEffect(() => {
     if (!hash || otpEnviadoRef.current || fluxo.isLoading || fluxo.isError) return;
     if (fluxo.data?.tipo === "cadastrar") {
       void navigate({ to: "/~/email/$emailHash", params: { emailHash: hash }, replace: true });

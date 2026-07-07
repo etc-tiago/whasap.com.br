@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@whasap/ui/components/button";
 import { Input } from "@whasap/ui/components/input";
 import { Label } from "@whasap/ui/components/label";
@@ -9,12 +9,11 @@ import { EntradaShell } from "@/components/entrada-shell";
 import { orpc } from "@/lib/orpc";
 import { getOrpcErrorMessage } from "@/lib/orpc-error";
 
-export const Route = createFileRoute("/~")({
+export const Route = createFileRoute("/~/")({
   component: EntradaEmailPage,
 });
 
 function EntradaEmailPage() {
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const iniciar = useMutation(orpc.autenticacao.iniciarFluxo.mutationOptions());
@@ -24,11 +23,7 @@ function EntradaEmailPage() {
     setError(null);
     try {
       const result = await iniciar.mutateAsync({ email });
-      if (result.tipo === "entrar") {
-        await navigate({ to: "/~/$hash", params: { hash: result.hash } });
-      } else {
-        await navigate({ to: "/~/email/$emailHash", params: { emailHash: result.hash } });
-      }
+      window.location.assign(result.redirectPath);
     } catch (err) {
       setError(getOrpcErrorMessage(err, "Não foi possível continuar. Tente novamente."));
     }

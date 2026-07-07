@@ -12,7 +12,7 @@ import { orpc } from "@/lib/orpc";
 
 const OTP_DIGIT_SLOTS = [0, 1, 2, 3, 4, 5] as const;
 
-export const Route = createFileRoute("/~/email/$emailHash")({
+export const Route = createFileRoute("/~/email/$emailHash/")({
   component: EntradaCadastroPage,
 });
 
@@ -36,6 +36,16 @@ function EntradaCadastroPage() {
   const cadastrar = useMutation(orpc.autenticacao.cadastrarFluxo.mutationOptions());
 
   useEffect(() => {
+    setOtpEnviado(false);
+    setOtp("");
+    setLgpdConsent(false);
+    setError(null);
+    void queryClient.removeQueries({
+      queryKey: orpc.autenticacao.obterFluxo.key({ input: { hash: emailHash } }),
+    });
+  }, [emailHash, queryClient]);
+
+  useEffect(() => {
     if (fluxo.isError) {
       void navigate({ to: "/~", replace: true });
       return;
@@ -47,7 +57,7 @@ function EntradaCadastroPage() {
     if (fluxo.data?.bloqueado) {
       void navigate({ to: "/~/email/$emailHash/bloqueado", params: { emailHash } });
     }
-  }, [fluxo.data, fluxo.isError, navigate]);
+  }, [fluxo.data, fluxo.isError, navigate, emailHash]);
 
   async function handleCriarConta() {
     if (!lgpdConsent) {
