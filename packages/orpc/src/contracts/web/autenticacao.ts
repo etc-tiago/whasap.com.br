@@ -15,6 +15,8 @@ const fluxoPublicoSchema = z.object({
   otpEnviado: z.boolean().optional(),
 });
 
+const loginOkSchema = z.object({});
+
 export const autenticacaoContract = {
   enviarOtp: oc
     .input(
@@ -34,7 +36,7 @@ export const autenticacaoContract = {
         lgpdConsent: z.literal(true),
       }),
     )
-    .output(sessaoSchema),
+    .output(loginOkSchema),
 
   entrar: oc
     .input(
@@ -43,7 +45,7 @@ export const autenticacaoContract = {
         otp: z.string().length(6),
       }),
     )
-    .output(sessaoSchema),
+    .output(loginOkSchema),
 
   sair: oc.input(z.object({})).output(z.object({ ok: z.boolean() })),
 
@@ -65,7 +67,7 @@ export const autenticacaoContract = {
 
   entrarFluxo: oc
     .input(z.object({ hash: z.string().uuid(), otp: z.string().length(6) }))
-    .output(sessaoSchema),
+    .output(loginOkSchema),
 
   cadastrarFluxo: oc
     .input(
@@ -75,5 +77,9 @@ export const autenticacaoContract = {
         lgpdConsent: z.literal(true),
       }),
     )
-    .output(sessaoSchema),
+    .output(loginOkSchema),
+
+  consumirLinkMagico: oc
+    .input(z.object({ token: z.string().uuid() }))
+    .output(loginOkSchema),
 };

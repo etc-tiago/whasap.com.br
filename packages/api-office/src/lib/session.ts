@@ -20,17 +20,17 @@ export const getSessionTokenFromRequest = cookieHelpers.getSessionTokenFromReque
 export const sessionCookieHeader = cookieHelpers.sessionCookieHeader;
 export const clearSessionCookieHeader = cookieHelpers.clearSessionCookieHeader;
 
-/** Cria sessão office e retorna o token do cookie. */
+/** Cria sessão office e retorna token opaco + expiração. */
 export async function createSession(
   ctx: OfficeContext,
   officeUsuarioInternalId: number,
-): Promise<string> {
+): Promise<{ token: string; expiraEm: Date }> {
   const token = crypto.randomUUID();
   const expiraEm = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
   await ctx.db
     .insert(officeSessao)
     .values(comCriadoEm({ officeUsuarioId: officeUsuarioInternalId, token, expiraEm }));
-  return token;
+  return { token, expiraEm };
 }
 
 /** Remove sessão office pelo token. */

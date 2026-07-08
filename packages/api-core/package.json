@@ -11,10 +11,13 @@
   },
   "dependencies": {
     "@orpc/server": "^1.9.3",
+    "@orpc/client": "^1.9.3",
+    "@orpc/standard-server-fetch": "^1.9.3",
     "@whasap/config": "workspace:*",
     "@whasap/db": "workspace:*",
     "drizzle-orm": "^0.44.2",
-    "@whasap/evlog": "workspace:*"
+    "@whasap/evlog": "workspace:*",
+    "jose": "^6.0.11"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250705.0",

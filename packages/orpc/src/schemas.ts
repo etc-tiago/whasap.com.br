@@ -40,8 +40,17 @@ export const organizacaoSchema = z.object({
   asaasCustomerId: z.string().nullable(),
 });
 
+export const estadoDemonstracaoSchema = z.enum(["livre", "aviso", "bloqueado", "pago"]);
+
+export const demonstracaoSchema = z.object({
+  estado: estadoDemonstracaoSchema,
+  diasRestantes: z.number().int().nullable(),
+  demonstracaoIniciaEm: z.string().datetime().nullable(),
+});
+
 export const organizacaoComPapelSchema = organizacaoSchema.extend({
   meuPapel: memberRoleSchema,
+  demonstracao: demonstracaoSchema,
 });
 
 export const organizacaoMembroSchema = z.object({

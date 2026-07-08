@@ -10,9 +10,6 @@ export type MembroResolvido = {
   role: MemberRole;
 };
 
-/** @deprecated Use `MembroResolvido` */
-export type ResolvedMembership = MembroResolvido;
-
 /**
  * Garante que a requisição tem sessão web válida.
  * @throws 401 se `ctx.usuario` estiver ausente.
@@ -151,20 +148,3 @@ export function mapearSessaoParaSaida(
     role: ctx.role as MemberRole | null,
   };
 }
-
-/** @deprecated Use `exigirAutenticacao` */
-export const requireAuth = exigirAutenticacao;
-/** @deprecated Use `resolverMembro` */
-export const resolveMembership = resolverMembro;
-/** @deprecated Use `resolverMembroPorIdInterno` */
-export const resolveMembershipInternal = resolverMembroPorIdInterno;
-/** @deprecated Use `exigirOrganizacao` */
-export const requireOrg = exigirOrganizacao;
-/** @deprecated Use `exigirOrganizacaoPorIdInterno` */
-export const requireOrgInternal = exigirOrganizacaoPorIdInterno;
-/** @deprecated Use `exigirAdmin` */
-export const requireAdmin = exigirAdmin;
-/** @deprecated Use `exigirAdminPorIdInterno` */
-export const requireAdminInternal = exigirAdminPorIdInterno;
-/** @deprecated Use `mapearSessaoParaSaida` */
-export const toSessionOutput = mapearSessaoParaSaida;

@@ -4,10 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./test": "./src/test/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@orpc/server": "^1.9.3",
@@ -23,7 +25,9 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250705.0",
+    "@orpc/client": "^1.9.3",
     "@whasap/typescript-config": "workspace:*",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.10"
   }
 }

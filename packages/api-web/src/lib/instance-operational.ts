@@ -1,13 +1,11 @@
-import type { instancia } from "@whasap/db";
+type InstanceRow = {
+  status: string;
+  asaasIdAssinatura: string | null;
+};
 
-type InstanceRow = Pick<
-  typeof instancia.$inferSelect,
-  "status" | "asaasIdAssinatura" | "trialTerminaEm"
->;
-
-/** Instância pronta para uso no painel (conectada + assinatura ativa). */
+/** Instância pronta para uso no painel (conectada). Assinatura não é exigida durante demonstração. */
 export function isInstanceOperational(instance: InstanceRow): boolean {
-  return instance.status === "connected" && instance.asaasIdAssinatura !== null;
+  return instance.status === "connected";
 }
 
 export function isOrgOnboardingComplete(instances: InstanceRow[]): boolean {

@@ -9,7 +9,10 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "deploy": "vite build && wrangler deploy",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types",
+    "dev:e2e": "bun --env-file=../../.env ../../scripts/with-hyperdrive-env.ts vite dev --port 3099 --strictPort",
+    "test:browser": "bun e2e/run.ts",
+    "test:browser:ui": "E2E_HEADED=1 bun e2e/run.ts -- --browser.headless=false"
   },
   "dependencies": {
     "@orpc/client": "^1.9.3",
@@ -41,6 +44,8 @@
     "tailwindcss": "^4.2.1",
     "typescript": "^5.8.3",
     "vite": "^8.0.16",
+    "vitest": "^4.1.10",
+    "playwright": "^1.52.0",
     "wrangler": "^4.54.0"
   }
 }

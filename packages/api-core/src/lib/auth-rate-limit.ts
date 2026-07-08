@@ -38,7 +38,8 @@ async function consumeAttempt(env: BaseEnv, email: string): Promise<{ success: b
 }
 
 /**
- * Registra tentativa de autenticação e aplica rate limit por e-mail.
+ * Registra tentativa de verificação de credencial e aplica rate limit por e-mail.
+ * Usar apenas em `entrar`, `cadastrar`, `entrarFluxo`, `cadastrarFluxo` e `consumirLinkMagico`.
  * @throws 429 se o limite de tentativas for excedido.
  */
 export async function beginAuthAttempt(env: BaseEnv, email: string): Promise<void> {
@@ -52,7 +53,7 @@ export async function beginAuthAttempt(env: BaseEnv, email: string): Promise<voi
 }
 
 /**
- * Falha a tentativa de auth com código ORPC e mensagem ao cliente.
+ * Falha genérica de auth (ex.: e-mail inexistente) sem revelar se a conta existe.
  * Sempre termina com throw (tipo `never`).
  */
 export async function failAuthAttemptWithCode(

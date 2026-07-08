@@ -21,6 +21,7 @@ import { and, eq, isNull } from "drizzle-orm";
 
 import { mvpDefaults } from "../lib/asaas";
 import { toOrganizacaoOutput } from "../lib/mappers";
+import { obterDemonstracaoPorHash, exigirAcessoDemonstracao } from "../lib/demonstracao";
 import { persistSessionOrganization } from "../lib/session";
 import type { WebContext } from "../types";
 import {
@@ -86,7 +87,8 @@ export const organizacaoHandlers = {
       columns: colunasOrganizacaoPublica,
     });
     if (!org) notFound();
-    return { ...toOrganizacaoOutput(org), meuPapel: role };
+    const demonstracao = await obterDemonstracaoPorHash(ctx, input.organizacaoHash);
+    return { ...toOrganizacaoOutput(org), meuPapel: role, demonstracao };
   },
 
   atualizar: async (
@@ -100,6 +102,9 @@ export const organizacaoHandlers = {
     },
   ) => {
     await exigirAdmin(ctx, input.organizacaoHash);
+    const internalOrgId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
+    if (internalOrgId === null) notFound();
+    await exigirAcessoDemonstracao(ctx, internalOrgId);
     const [org] = await ctx.db
       .update(organizacao)
       .set(
@@ -145,6 +150,7 @@ export const organizacaoHandlers = {
       const internalOrgId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
       if (internalOrgId === null) notFound();
       await exigirOrganizacaoPorIdInterno(ctx, internalOrgId);
+      await exigirAcessoDemonstracao(ctx, internalOrgId);
 
       const rows = await ctx.db.query.organizacaoMembro.findMany({
         where: and(
@@ -182,6 +188,7 @@ export const organizacaoHandlers = {
       const internalOrgId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
       if (internalOrgId === null) notFound();
       await exigirAdminPorIdInterno(ctx, internalOrgId);
+      await exigirAcessoDemonstracao(ctx, internalOrgId);
 
       const org = await ctx.db.query.organizacao.findFirst({
         where: and(eq(organizacao.id, internalOrgId), isNull(organizacao.excluidoEm)),
@@ -226,6 +233,7 @@ export const organizacaoHandlers = {
       });
       if (!member) notFound();
       await exigirAdminPorIdInterno(ctx, member.organizacaoId);
+      await exigirAcessoDemonstracao(ctx, member.organizacaoId);
 
       await ctx.db
         .update(organizacaoMembro)
@@ -245,6 +253,7 @@ export const organizacaoHandlers = {
       });
       if (!member) notFound();
       await exigirAdminPorIdInterno(ctx, member.organizacaoId);
+      await exigirAcessoDemonstracao(ctx, member.organizacaoId);
       if (member.usuarioId === ctx.usuario!.internalId)
         forbidden("Não é possível remover a si mesmo");
 
@@ -261,6 +270,7 @@ export const organizacaoHandlers = {
       const internalOrgId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
       if (internalOrgId === null) notFound();
       await exigirAdminPorIdInterno(ctx, internalOrgId);
+      await exigirAcessoDemonstracao(ctx, internalOrgId);
 
       const rows = await ctx.db.query.organizacaoConvite.findMany({
         where: and(

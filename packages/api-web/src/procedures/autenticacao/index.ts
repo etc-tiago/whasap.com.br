@@ -1,5 +1,6 @@
 import cadastrar from "./cadastrar";
 import cadastrarFluxo from "./cadastrar-fluxo";
+import consumirLinkMagico from "./consumir-link-magico";
 import entrar from "./entrar";
 import entrarFluxo from "./entrar-fluxo";
 import enviarOtp from "./enviar-otp";
@@ -20,4 +21,5 @@ export default {
   enviarOtpFluxo,
   entrarFluxo,
   cadastrarFluxo,
+  consumirLinkMagico,
 };

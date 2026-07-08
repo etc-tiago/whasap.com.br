@@ -35,4 +35,5 @@ alwaysApply: false
 
 ## Referência
 
-Piloto: `packages/api-office/src/handlers/administracao.ts` + `procedures/administracao/instancias/lista.ts`
+- Arquitetura procedures/handlers + sessão web: [`packages/api-web/README.md`](../../packages/api-web/README.md)
+- Piloto JSDoc (office): `packages/api-office/src/handlers/administracao.ts` + `procedures/administracao/instancias/lista.ts`

@@ -1,15 +1,20 @@
 import {
+  assertOtpSendAllowed,
+  atribuirSessaoRpc,
   beginAuthAttempt,
   criarOtp,
   derivarNomeDoEmail,
   failAuthAttemptWithCode,
   mascararEmail,
+  normalizarOtp,
   notFound,
   preconditionFailed,
   rpcError,
   sendOtpEmail,
+  unauthorized,
   verificarOtp,
 } from "@whasap/api-core";
+import { mvpDefaults } from "@whasap/config";
 import {
   colunasUsuarioSessao,
   colunasUsuarioSomenteId,
@@ -22,20 +27,28 @@ import { and, eq, gt, isNull } from "drizzle-orm";
 
 import { createSession } from "../lib/session";
 import type { WebContext } from "../types";
-import { mapearSessaoParaSaida } from "./auth-session";
 
 const LIMITE_PEDIDOS_OTP = 10;
 const LIMITE_TENTATIVAS_INVALIDAS = 10;
 const FLUXO_EXPIRA_HORAS = 24;
 
 type TipoFluxo = "entrar" | "cadastrar";
+type FluxoRow = typeof fluxoAutenticacao.$inferSelect;
 
 function expiraEmFluxo(): Date {
   return new Date(Date.now() + FLUXO_EXPIRA_HORAS * 60 * 60 * 1000);
 }
 
+function expiraEmLinkMagico(): Date {
+  return new Date(Date.now() + mvpDefaults.auth.otpExpiresMinutes * 60 * 1000);
+}
+
 function redirectPathFluxo(tipo: TipoFluxo, hash: string): string {
   return tipo === "entrar" ? `/~/${hash}` : `/~/email/${hash}`;
+}
+
+function urlLinkMagico(ctx: WebContext, linkMagico: string): string {
+  return `${ctx.env.WEB_URL}/~/acesso/${linkMagico}`;
 }
 
 async function carregarFluxoPorHash(ctx: WebContext, hash: string) {
@@ -50,6 +63,24 @@ async function carregarFluxoPorHash(ctx: WebContext, hash: string) {
   return fluxo;
 }
 
+async function carregarFluxoPorLinkMagico(ctx: WebContext, token: string) {
+  const agora = new Date();
+  const fluxo = await ctx.db.query.fluxoAutenticacao.findFirst({
+    where: and(
+      eq(fluxoAutenticacao.linkMagico, token),
+      gt(fluxoAutenticacao.expiraEm, agora),
+      gt(fluxoAutenticacao.linkMagicoExpiraEm, agora),
+      isNull(fluxoAutenticacao.linkMagicoUsadoEm),
+    ),
+  });
+
+  if (!fluxo) {
+    notFound("Link inválido ou expirado. Solicite um novo código.");
+  }
+
+  return fluxo;
+}
+
 async function marcarFluxoBloqueado(ctx: WebContext, fluxoId: number) {
   await ctx.db
     .update(fluxoAutenticacao)
@@ -57,10 +88,106 @@ async function marcarFluxoBloqueado(ctx: WebContext, fluxoId: number) {
     .where(eq(fluxoAutenticacao.id, fluxoId));
 }
 
-function mapaFluxoPublico(
-  fluxo: typeof fluxoAutenticacao.$inferSelect,
-  extras?: { otpEnviado?: boolean },
+async function persistirLinkMagico(ctx: WebContext, fluxoId: number): Promise<string> {
+  const linkMagico = crypto.randomUUID();
+  await ctx.db
+    .update(fluxoAutenticacao)
+    .set(
+      comTimestampAtualizacao({
+        linkMagico,
+        linkMagicoExpiraEm: expiraEmLinkMagico(),
+        linkMagicoUsadoEm: null,
+      }),
+    )
+    .where(eq(fluxoAutenticacao.id, fluxoId));
+
+  return linkMagico;
+}
+
+async function enviarOtpComLinkMagico(
+  ctx: WebContext,
+  fluxo: FluxoRow,
+  purpose: "login" | "signup",
 ) {
+  await assertOtpSendAllowed(ctx, fluxo.email);
+
+  let magicLinkUrl: string | undefined;
+  try {
+    const linkMagico = await persistirLinkMagico(ctx, fluxo.id);
+    magicLinkUrl = urlLinkMagico(ctx, linkMagico);
+  } catch {
+    magicLinkUrl = undefined;
+  }
+
+  const code = await criarOtp(ctx, fluxo.email, purpose);
+  await sendOtpEmail(ctx.env, fluxo.email, code, purpose, { magicLinkUrl });
+}
+
+async function concluirEntradaFluxo(ctx: WebContext, email: string) {
+  const loggedInUser = await ctx.db.query.usuario.findFirst({
+    where: and(eq(usuario.email, email), isNull(usuario.excluidoEm)),
+    columns: colunasUsuarioSessao,
+  });
+
+  if (!loggedInUser) {
+    await failAuthAttemptWithCode(ctx.env, email, "NOT_FOUND", "Conta não encontrada.");
+  }
+
+  const { token, expiraEm } = await createSession(ctx, loggedInUser!.id);
+  atribuirSessaoRpc(ctx, token, expiraEm);
+  ctx.usuario = {
+    id: loggedInUser!.uuid,
+    internalId: loggedInUser!.id,
+    email: loggedInUser!.email,
+    nome: loggedInUser!.nome,
+    emailVerificadoEm: loggedInUser!.emailVerificadoEm,
+  };
+  ctx.organizationId = null;
+  ctx.role = null;
+
+  return {};
+}
+
+async function concluirCadastroFluxo(ctx: WebContext, email: string) {
+  const existente = await ctx.db.query.usuario.findFirst({
+    where: and(eq(usuario.email, email), isNull(usuario.excluidoEm)),
+    columns: colunasUsuarioSomenteId,
+  });
+  if (existente) {
+    rpcError("CONFLICT", "Este e-mail já possui conta.");
+  }
+
+  const now = new Date();
+  const nome = derivarNomeDoEmail(email);
+
+  const [user] = await ctx.db
+    .insert(usuario)
+    .values(
+      comTimestampsCriacao({
+        email,
+        nome,
+        emailVerificadoEm: now,
+        lgpdConsentidoEm: now,
+      }),
+    )
+    .returning();
+
+  const { token, expiraEm } = await createSession(ctx, user!.id);
+  atribuirSessaoRpc(ctx, token, expiraEm);
+  ctx.usuario = {
+    id: user!.uuid,
+    internalId: user!.id,
+    email: user!.email,
+    nome: user!.nome,
+    emailVerificadoEm: user!.emailVerificadoEm,
+  };
+  ctx.organizationId = null;
+  ctx.role = null;
+
+  return {};
+}
+
+function mapaFluxoPublico(fluxo: FluxoRow, extras?: { otpEnviado?: boolean }) {
   const bloqueado = Boolean(fluxo.bloqueadoEm);
   return {
     hash: fluxo.hash,
@@ -79,11 +206,14 @@ function mapaFluxoPublico(
   };
 }
 
+/**
+ * Handlers do fluxo de autenticação por hash (`/~/{hash}`, cadastro, link mágico).
+ * Procedures em `procedures/autenticacao/*-fluxo*` só delegam aqui. Ver `packages/api-web/README.md`.
+ */
 export const fluxoAutenticacaoHandlers = {
   /** Inicia fluxo de entrada ou cadastro a partir do e-mail informado. */
   iniciarFluxo: async (ctx: WebContext, input: { email: string }) => {
     const email = input.email.toLowerCase();
-    await beginAuthAttempt(ctx.env, email);
 
     const existente = await ctx.db.query.usuario.findFirst({
       where: and(eq(usuario.email, email), isNull(usuario.excluidoEm)),
@@ -123,8 +253,6 @@ export const fluxoAutenticacaoHandlers = {
       preconditionFailed("Fluxo bloqueado. Entre em contato conosco.");
     }
 
-    await beginAuthAttempt(ctx.env, fluxo.email);
-
     if (fluxo.tipo === "entrar") {
       const existente = await ctx.db.query.usuario.findFirst({
         where: and(eq(usuario.email, fluxo.email), isNull(usuario.excluidoEm)),
@@ -134,8 +262,7 @@ export const fluxoAutenticacaoHandlers = {
         await failAuthAttemptWithCode(ctx.env, fluxo.email, "NOT_FOUND", "Conta não encontrada.");
       }
 
-      const code = await criarOtp(ctx, fluxo.email, "login");
-      await sendOtpEmail(ctx.env, fluxo.email, code, "login");
+      await enviarOtpComLinkMagico(ctx, fluxo, "login");
       return { ok: true as const, bloqueado: false };
     }
 
@@ -167,8 +294,7 @@ export const fluxoAutenticacaoHandlers = {
       return { ok: false as const, bloqueado: true };
     }
 
-    const code = await criarOtp(ctx, fluxo.email, "signup");
-    await sendOtpEmail(ctx.env, fluxo.email, code, "signup");
+    await enviarOtpComLinkMagico(ctx, fluxo, "signup");
     return { ok: true as const, bloqueado: false };
   },
 
@@ -186,38 +312,13 @@ export const fluxoAutenticacaoHandlers = {
 
     await beginAuthAttempt(ctx.env, fluxo.email);
 
-    const valid = await verificarOtp(ctx, fluxo.email, "login", input.otp);
+    const otp = normalizarOtp(input.otp);
+    const valid = await verificarOtp(ctx, fluxo.email, "login", otp);
     if (!valid) {
-      await failAuthAttemptWithCode(
-        ctx.env,
-        fluxo.email,
-        "UNAUTHORIZED",
-        "Código inválido ou expirado.",
-      );
+      unauthorized("Código inválido ou expirado.");
     }
 
-    const loggedInUser = await ctx.db.query.usuario.findFirst({
-      where: and(eq(usuario.email, fluxo.email), isNull(usuario.excluidoEm)),
-      columns: colunasUsuarioSessao,
-    });
-
-    if (!loggedInUser) {
-      await failAuthAttemptWithCode(ctx.env, fluxo.email, "NOT_FOUND", "Conta não encontrada.");
-    }
-
-    const token = await createSession(ctx, loggedInUser!.id);
-    ctx.sessionToken = token;
-    ctx.usuario = {
-      id: loggedInUser!.uuid,
-      internalId: loggedInUser!.id,
-      email: loggedInUser!.email,
-      nome: loggedInUser!.nome,
-      emailVerificadoEm: loggedInUser!.emailVerificadoEm,
-    };
-    ctx.organizationId = null;
-    ctx.role = null;
-
-    return mapearSessaoParaSaida(ctx, null);
+    return concluirEntradaFluxo(ctx, fluxo.email);
   },
 
   /** Valida OTP e cria conta via fluxo de cadastro. */
@@ -237,7 +338,8 @@ export const fluxoAutenticacaoHandlers = {
 
     await beginAuthAttempt(ctx.env, fluxo.email);
 
-    const valid = await verificarOtp(ctx, fluxo.email, "signup", input.otp);
+    const otp = normalizarOtp(input.otp);
+    const valid = await verificarOtp(ctx, fluxo.email, "signup", otp);
     if (!valid) {
       const proximasTentativas = fluxo.tentativasOtpInvalidas + 1;
       await ctx.db
@@ -254,49 +356,31 @@ export const fluxoAutenticacaoHandlers = {
         rpcError("PRECONDITION_FAILED", "Muitas tentativas inválidas. Entre em contato conosco.");
       }
 
-      await failAuthAttemptWithCode(
-        ctx.env,
-        fluxo.email,
-        "UNAUTHORIZED",
-        "Código inválido ou expirado.",
-      );
+      unauthorized("Código inválido ou expirado.");
     }
 
-    const existente = await ctx.db.query.usuario.findFirst({
-      where: and(eq(usuario.email, fluxo.email), isNull(usuario.excluidoEm)),
-      columns: colunasUsuarioSomenteId,
-    });
-    if (existente) {
-      rpcError("CONFLICT", "Este e-mail já possui conta.");
+    return concluirCadastroFluxo(ctx, fluxo.email);
+  },
+
+  /** Consome link mágico do e-mail OTP e cria sessão. */
+  consumirLinkMagico: async (ctx: WebContext, input: { token: string }) => {
+    const fluxo = await carregarFluxoPorLinkMagico(ctx, input.token);
+
+    if (fluxo.bloqueadoEm) {
+      preconditionFailed("Fluxo bloqueado. Entre em contato conosco.");
     }
 
-    const now = new Date();
-    const nome = derivarNomeDoEmail(fluxo.email);
+    await beginAuthAttempt(ctx.env, fluxo.email);
 
-    const [user] = await ctx.db
-      .insert(usuario)
-      .values(
-        comTimestampsCriacao({
-          email: fluxo.email,
-          nome,
-          emailVerificadoEm: now,
-          lgpdConsentidoEm: now,
-        }),
-      )
-      .returning();
+    await ctx.db
+      .update(fluxoAutenticacao)
+      .set(comTimestampAtualizacao({ linkMagicoUsadoEm: new Date() }))
+      .where(eq(fluxoAutenticacao.id, fluxo.id));
 
-    const token = await createSession(ctx, user!.id);
-    ctx.sessionToken = token;
-    ctx.usuario = {
-      id: user!.uuid,
-      internalId: user!.id,
-      email: user!.email,
-      nome: user!.nome,
-      emailVerificadoEm: user!.emailVerificadoEm,
-    };
-    ctx.organizationId = null;
-    ctx.role = null;
+    if (fluxo.tipo === "entrar") {
+      return concluirEntradaFluxo(ctx, fluxo.email);
+    }
 
-    return mapearSessaoParaSaida(ctx, null);
+    return concluirCadastroFluxo(ctx, fluxo.email);
   },
 };

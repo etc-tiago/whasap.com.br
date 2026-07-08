@@ -18,6 +18,7 @@
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "validate:env": "bun scripts/validate-wrangler-vars.ts",
+    "test": "vp run -r --no-cache test test:browser",
     "format": "oxfmt --check .",
     "format:fix": "oxfmt ."
   },

@@ -19,6 +19,11 @@
   --color-wa-icon: var(--wa-icon);
   --color-wa-text: var(--wa-text);
   --color-wa-text-muted: var(--wa-text-muted);
+  --color-wa-teal: var(--wa-teal);
+  --color-wa-bg: var(--wa-bg);
+  --color-wa-surface: var(--wa-surface);
+  --color-wa-muted: var(--wa-muted);
+  --color-wa-border: var(--wa-border);
 }
 
 :root {
@@ -37,6 +42,11 @@
   --wa-icon: oklch(0.5 0.01 155);
   --wa-text: oklch(0.2 0.005 155);
   --wa-text-muted: oklch(0.5 0.01 155);
+  --wa-teal: oklch(0.38 0.08 165);
+  --wa-bg: oklch(0.94 0.012 90);
+  --wa-surface: oklch(1 0 0);
+  --wa-muted: oklch(0.5 0.01 155);
+  --wa-border: oklch(0.88 0.008 155);
 }
 
 .dark {
@@ -55,6 +65,11 @@
   --wa-icon: oklch(0.7 0.01 155);
   --wa-text: oklch(0.95 0 0);
   --wa-text-muted: oklch(0.7 0.01 155);
+  --wa-teal: oklch(0.35 0.07 165);
+  --wa-bg: oklch(0.16 0.008 155);
+  --wa-surface: oklch(0.18 0.008 155);
+  --wa-muted: oklch(0.65 0.01 155);
+  --wa-border: oklch(0.3 0.008 155);
 }
 
 @utility wa-wallpaper {

@@ -4,7 +4,7 @@ import { Button } from "@whasap/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/card";
 import { Plus } from "lucide-react";
 
-import { rotuloProvedor } from "@whasap/config";
+import { rotuloWhatsApp } from "@whasap/config";
 import { orpc, type InstanciaItem } from "@/lib/orpc";
 import { orgInput } from "@/lib/org-input";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
@@ -33,14 +33,14 @@ function HomePage() {
           <h1 className="text-2xl font-semibold">Inbox</h1>
           <p className="text-sm text-muted-foreground">
             {connected.length > 0
-              ? "Selecione uma instância conectada para ver conversas."
-              : "Contrate e configure uma instância para começar."}
+              ? "Selecione um WhatsApp conectado para ver conversas."
+              : "Conecte seu WhatsApp Business ou Cloud para começar."}
           </p>
         </div>
         <Button asChild>
           <Link to="/$organizacaoHash/instancias" params={{ organizacaoHash }}>
             <Plus className="mr-2 h-4 w-4" />
-            Instâncias
+            WhatsApp
           </Link>
         </Button>
       </div>
@@ -48,16 +48,16 @@ function HomePage() {
       {connected.length === 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>Nenhuma instância ativa</CardTitle>
+            <CardTitle>Nenhum WhatsApp conectado</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              O painel está pronto. Contrate sua primeira instância WhatsApp (Cloud API ou Business)
-              para começar a receber mensagens.
+              O painel está pronto. Conecte seu primeiro WhatsApp Business ou Cloud para começar a
+              receber mensagens.
             </p>
             <Button asChild>
               <Link to="/$organizacaoHash/instancias" params={{ organizacaoHash }}>
-                Contratar instância
+                Conectar WhatsApp
               </Link>
             </Button>
           </CardContent>
@@ -71,7 +71,7 @@ function HomePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground mb-3">
-                  {rotuloProvedor(inst.provider)}
+                  {rotuloWhatsApp(inst.provider)}
                 </p>
                 <Button asChild size="sm" variant="outline">
                   <Link

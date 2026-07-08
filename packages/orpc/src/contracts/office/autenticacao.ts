@@ -3,6 +3,8 @@ import { z } from "zod";
 
 import { officeSessaoSchema } from "../../schemas";
 
+const loginOkSchema = z.object({});
+
 export const officeAutenticacaoContract = {
   enviarOtp: oc
     .input(
@@ -19,7 +21,7 @@ export const officeAutenticacaoContract = {
         otp: z.string().length(6),
       }),
     )
-    .output(officeSessaoSchema),
+    .output(loginOkSchema),
 
   sair: oc.input(z.object({})).output(z.object({ ok: z.boolean() })),
 

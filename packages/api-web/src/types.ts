@@ -1,5 +1,5 @@
 import type { Db } from "@whasap/db";
-import type { BaseEnv, SecretsStoreSecretBinding } from "@whasap/api-core";
+import type { BaseEnv, EstadoSessaoRpc, SecretsStoreSecretBinding } from "@whasap/api-core";
 
 export type MemberRole = "admin" | "usuario" | "analista";
 
@@ -20,6 +20,8 @@ export type WebContext = {
   organizationId: number | null;
   role: MemberRole | null;
   sessionToken: string | null;
+  sessionExpiraEm?: Date | null;
+  estadoSessao?: EstadoSessaoRpc;
   fecharDb: () => Promise<void>;
 };
 
@@ -32,4 +34,5 @@ export type WebEnv = BaseEnv & {
   ASAAS_SANDBOX?: string;
   EVOLUTION_BASE_URL?: string;
   EVOLUTION_API_KEY?: string;
+  WEB_SESSION_JWT_SECRET: SecretsStoreSecretBinding | string;
 };

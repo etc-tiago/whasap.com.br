@@ -15,6 +15,13 @@
       "when": 1783436981653,
       "tag": "0001_rapid_photon",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783455083503,
+      "tag": "0002_boring_turbo",
+      "breakpoints": true
     }
   ]
 }

@@ -19,6 +19,11 @@ import {
   usoMensal,
 } from "@whasap/db";
 
+import {
+  diasTrialAsaasRestantes,
+  exigirAcessoDemonstracao,
+  marcarInstanciaConectada,
+} from "../lib/demonstracao";
 import { toInstanciaOutput } from "../lib/mappers";
 import {
   createAsaasFromEnv,
@@ -121,6 +126,7 @@ export const instanciaHandlers = {
     const internalOrgId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
     if (internalOrgId === null) notFound();
     await exigirAdminPorIdInterno(ctx, internalOrgId);
+    await exigirAcessoDemonstracao(ctx, internalOrgId);
 
     const org = await ctx.db.query.organizacao.findFirst({
       where: and(eq(organizacao.id, internalOrgId), isNull(organizacao.excluidoEm)),
@@ -147,6 +153,7 @@ export const instanciaHandlers = {
   provisionar: async (ctx: WebContext, input: { instanciaId: string }) => {
     exigirAutenticacao(ctx);
     const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
+    await exigirAcessoDemonstracao(ctx, row.organizacaoId);
     if (!isEvolutionProvider(row.provedor)) preconditionFailed("Instância não é Evolution");
     if (row.status !== "pending_connection" && row.status !== "provisioning") {
       preconditionFailed("Instância já provisionada");
@@ -194,6 +201,7 @@ export const instanciaHandlers = {
   obterQr: async (ctx: WebContext, input: { instanciaId: string }) => {
     exigirAutenticacao(ctx);
     const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
+    await exigirAcessoDemonstracao(ctx, row.organizacaoId);
     if (!isEvolutionProvider(row.provedor)) {
       preconditionFailed("Instância não é Evolution");
     }
@@ -218,16 +226,14 @@ export const instanciaHandlers = {
   statusConexao: async (ctx: WebContext, input: { instanciaId: string }) => {
     exigirAutenticacao(ctx);
     const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
+    await exigirAcessoDemonstracao(ctx, row.organizacaoId);
 
     if (row.provedor === "cloud_api") {
       const conectado = Boolean(
         row.nuvemIdNumeroTelefone && row.nuvemIdWaba && row.nuvemTokenAcesso,
       );
-      if (conectado && row.status !== "pending_payment" && row.status !== "connected") {
-        await ctx.db
-          .update(instancia)
-          .set(comTimestampAtualizacao({ status: "pending_payment", conectadoEm: new Date() }))
-          .where(eq(instancia.id, row.id));
+      if (conectado && row.status !== "connected") {
+        await marcarInstanciaConectada(ctx, row.id, row.organizacaoId);
       }
       return { estado: conectado ? "open" : "close", conectado };
     }
@@ -242,11 +248,8 @@ export const instanciaHandlers = {
       const state = await client.getStatus();
       const estado = parseGoConnectionState(state);
       const conectado = estado === "open";
-      if (conectado && row.status !== "pending_payment" && row.status !== "connected") {
-        await ctx.db
-          .update(instancia)
-          .set(comTimestampAtualizacao({ status: "pending_payment", conectadoEm: new Date() }))
-          .where(eq(instancia.id, row.id));
+      if (conectado && row.status !== "connected") {
+        await marcarInstanciaConectada(ctx, row.id, row.organizacaoId);
       }
       return { estado, conectado };
     } catch {
@@ -267,6 +270,7 @@ export const instanciaHandlers = {
     const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
     if (row.provedor !== "cloud_api") preconditionFailed("Instância não é Cloud API");
     await exigirAdminPorIdInterno(ctx, row.organizacaoId);
+    await exigirAcessoDemonstracao(ctx, row.organizacaoId);
 
     try {
       const meta = createMetaClient({
@@ -291,11 +295,11 @@ export const instanciaHandlers = {
           nuvemIdNumeroTelefone: input.phoneNumberId,
           nuvemIdWaba: input.wabaId,
           nuvemTokenAcesso: input.accessToken,
-          status: "pending_payment",
-          conectadoEm: new Date(),
         }),
       )
       .where(eq(instancia.id, row.id));
+
+    await marcarInstanciaConectada(ctx, row.id, row.organizacaoId);
 
     return { ok: true };
   },
@@ -313,8 +317,11 @@ export const instanciaHandlers = {
     const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
     await exigirAdminPorIdInterno(ctx, row.organizacaoId);
 
-    if (row.status !== "pending_payment") {
+    if (row.status !== "connected") {
       preconditionFailed("Conecte o WhatsApp antes de configurar o pagamento");
+    }
+    if (row.asaasIdAssinatura) {
+      preconditionFailed("Esta instância já possui assinatura ativa");
     }
 
     const org = row.organizacao!;
@@ -349,15 +356,18 @@ export const instanciaHandlers = {
       cpfCnpj: input.documento,
     };
 
+    const trialDays = diasTrialAsaasRestantes(org);
+
     const urlCheckout = await createInstanceCheckout({
       env: ctx.env,
       customerId,
       customerData,
       instanceUuid: row.uuid,
       instanceName: row.nome,
-      successUrl: `${ctx.env.WEB_URL}/${org.uuid}/integracao?instance=${row.uuid}&step=concluido`,
-      cancelUrl: `${ctx.env.WEB_URL}/${org.uuid}/integracao?instance=${row.uuid}&step=pagamento`,
-      expiredUrl: `${ctx.env.WEB_URL}/${org.uuid}/integracao?instance=${row.uuid}&step=pagamento`,
+      successUrl: `${ctx.env.WEB_URL}/${org.uuid}/ajustes`,
+      cancelUrl: `${ctx.env.WEB_URL}/${org.uuid}/ajustes`,
+      expiredUrl: `${ctx.env.WEB_URL}/${org.uuid}/ajustes`,
+      trialDays,
     });
 
     return { urlCheckout };
@@ -373,6 +383,7 @@ export const instanciaHandlers = {
     exigirAutenticacao(ctx);
     const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
     await exigirAdminPorIdInterno(ctx, row.organizacaoId);
+    await exigirAcessoDemonstracao(ctx, row.organizacaoId);
 
     const org = row.organizacao!;
     if (!org.asaasIdCliente) preconditionFailed();
@@ -492,6 +503,7 @@ export const cobrancaHandlers = {
     });
     if (!instance) notFound();
     await exigirOrganizacaoPorIdInterno(ctx, instance.organizacaoId);
+    await exigirAcessoDemonstracao(ctx, instance.organizacaoId);
 
     const anoMes = new Date().toISOString().slice(0, 7);
     const usage = await ctx.db.query.usoMensal.findFirst({
@@ -508,10 +520,3 @@ export const cobrancaHandlers = {
     };
   },
 };
-
-/** @deprecated Use `buscarInstanciaDaOrganizacao` */
-export const getInstanceForOrg = buscarInstanciaDaOrganizacao;
-/** @deprecated Use `obterCredenciaisEvolution` */
-export const getEvolutionCreds = obterCredenciaisEvolution;
-/** @deprecated Use `obterCredenciaisMeta` */
-export const getMetaCreds = obterCredenciaisMeta;

@@ -3,4 +3,9 @@ export { buildMediaR2Key, cdnMediaUrl, cdnMediaUrlFromDefaults, mimeToExtension 
 export { mvpDefaults } from "./mvp-defaults";
 export { viteVarsProduction, workerVarsDevelopment, workerVarsProduction } from "./public-urls";
 export { instanceProviders, isEvolutionProvider, type InstanceProvider } from "./providers";
-export { rotuloProvedor, rotuloProvedorInstancia } from "./provider-labels";
+export {
+  rotuloProvedor,
+  rotuloProvedorInstancia,
+  rotuloSeuWhatsApp,
+  rotuloWhatsApp,
+} from "./provider-labels";

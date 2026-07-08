@@ -1,5 +1,5 @@
 import type { Db } from "@whasap/db";
-import type { BaseEnv } from "@whasap/api-core";
+import type { BaseEnv, EstadoSessaoRpc, SecretsStoreSecretBinding } from "@whasap/api-core";
 
 export type OfficeUsuario = {
   id: string;
@@ -15,9 +15,12 @@ export type OfficeContext = {
   clientIp: string | undefined;
   officeUsuario: OfficeUsuario | null;
   sessionToken: string | null;
+  sessionExpiraEm?: Date | null;
+  estadoSessao?: EstadoSessaoRpc;
   fecharDb: () => Promise<void>;
 };
 
 export type OfficeEnv = BaseEnv & {
   OFFICE_URL: string;
+  OFFICE_SESSION_JWT_SECRET: SecretsStoreSecretBinding | string;
 };

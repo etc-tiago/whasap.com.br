@@ -12,7 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import { appIcons } from "@whasap/config";
 
-import { reportLovableError } from "../lib/lovable-error-reporting";
+import { reportError } from "../lib/error-reporting";
 import { panelMeta } from "../lib/panel-meta";
 import appCss from "../styles.css?url";
 
@@ -44,7 +44,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   log.error({ boundary: "tanstack_root_error_component", erro: error.message });
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    reportError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
   return (

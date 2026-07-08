@@ -20,6 +20,8 @@ export const organizacao = pgTable("organizacao", {
   tipoDocumento: text(),
   razaoSocial: text(),
   asaasIdCliente: text().unique(),
+  /** Início do trial de demonstração (3 dias) — set na 1ª conexão WhatsApp da org. */
+  demonstracaoIniciaEm: timestamp(),
   horasAutoFecharInatividade: text().default("72"),
   excluidoEm: timestamp(),
   criadoEm: timestamp().notNull(),

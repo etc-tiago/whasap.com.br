@@ -7,6 +7,7 @@ export type AuthRateLimiter = {
 export type BaseEnv = {
   HYPERDRIVE: { connectionString: string };
   AUTH_RATE_LIMIT?: AuthRateLimiter;
+  EMAIL?: SendEmail;
   EMAIL_FROM: string;
 };
 

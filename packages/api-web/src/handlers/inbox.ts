@@ -38,6 +38,7 @@ import {
 } from "../lib/messaging";
 import type { WebContext } from "../types";
 import { exigirAutenticacao, resolverMembroPorIdInterno } from "./auth";
+import { exigirAcessoDemonstracao } from "../lib/demonstracao";
 import type { MemberRole } from "../types";
 
 /**
@@ -65,6 +66,7 @@ async function exigirAcessoConversa(ctx: WebContext, conversaUuid: string) {
   const conv = await buscarConversaPorUuid(ctx, conversaUuid);
   if (!conv) notFound();
   const { role } = await resolverMembroPorIdInterno(ctx, conv.instance.organizacaoId);
+  await exigirAcessoDemonstracao(ctx, conv.instance.organizacaoId);
   return { ...conv, role };
 }
 
@@ -76,6 +78,7 @@ async function exigirAcessoInstancia(ctx: WebContext, instanciaUuid: string) {
   });
   if (!instance) notFound();
   const { role } = await resolverMembroPorIdInterno(ctx, instance.organizacaoId);
+  await exigirAcessoDemonstracao(ctx, instance.organizacaoId);
   return { instance, role };
 }
 

@@ -18,6 +18,11 @@
     "OFFICE_URL": "https://office.whasap.com.br",
     "EMAIL_FROM": "noreply@whasap.com.br"
   },
+  "send_email": [
+    {
+      "name": "EMAIL",
+    }
+  ],
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
@@ -38,5 +43,5 @@
   ],
   "observability": {
     "enabled": true
-  },
+  }
 }

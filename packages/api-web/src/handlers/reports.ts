@@ -13,6 +13,7 @@ import { and, count, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 
 import type { WebContext } from "../types";
 import { exigirAutenticacao, resolverMembroPorIdInterno } from "./auth";
+import { exigirAcessoDemonstracao } from "../lib/demonstracao";
 
 const visaoGeralVazia = {
   totalConversas: 0,
@@ -53,8 +54,9 @@ export const relatoriosHandlers = {
     if (internalOrgId === null) notFound();
     const { role } = await resolverMembroPorIdInterno(ctx, internalOrgId);
     if (role === "usuario") {
-      forbidden("Relatórios não disponíveis para usuário");
+      forbidden("Relatórios não disponíveis para usuario");
     }
+    await exigirAcessoDemonstracao(ctx, internalOrgId);
 
     const from = new Date(input.de);
     const to = new Date(input.ate);

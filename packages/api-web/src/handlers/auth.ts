@@ -1,8 +1,13 @@
 import {
+  assertOtpSendAllowed,
+  atribuirSessaoRpc,
   beginAuthAttempt,
   criarOtp,
   failAuthAttemptWithCode,
+  limparSessaoRpc,
+  normalizarOtp,
   sendOtpEmail,
+  unauthorized,
   verificarOtp,
 } from "@whasap/api-core";
 import {
@@ -58,7 +63,7 @@ export const autenticacaoHandlers = {
    */
   enviarOtp: async (ctx: WebContext, input: EnviarOtpInput) => {
     const email = input.email.toLowerCase();
-    await beginAuthAttempt(ctx.env, email);
+    await assertOtpSendAllowed(ctx, email);
     const finalidade = propositoInterno[input.proposito];
 
     if (input.proposito === "cadastrar") {
@@ -94,9 +99,9 @@ export const autenticacaoHandlers = {
     const email = input.email.toLowerCase();
     await beginAuthAttempt(ctx.env, email);
 
-    const valid = await verificarOtp(ctx, email, "signup", input.otp);
+    const valid = await verificarOtp(ctx, email, "signup", normalizarOtp(input.otp));
     if (!valid) {
-      await failAuthAttemptWithCode(ctx.env, email, "UNAUTHORIZED", "Código inválido ou expirado.");
+      unauthorized("Código inválido ou expirado.");
     }
 
     const now = new Date();
@@ -113,8 +118,8 @@ export const autenticacaoHandlers = {
       )
       .returning();
 
-    const token = await createSession(ctx, user!.id);
-    ctx.sessionToken = token;
+    const { token, expiraEm } = await createSession(ctx, user!.id);
+    atribuirSessaoRpc(ctx, token, expiraEm);
     ctx.usuario = {
       id: user!.uuid,
       internalId: user!.id,
@@ -125,7 +130,7 @@ export const autenticacaoHandlers = {
     ctx.organizationId = null;
     ctx.role = null;
 
-    return mapearSessaoParaSaida(ctx, null);
+    return {};
   },
 
   /** Valida OTP de login e cria sessão web. */
@@ -133,9 +138,9 @@ export const autenticacaoHandlers = {
     const email = input.email.toLowerCase();
     await beginAuthAttempt(ctx.env, email);
 
-    const valid = await verificarOtp(ctx, email, "login", input.otp);
+    const valid = await verificarOtp(ctx, email, "login", normalizarOtp(input.otp));
     if (!valid) {
-      await failAuthAttemptWithCode(ctx.env, email, "UNAUTHORIZED", "Código inválido ou expirado.");
+      unauthorized("Código inválido ou expirado.");
     }
 
     const loggedInUser = await ctx.db.query.usuario.findFirst({
@@ -147,8 +152,8 @@ export const autenticacaoHandlers = {
       await failAuthAttemptWithCode(ctx.env, email, "NOT_FOUND", "Conta não encontrada.");
     }
 
-    const token = await createSession(ctx, loggedInUser!.id);
-    ctx.sessionToken = token;
+    const { token, expiraEm } = await createSession(ctx, loggedInUser!.id);
+    atribuirSessaoRpc(ctx, token, expiraEm);
     ctx.usuario = {
       id: loggedInUser!.uuid,
       internalId: loggedInUser!.id,
@@ -159,7 +164,7 @@ export const autenticacaoHandlers = {
     ctx.organizationId = null;
     ctx.role = null;
 
-    return mapearSessaoParaSaida(ctx, null);
+    return {};
   },
 
   /** Encerra sessão web e invalida cookie. */
@@ -168,6 +173,7 @@ export const autenticacaoHandlers = {
       const { deleteSession } = await import("../lib/session");
       await deleteSession(ctx, ctx.sessionToken);
     }
+    limparSessaoRpc(ctx);
     return { ok: true };
   },
 

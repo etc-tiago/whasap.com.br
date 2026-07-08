@@ -1,5 +1,5 @@
 import { criarDb } from "@whasap/db";
-import { createRpcHandler, getClientIp } from "@whasap/api-core";
+import { createRpcHandler, getClientIp, resolveSessionJwtSecret } from "@whasap/api-core";
 
 import {
   resolveSession,
@@ -9,6 +9,20 @@ import {
 } from "./lib/session";
 import { router } from "./router";
 import type { WebContext, WebEnv } from "./types";
+
+const WEB_PUBLIC_PATHS = [
+  "/saude/verificar",
+  "/autenticacao/enviarOtp",
+  "/autenticacao/cadastrar",
+  "/autenticacao/entrar",
+  "/autenticacao/iniciarFluxo",
+  "/autenticacao/obterFluxo",
+  "/autenticacao/enviarOtpFluxo",
+  "/autenticacao/entrarFluxo",
+  "/autenticacao/cadastrarFluxo",
+  "/autenticacao/consumirLinkMagico",
+  "/organizacao/convites/aceitar",
+];
 
 const handleRpc = createRpcHandler<WebContext>({
   router,
@@ -20,8 +34,18 @@ const handleRpc = createRpcHandler<WebContext>({
       "/autenticacao/entrar",
       "/autenticacao/cadastrarFluxo",
       "/autenticacao/entrarFluxo",
+      "/autenticacao/consumirLinkMagico",
     ],
     logoutPath: "/autenticacao/sair",
+    publicPaths: WEB_PUBLIC_PATHS,
+    jwt: {
+      resolveSecret: (env) =>
+        resolveSessionJwtSecret(
+          (env as WebEnv).WEB_SESSION_JWT_SECRET,
+          "WEB_SESSION_JWT_SECRET",
+        ),
+      audience: "web",
+    },
   },
   buildContext: async (env, request, sessionToken) => {
     const webEnv = env as WebEnv;
@@ -39,6 +63,7 @@ const handleRpc = createRpcHandler<WebContext>({
       organizationId: session.organizationId,
       role: session.role,
       sessionToken,
+      sessionExpiraEm: null,
       fecharDb,
     };
   },

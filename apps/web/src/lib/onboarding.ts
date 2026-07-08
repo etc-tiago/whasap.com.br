@@ -1,14 +1,14 @@
 /**
- * Critérios de organização operacional no painel.
- * Uma org é operacional quando tem ao menos uma instância conectada com assinatura Asaas ativa.
+ * Critérios de organização conectada e operacional no painel.
+ * Operacional = ao menos uma instância WhatsApp conectada (sem exigir assinatura).
  */
-export function isOrganizacaoOperacional(
-  instancias: Array<{ status: string; asaasSubscriptionId: string | null }>,
+export function isOrganizacaoConectada(
+  instancias: Array<{ status: string }>,
 ): boolean {
-  return instancias.some((i) => i.status === "connected" && i.asaasSubscriptionId);
+  return instancias.some((i) => i.status === "connected");
 }
 
-export type PassoOnboarding = "tipo" | "conexao" | "trial" | "pagamento" | "concluido";
+export type PassoOnboarding = "tipo" | "conexao" | "concluido";
 
 type DerivarPassoParams = {
   searchStep: string;
@@ -20,22 +20,13 @@ type DerivarPassoParams = {
 };
 
 /**
- * Deriva o passo atual do wizard de onboarding a partir do status da instância e query params.
- *
- * Fluxo: tipo → conexao → trial → pagamento → concluido
- * - `tipo`: sem instância selecionada
- * - `conexao`: provisionamento/QR ou config Cloud API
- * - `trial`/`pagamento`: instância em `pending_payment`
- * - `concluido`: `connected` ou `?step=concluido`
+ * Deriva o passo atual do wizard de onboarding a partir do status da instância.
+ * Fluxo: tipo → conexao → concluido
  */
 export function derivarPassoOnboarding(params: DerivarPassoParams): PassoOnboarding {
   const { searchStep, activeInstanceId, instancia: inst } = params;
 
   if (searchStep === "concluido" || inst?.status === "connected") return "concluido";
   if (!activeInstanceId) return "tipo";
-  if (inst?.status === "pending_payment") {
-    if (searchStep === "pagamento") return "pagamento";
-    return "trial";
-  }
   return "conexao";
 }

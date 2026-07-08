@@ -2,6 +2,7 @@ import { mvpDefaults } from "@whasap/config";
 import { codigoOtp, colunasCodigoOtpVerificacao, comCriadoEm } from "@whasap/db";
 import { and, count, eq, gt, isNull } from "drizzle-orm";
 
+import { tooManyRequests } from "./rpc-error";
 import type { DbContext } from "../types";
 
 function gerarCodigoOtp(): string {
@@ -17,6 +18,21 @@ export async function contarOtpsRecentes(ctx: DbContext, email: string): Promise
     .from(codigoOtp)
     .where(and(eq(codigoOtp.email, email.toLowerCase()), gt(codigoOtp.criadoEm, desde)));
   return linha?.n ?? 0;
+}
+
+/** @throws 429 se o limite de envio de OTP por e-mail foi atingido. */
+export async function assertOtpSendAllowed(ctx: DbContext, email: string): Promise<void> {
+  const enviados = await contarOtpsRecentes(ctx, email);
+  if (enviados >= mvpDefaults.auth.otpRateLimit) {
+    tooManyRequests(
+      `Limite de ${mvpDefaults.auth.otpRateLimit} códigos por ${mvpDefaults.auth.otpRateLimitWindowMinutes} minutos. Aguarde um momento.`,
+    );
+  }
+}
+
+/** Normaliza código OTP digitado (apenas dígitos, 6 caracteres). */
+export function normalizarOtp(codigo: string): string {
+  return codigo.replace(/\D/g, "").slice(0, 6);
 }
 
 /**
@@ -47,12 +63,15 @@ export async function verificarOtp(
   finalidade: string,
   codigo: string,
 ): Promise<boolean> {
+  const codigoNormalizado = normalizarOtp(codigo);
+  if (codigoNormalizado.length !== 6) return false;
+
   const agora = new Date();
   const linha = await ctx.db.query.codigoOtp.findFirst({
     where: and(
       eq(codigoOtp.email, email.toLowerCase()),
       eq(codigoOtp.finalidade, finalidade),
-      eq(codigoOtp.codigo, codigo),
+      eq(codigoOtp.codigo, codigoNormalizado),
       gt(codigoOtp.expiraEm, agora),
       isNull(codigoOtp.usadoEm),
     ),

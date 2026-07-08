@@ -44,6 +44,7 @@ export const colunasOrganizacaoPublica = {
   tipoDocumento: true,
   razaoSocial: true,
   asaasIdCliente: true,
+  demonstracaoIniciaEm: true,
 } as const;
 
 /** Checagem de slug / existência — retorna só PK interna. */

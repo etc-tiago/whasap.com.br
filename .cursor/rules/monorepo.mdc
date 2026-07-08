@@ -8,6 +8,7 @@ alwaysApply: true
 - Apps live in `apps/`: `site` (marketing), `web` (painel cliente), `office`, `webhook`
 - Use `@whasap/ui` for shadcn components, `@whasap/orpc/web` ou `/office` para contratos, `@whasap/db` for database
 - ORPC: `@whasap/api-web` (painel cliente) e `@whasap/api-office` (admin); utilitários em `@whasap/api-core`
+- **Procedures vs handlers:** `src/procedures/**` só delega ao handler; regra de negócio fica em `src/handlers/**` — ver [`packages/api-web/README.md`](../../packages/api-web/README.md) (cookie de sessão, fluxo OTP, anti-padrões)
 - `web` e `office` têm APIs ORPC separadas — não compartilhar handlers entre painéis
 - Domain logic (WhatsApp UI) stays in `apps/web`, not in shared packages
 - Marketing pages stay in `apps/site` only — not in `apps/web`

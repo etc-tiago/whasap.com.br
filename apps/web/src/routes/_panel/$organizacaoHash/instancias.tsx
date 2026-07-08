@@ -4,6 +4,8 @@ import { Button } from "@whasap/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/card";
 import { Badge } from "@whasap/ui/components/badge";
 
+import { rotuloWhatsApp } from "@whasap/config";
+
 import { orgInput } from "@/lib/org-input";
 import { orpc, type InstanciaItem } from "@/lib/orpc";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
@@ -45,9 +47,9 @@ function InstancesPage() {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Instâncias</h1>
+          <h1 className="text-2xl font-semibold">WhatsApp</h1>
           <p className="text-sm text-muted-foreground">
-            R$ 99/mês por instância — inclui 1.000 conversas/mês (3 dias grátis)
+            R$ 99/mês por WhatsApp conectado — inclui 1.000 conversas/mês (3 dias grátis)
           </p>
         </div>
         {isAdmin && (
@@ -60,7 +62,7 @@ function InstancesPage() {
               })
             }
           >
-            Nova instância
+            Conectar WhatsApp
           </Button>
         )}
       </div>
@@ -68,8 +70,11 @@ function InstancesPage() {
       <div className="grid gap-4">
         {(instances.data ?? []).map((inst: InstanciaItem) => (
           <Card key={inst.id}>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">{inst.nome}</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="text-base">{inst.nome}</CardTitle>
+                <p className="text-xs text-muted-foreground">{rotuloWhatsApp(inst.provider)}</p>
+              </div>
               <div className="flex gap-2">
                 {inst.trialEndsAt && new Date(inst.trialEndsAt) > new Date() && (
                   <Badge variant="secondary">Trial</Badge>
@@ -104,14 +109,14 @@ function InstancesPage() {
         ))}
         {instances.data?.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            Nenhuma instância ainda.{" "}
+            Nenhum WhatsApp conectado ainda.{" "}
             <Link
               to="/$organizacaoHash/integracao"
               params={{ organizacaoHash }}
               search={{ instance: "", step: "" }}
               className="text-wa-green underline"
             >
-              Configure a primeira
+              Conecte o primeiro
             </Link>
             .
           </p>

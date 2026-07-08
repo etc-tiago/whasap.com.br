@@ -1,6 +1,6 @@
 /**
  * Cliente ORPC do painel web (`webContract`).
- * - Browser: `/rpc` na mesma origem com cookies de sessão (`credentials: "include"`).
+ * - Browser: `/rpc` na mesma origem com cookie JWT de sessão (`credentials: "include"`).
  * - SSR: aponta para `localhost:3000/rpc`.
  * Use `orpc` para TanStack Query; `orpcClient` para chamadas imperativas.
  */

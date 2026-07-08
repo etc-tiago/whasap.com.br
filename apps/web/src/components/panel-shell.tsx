@@ -1,4 +1,4 @@
-import { Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@whasap/ui/components/button";
 import { Badge } from "@whasap/ui/components/badge";
@@ -12,8 +12,13 @@ import {
 import { MessageCircle, LogOut, Settings, Smartphone, BarChart3, Users, Plus } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { DemonstracaoBanner } from "@/components/demonstracao-banner";
+import { DemonstracaoLockout } from "@/components/demonstracao-lockout";
+import { WaBackdrop } from "@/components/wa-backdrop";
 import { useSession } from "@/lib/auth";
+import { orgInput } from "@/lib/org-input";
 import { orpc, orpcClient } from "@/lib/orpc";
+import { cn } from "@whasap/ui/lib/utils";
 
 type OrganizacaoComPapel = Awaited<ReturnType<typeof orpcClient.organizacao.obter>>;
 
@@ -30,6 +35,14 @@ export function PanelShell({
   const organizacaoHash = organizacao.id;
 
   const orgs = useQuery(orpc.organizacao.lista.queryOptions());
+  const instancias = useQuery(
+    orpc.instancia.lista.queryOptions({ input: orgInput(organizacaoHash) }),
+  );
+
+  const instanciaPagamento =
+    instancias.data?.find((i) => i.status === "connected" && !i.asaasSubscriptionId) ??
+    instancias.data?.find((i) => i.status === "connected") ??
+    null;
 
   const logout = useMutation(
     orpc.autenticacao.sair.mutationOptions({
@@ -39,109 +52,133 @@ export function PanelShell({
     }),
   );
 
+  const bloqueado = organizacao.demonstracao.estado === "bloqueado";
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const comWallpaper = pathname.endsWith("/integracao");
+
   return (
-    <div className="flex min-h-screen bg-background">
-      <aside className="flex w-56 flex-col border-r border-border bg-card">
-        <div className="flex items-center gap-2 border-b border-border px-4 py-4">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-wa-green text-white">
-            <MessageCircle className="h-4 w-4 fill-white" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">Whasap</p>
-            {(orgs.data?.length ?? 0) > 1 ? (
-              <Select
-                value={organizacaoHash}
-                onValueChange={(value) =>
-                  navigate({ to: "/$organizacaoHash", params: { organizacaoHash: value } })
-                }
-              >
-                <SelectTrigger className="mt-1 h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {orgs.data?.map((org) => (
-                    <SelectItem key={org.id} value={org.id}>
-                      {org.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <p className="truncate text-xs text-muted-foreground">{organizacao.nome}</p>
-            )}
-            <Badge variant="outline" className="mt-1 text-[10px]">
-              {organizacao.meuPapel}
-            </Badge>
+    <div
+      className={cn("flex min-h-screen flex-col", comWallpaper ? "bg-transparent" : "bg-background")}
+    >
+      {comWallpaper && <WaBackdrop />}
+      <DemonstracaoBanner
+        demonstracao={organizacao.demonstracao}
+        isAdmin={organizacao.meuPapel === "admin"}
+        instanciaId={instanciaPagamento?.id ?? null}
+        instanciaNome={instanciaPagamento?.nome ?? null}
+      />
+      <div className="relative flex min-h-0 flex-1">
+        <aside
+          className={`flex w-56 shrink-0 flex-col border-r border-border bg-card ${bloqueado ? "pointer-events-none opacity-50" : ""}`}
+        >
+          <div className="flex items-center gap-2 border-b border-border px-4 py-4">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-wa-green text-white">
+              <MessageCircle className="h-4 w-4 fill-white" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">Whasap</p>
+              {(orgs.data?.length ?? 0) > 1 ? (
+                <Select
+                  value={organizacaoHash}
+                  onValueChange={(value) =>
+                    navigate({ to: "/$organizacaoHash", params: { organizacaoHash: value } })
+                  }
+                  disabled={bloqueado}
+                >
+                  <SelectTrigger className="mt-1 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {orgs.data?.map((org) => (
+                      <SelectItem key={org.id} value={org.id}>
+                        {org.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="truncate text-xs text-muted-foreground">{organizacao.nome}</p>
+              )}
+              <Badge variant="outline" className="mt-1 text-[10px]">
+                {organizacao.meuPapel}
+              </Badge>
+            </div>
           </div>
-        </div>
-        <nav className="flex flex-1 flex-col gap-1 p-2">
-          <Link
-            to="/$organizacaoHash"
-            params={{ organizacaoHash }}
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
-          >
-            <MessageCircle className="h-4 w-4" />
-            Inbox
-          </Link>
-          <Link
-            to="/$organizacaoHash/instancias"
-            params={{ organizacaoHash }}
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
-          >
-            <Smartphone className="h-4 w-4" />
-            Instâncias
-          </Link>
-          <Link
-            to="/$organizacaoHash/relatorios"
-            params={{ organizacaoHash }}
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
-          >
-            <BarChart3 className="h-4 w-4" />
-            Relatórios
-          </Link>
-          {organizacao.meuPapel === "admin" && (
+          <nav className="flex flex-1 flex-col gap-1 p-2">
             <Link
-              to="/$organizacaoHash/equipe"
+              to="/$organizacaoHash"
               params={{ organizacaoHash }}
               className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
             >
-              <Users className="h-4 w-4" />
-              Equipe
+              <MessageCircle className="h-4 w-4" />
+              Inbox
             </Link>
-          )}
-          <Link
-            to="/$organizacaoHash/ajustes"
-            params={{ organizacaoHash }}
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
-          >
-            <Settings className="h-4 w-4" />
-            Ajustes
-          </Link>
-          <Link
-            to="/integracao"
-            className="mt-2 flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent"
-          >
-            <Plus className="h-4 w-4" />
-            Nova organização
-          </Link>
-        </nav>
-        <div className="border-t border-border p-2">
-          <p className="truncate px-3 py-1 text-xs text-muted-foreground">
-            {session?.usuario?.email}
-          </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start gap-2"
-            disabled={logout.isPending}
-            onClick={() => logout.mutate({})}
-          >
-            <LogOut className="h-4 w-4" />
-            Sair
-          </Button>
-        </div>
-      </aside>
-      <main className="flex-1 overflow-auto">{children ?? <Outlet />}</main>
+            <Link
+              to="/$organizacaoHash/instancias"
+              params={{ organizacaoHash }}
+              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
+            >
+              <Smartphone className="h-4 w-4" />
+              WhatsApp
+            </Link>
+            <Link
+              to="/$organizacaoHash/relatorios"
+              params={{ organizacaoHash }}
+              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
+            >
+              <BarChart3 className="h-4 w-4" />
+              Relatórios
+            </Link>
+            {organizacao.meuPapel === "admin" && (
+              <Link
+                to="/$organizacaoHash/equipe"
+                params={{ organizacaoHash }}
+                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
+              >
+                <Users className="h-4 w-4" />
+                Equipe
+              </Link>
+            )}
+            <Link
+              to="/$organizacaoHash/ajustes"
+              params={{ organizacaoHash }}
+              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
+            >
+              <Settings className="h-4 w-4" />
+              Ajustes
+            </Link>
+            <Link
+              to="/integracao"
+              className="mt-2 flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent"
+            >
+              <Plus className="h-4 w-4" />
+              Nova organização
+            </Link>
+          </nav>
+          <div className="border-t border-border p-2">
+            <p className="truncate px-3 py-1 text-xs text-muted-foreground">
+              {session?.usuario?.email}
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start gap-2"
+              disabled={logout.isPending}
+              onClick={() => logout.mutate({})}
+            >
+              <LogOut className="h-4 w-4" />
+              Sair
+            </Button>
+          </div>
+        </aside>
+        <main className="relative flex-1 overflow-auto">
+          {children ?? <Outlet />}
+          <DemonstracaoLockout
+            demonstracao={organizacao.demonstracao}
+            isAdmin={organizacao.meuPapel === "admin"}
+          />
+        </main>
+      </div>
     </div>
   );
 }

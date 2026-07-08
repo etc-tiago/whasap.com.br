@@ -1,8 +1,10 @@
 import { and, eq, isNull } from "drizzle-orm";
 import {
+  atribuirSessaoRpc,
   beginAuthAttempt,
   criarOtp,
   failAuthAttemptWithCode,
+  limparSessaoRpc,
   sendOtpEmail,
   verificarOtp,
 } from "@whasap/api-core";
@@ -65,8 +67,8 @@ export const autenticacaoHandlers = {
       await failAuthAttemptWithCode(ctx.env, email, "NOT_FOUND", "Acesso não autorizado.");
     }
 
-    const token = await createSession(ctx, loggedInUser!.id);
-    ctx.sessionToken = token;
+    const { token, expiraEm } = await createSession(ctx, loggedInUser!.id);
+    atribuirSessaoRpc(ctx, token, expiraEm);
     ctx.officeUsuario = {
       id: loggedInUser!.uuid,
       internalId: loggedInUser!.id,
@@ -74,7 +76,7 @@ export const autenticacaoHandlers = {
       nome: loggedInUser!.nome,
     };
 
-    return mapearSessaoOfficeParaSaida(ctx);
+    return {};
   },
 
   /** Encerra sessão office e invalida cookie. */
@@ -83,6 +85,7 @@ export const autenticacaoHandlers = {
       const { deleteSession } = await import("../lib/session");
       await deleteSession(ctx, ctx.sessionToken);
     }
+    limparSessaoRpc(ctx);
     return { ok: true };
   },
 

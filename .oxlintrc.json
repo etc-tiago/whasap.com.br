@@ -47,7 +47,7 @@
       }
     },
     {
-      "files": ["apps/web/src/lib/lovable-error-reporting.ts"],
+      "files": ["apps/web/src/lib/error-reporting.ts"],
       "rules": {
         "eslint/no-underscore-dangle": "off"
       }

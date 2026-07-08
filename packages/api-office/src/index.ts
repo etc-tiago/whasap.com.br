@@ -1,9 +1,11 @@
 import { criarDb } from "@whasap/db";
-import { createRpcHandler, getClientIp } from "@whasap/api-core";
+import { createRpcHandler, getClientIp, resolveSessionJwtSecret } from "@whasap/api-core";
 
 import { resolveSession, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from "./lib/session";
 import { router } from "./router";
 import type { OfficeContext, OfficeEnv } from "./types";
+
+const OFFICE_PUBLIC_PATHS = ["/autenticacao/enviarOtp", "/autenticacao/entrar"];
 
 const handleRpc = createRpcHandler<OfficeContext>({
   router,
@@ -12,6 +14,15 @@ const handleRpc = createRpcHandler<OfficeContext>({
     maxAgeSeconds: SESSION_MAX_AGE_SECONDS,
     loginPaths: ["/autenticacao/entrar"],
     logoutPath: "/autenticacao/sair",
+    publicPaths: OFFICE_PUBLIC_PATHS,
+    jwt: {
+      resolveSecret: (env) =>
+        resolveSessionJwtSecret(
+          (env as OfficeEnv).OFFICE_SESSION_JWT_SECRET,
+          "OFFICE_SESSION_JWT_SECRET",
+        ),
+      audience: "office",
+    },
   },
   buildContext: async (env, request, sessionToken) => {
     const officeEnv = env as OfficeEnv;
@@ -33,6 +44,7 @@ const handleRpc = createRpcHandler<OfficeContext>({
       clientIp: getClientIp(request),
       officeUsuario: session.officeUsuario,
       sessionToken,
+      sessionExpiraEm: null,
       fecharDb,
     };
   },

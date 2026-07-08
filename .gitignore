@@ -9,3 +9,5 @@ dist
 *.log
 .DS_Store
 .tanstack
+.vitest-attachments
+__screenshots__

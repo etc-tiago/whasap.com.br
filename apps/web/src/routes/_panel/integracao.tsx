@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/
 import { Input } from "@whasap/ui/components/input";
 import { Label } from "@whasap/ui/components/label";
 
+import { WaBackdrop } from "@/components/wa-backdrop";
 import { orpc } from "@/lib/orpc";
 
 export const Route = createFileRoute("/_panel/integracao")({
@@ -29,7 +30,9 @@ function IntegracaoPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <>
+      <WaBackdrop />
+      <div className="relative flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Nova organização</CardTitle>
@@ -53,6 +56,7 @@ function IntegracaoPage() {
           </Button>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 }

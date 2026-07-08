@@ -1,6 +1,6 @@
 /**
  * Cliente ORPC do painel office (`officeContract`).
- * Porta dev: 3001. Cookies de sessão via `credentials: "include"`.
+ * Porta dev: 3001. Cookie JWT de sessão via `credentials: "include"`.
  */
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";

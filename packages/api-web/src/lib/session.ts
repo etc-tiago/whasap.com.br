@@ -23,12 +23,12 @@ export const getSessionTokenFromRequest = cookieHelpers.getSessionTokenFromReque
 export const sessionCookieHeader = cookieHelpers.sessionCookieHeader;
 export const clearSessionCookieHeader = cookieHelpers.clearSessionCookieHeader;
 
-/** Cria sessão web e retorna o token do cookie. */
+/** Cria sessão web e retorna token opaco + expiração. */
 export async function createSession(
   ctx: WebContext,
   usuarioInternalId: number,
   organizationId?: number,
-): Promise<string> {
+): Promise<{ token: string; expiraEm: Date }> {
   const token = crypto.randomUUID();
   const expiraEm = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
   await ctx.db.insert(sessao).values(
@@ -39,7 +39,7 @@ export async function createSession(
       expiraEm,
     }),
   );
-  return token;
+  return { token, expiraEm };
 }
 
 /** Atualiza organização ativa na sessão. */

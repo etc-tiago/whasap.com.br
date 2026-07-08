@@ -43,6 +43,8 @@ Não usamos `wrangler deploy --env production` — isso criaria workers com sufi
 | `VITE_META_APP_ID`, `VITE_META_CONFIG_ID` | build | `apps/web/.env.production` | `.env` |
 | `ASAAS_SANDBOX` | flag dev | não definir | `.dev.vars` = `true` |
 | `ASSAS_API_KEY` | secret | Secrets Store | `.dev.vars` |
+| `WEB_SESSION_JWT_SECRET` | secret | `wrangler secret put` | `.dev.vars` |
+| `OFFICE_SESSION_JWT_SECRET` | secret | `wrangler secret put` | `.dev.vars` |
 | `EVOLUTION_API_KEY` | secret | `wrangler secret put` | `.dev.vars` |
 | `WHATSAPP_CLOUD_WEBHOOK_SECRET` | secret | `wrangler secret put` | `.dev.vars` |
 | `ASAAS_WEBHOOK_TOKEN` | secret | `wrangler secret put` | `.dev.vars` |

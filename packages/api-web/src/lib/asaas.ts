@@ -37,6 +37,7 @@ export async function createInstanceCheckout(params: {
   successUrl: string;
   cancelUrl: string;
   expiredUrl: string;
+  trialDays?: number;
 }): Promise<string> {
   const asaas = await createAsaasFromEnv(params.env);
   const checkout = await asaas.checkouts.createInstanceCheckout({
@@ -47,7 +48,7 @@ export async function createInstanceCheckout(params: {
     successUrl: params.successUrl,
     cancelUrl: params.cancelUrl,
     expiredUrl: params.expiredUrl,
-    trialDays: mvpDefaults.billing.trialDays,
+    trialDays: params.trialDays ?? mvpDefaults.billing.trialDays,
   });
   if (!checkout.link) throw new Error("Asaas checkout URL missing");
   return checkout.link;
