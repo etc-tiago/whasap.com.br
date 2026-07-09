@@ -35,6 +35,10 @@ export const instanciaContract = {
     .input(z.object({ instanciaId: z.string().uuid() }))
     .output(z.object({ ok: z.boolean() })),
 
+  descartar: oc
+    .input(z.object({ instanciaId: z.string().uuid() }))
+    .output(z.object({ ok: z.boolean() })),
+
   obterQr: oc.input(z.object({ instanciaId: z.string().uuid() })).output(
     z.object({
       base64: z.string().nullable(),
@@ -63,7 +67,7 @@ export const instanciaContract = {
         accessToken: z.string().min(1),
       }),
     )
-    .output(z.object({ ok: z.boolean() })),
+    .output(z.object({ ok: z.boolean(), templatesCount: z.number().int() })),
 
   criarCheckout: oc
     .input(

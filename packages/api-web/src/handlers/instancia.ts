@@ -10,6 +10,7 @@ import {
   comTimestampsCriacao,
   incluirOrganizacaoPublica,
   instancia,
+  marcarExclusaoLogica,
   organizacao,
   resolverIdInterno,
   usoMensal,
@@ -246,6 +247,57 @@ export const instanciaHandlers = {
     return { ok: true };
   },
 
+  /** Descarta instância em onboarding (soft-delete). Remove sessão Evolution no provedor. */
+  descartar: async (ctx: WebContext, input: { instanciaId: string }) => {
+    exigirAutenticacao(ctx);
+    const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
+    await exigirAdminPorIdInterno(ctx, row.organizacaoId);
+    await exigirAcessoDemonstracao(ctx, row.organizacaoId);
+
+    if (row.status === "connected" || row.status === "deactivated") {
+      preconditionFailed("Instância conectada ou desativada não pode ser descartada");
+    }
+    if (row.asaasIdAssinatura) {
+      preconditionFailed("Instância com assinatura ativa não pode ser descartada");
+    }
+
+    if (isEvolutionProvider(row.provedor)) {
+      const creds = await obterCredenciaisEvolution(ctx.env);
+      if (row.evolucaoToken) {
+        try {
+          const client = createEvolutionGoClient(creds, { instanceToken: row.evolucaoToken });
+          await client.disconnect();
+        } catch (err) {
+          log.warn({
+            evolution: {
+              descartarDisconnectFalhou: true,
+              erro: err instanceof Error ? err.message : String(err),
+            },
+          });
+        }
+      }
+      const evolutionId = row.evolucaoInstanceId ?? row.uuid;
+      try {
+        const admin = createEvolutionGoClient(creds);
+        await admin.deleteInstance(evolutionId);
+      } catch (err) {
+        log.warn({
+          evolution: {
+            descartarDeleteFalhou: true,
+            erro: err instanceof Error ? err.message : String(err),
+          },
+        });
+      }
+    }
+
+    await ctx.db
+      .update(instancia)
+      .set(marcarExclusaoLogica())
+      .where(eq(instancia.id, row.id));
+
+    return { ok: true };
+  },
+
   obterQr: async (ctx: WebContext, input: { instanciaId: string }) => {
     exigirAutenticacao(ctx);
     const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
@@ -360,20 +412,25 @@ export const instanciaHandlers = {
     await exigirAdminPorIdInterno(ctx, row.organizacaoId);
     await exigirAcessoDemonstracao(ctx, row.organizacaoId);
 
+    const meta = createMetaClient({
+      accessToken: input.accessToken,
+      phoneNumberId: input.phoneNumberId,
+      wabaId: input.wabaId,
+    });
+
+    let templatesCount: number;
     try {
-      const meta = createMetaClient({
-        accessToken: input.accessToken,
-        phoneNumberId: input.phoneNumberId,
-        wabaId: input.wabaId,
-      });
-      await meta.listTemplates();
+      const templates = await meta.listTemplates();
+      templatesCount = templates.data?.length ?? 0;
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       log.warn({
         meta: {
           validacaoTokenFalhou: true,
-          erro: err instanceof Error ? err.message : String(err),
+          erro: msg,
         },
       });
+      preconditionFailed(`Não foi possível sincronizar modelos da Meta: ${msg}`);
     }
 
     await ctx.db
@@ -389,7 +446,7 @@ export const instanciaHandlers = {
 
     await marcarInstanciaConectada(ctx, row.id, row.organizacaoId, row.asaasIdAssinatura);
 
-    return { ok: true };
+    return { ok: true, templatesCount };
   },
 
   criarCheckout: async (
