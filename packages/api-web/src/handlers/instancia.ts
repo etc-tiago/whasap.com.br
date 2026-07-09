@@ -1,4 +1,4 @@
-import { getEvolutionCredentials, notFound, preconditionFailed } from "@whasap/api-core";
+import { criarClienteEvolutionGo, getEvolutionCredentials, notFound, preconditionFailed } from "@whasap/api-core";
 import { isEvolutionProvider } from "@whasap/config";
 import {
   colunasInstanciaOperacao,
@@ -17,7 +17,6 @@ import {
 } from "@whasap/db";
 import { log } from "@whasap/evlog";
 import {
-  createEvolutionGoClient,
   EVOLUTION_WEBHOOK_SUBSCRIBE_ALL,
   parseGoConnectionState,
   parseGoQrResponse,
@@ -84,6 +83,13 @@ export async function obterCredenciaisEvolution(env: WebEnv) {
   } catch {
     preconditionFailed("Evolution API não configurada no worker");
   }
+}
+
+function metaLogEvolution(row: { uuid: string; evolucaoInstanceId?: string | null }) {
+  return {
+    instanciaUuid: row.uuid,
+    ...(row.evolucaoInstanceId ? { evolutionInstanceId: row.evolucaoInstanceId } : {}),
+  };
 }
 
 /** Obtém credenciais Meta Cloud API da instância. */
@@ -180,11 +186,17 @@ export const instanciaHandlers = {
     const instanceToken = row.evolucaoToken ?? crypto.randomUUID().replace(/-/g, "");
 
     try {
-      const admin = createEvolutionGoClient({ baseUrl, apiKey });
+      const meta = metaLogEvolution({ uuid: row.uuid, evolucaoInstanceId: instanceId });
+      const admin = criarClienteEvolutionGo(ctx.env, { baseUrl, apiKey }, undefined, meta);
       if (!row.evolucaoInstanceId) {
         await admin.createInstance({ name: instanceName, instanceId, token: instanceToken });
       }
-      const client = createEvolutionGoClient({ baseUrl, apiKey }, { instanceToken });
+      const client = criarClienteEvolutionGo(
+        ctx.env,
+        { baseUrl, apiKey },
+        { instanceToken },
+        meta,
+      );
       await client.connect({
         webhookUrl,
         subscribe: EVOLUTION_WEBHOOK_SUBSCRIBE_ALL,
@@ -227,7 +239,12 @@ export const instanciaHandlers = {
     if (row.evolucaoToken) {
       try {
         const creds = await obterCredenciaisEvolution(ctx.env);
-        const client = createEvolutionGoClient(creds, { instanceToken: row.evolucaoToken });
+        const client = criarClienteEvolutionGo(
+          ctx.env,
+          creds,
+          { instanceToken: row.evolucaoToken },
+          metaLogEvolution(row),
+        );
         await client.disconnect();
       } catch (err) {
         log.warn({
@@ -265,7 +282,12 @@ export const instanciaHandlers = {
       const creds = await obterCredenciaisEvolution(ctx.env);
       if (row.evolucaoToken) {
         try {
-          const client = createEvolutionGoClient(creds, { instanceToken: row.evolucaoToken });
+          const client = criarClienteEvolutionGo(
+          ctx.env,
+          creds,
+          { instanceToken: row.evolucaoToken },
+          metaLogEvolution(row),
+        );
           await client.disconnect();
         } catch (err) {
           log.warn({
@@ -278,7 +300,7 @@ export const instanciaHandlers = {
       }
       const evolutionId = row.evolucaoInstanceId ?? row.uuid;
       try {
-        const admin = createEvolutionGoClient(creds);
+        const admin = criarClienteEvolutionGo(ctx.env, creds, undefined, metaLogEvolution(row));
         await admin.deleteInstance(evolutionId);
       } catch (err) {
         log.warn({
@@ -309,7 +331,12 @@ export const instanciaHandlers = {
     if (!row.evolucaoToken) preconditionFailed("Instância não provisionada");
 
     const creds = await obterCredenciaisEvolution(ctx.env);
-    const client = createEvolutionGoClient(creds, { instanceToken: row.evolucaoToken });
+    const client = criarClienteEvolutionGo(
+      ctx.env,
+      creds,
+      { instanceToken: row.evolucaoToken },
+      metaLogEvolution(row),
+    );
 
     let statusBruto: EvolutionGoStatusResponse;
     try {
@@ -371,13 +398,18 @@ export const instanciaHandlers = {
     }
 
     const creds = await obterCredenciaisEvolution(ctx.env);
-    const client = createEvolutionGoClient(creds, { instanceToken: row.evolucaoToken });
+    const client = criarClienteEvolutionGo(
+      ctx.env,
+      creds,
+      { instanceToken: row.evolucaoToken },
+      metaLogEvolution(row),
+    );
     try {
       const statusBruto = await client.getStatus();
       const estado = parseGoConnectionState(statusBruto);
       const conectado = estado === "open";
       if (conectado && row.status !== "connected" && row.status !== "pending_payment") {
-        await configurarWebhookInstanciaEvolution(ctx.env, row.evolucaoToken);
+        await configurarWebhookInstanciaEvolution(ctx.env, row.evolucaoToken, metaLogEvolution(row));
         await marcarInstanciaConectada(ctx, row.id, row.organizacaoId, row.asaasIdAssinatura);
       }
       return {

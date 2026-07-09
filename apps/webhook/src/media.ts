@@ -1,10 +1,9 @@
 import type { WorkerExecutionContext } from "@whasap/evlog/workers";
-import { getEvolutionCredentials } from "@whasap/api-core";
+import { criarClienteEvolutionGo, getEvolutionCredentials } from "@whasap/api-core";
 import { log } from "@whasap/evlog";
 import { eq } from "drizzle-orm";
 import { buildMediaR2Key, mimeToExtension } from "@whasap/config";
 import { mensagem, type Db } from "@whasap/db";
-import { createEvolutionGoClient } from "@whasap/evolution";
 import { createMetaClient } from "@whasap/meta";
 
 import type { Env } from "./env";
@@ -81,7 +80,12 @@ export async function storeInboundMedia(env: Env, db: Db, job: InboundMediaJob):
         return;
       }
 
-      const client = createEvolutionGoClient(creds, { instanceToken: job.instanceToken });
+      const client = criarClienteEvolutionGo(
+        env,
+        creds,
+        { instanceToken: job.instanceToken },
+        { instanciaUuid: job.instanceUuid },
+      );
       const result = await client.downloadMedia(job.waMessage ?? { key: job.messageKey });
       const b64 = result.base64 ?? result.data;
       if (!b64) {

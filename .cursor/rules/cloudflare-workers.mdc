@@ -104,7 +104,15 @@ Documentação completa: `docs/ENV.md`, `docs/PRODUCAO.md`.
 | Rota HTTP | Provider | Prefixo R2 |
 |-----------|----------|------------|
 | `POST /evo` | Evolution | `webhook/evo/{instance}/{date}/...` |
-| `GET/POST /cloud` | Meta Cloud API | `webhook/cloud/{phoneNumberId}/{date}/...` |
+| `GET`/`POST /cloud` | Meta | `webhook/cloud/{phoneNumberId}/{date}/...` |
 
-Logs brutos no bucket `whasap` (binding `R2` em `apps/webhook`).
+## Ações Evolution outbound (R2)
+
+Toda chamada via `createEvolutionGoClient` / `criarClienteEvolutionGo` grava no bucket `whasap`:
+
+| Prefixo | Origem |
+|---------|--------|
+| `acao/{tipo}/...` | Chamadas HTTP ao Evolution GO (`instance_qr`, `send_text`, etc.) |
+
+Workers com binding `R2` → `whasap`: `web`, `webhook`, `office`.
 

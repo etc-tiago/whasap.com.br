@@ -1,6 +1,6 @@
-import { preconditionFailed } from "@whasap/api-core";
+import { criarClienteEvolutionGo, preconditionFailed } from "@whasap/api-core";
 import { isEvolutionProvider, type InstanceProvider } from "@whasap/config";
-import { createEvolutionGoClient, extractGoMessageId } from "@whasap/evolution";
+import { extractGoMessageId } from "@whasap/evolution";
 import { createMetaClient, extractMetaMessageId } from "@whasap/meta";
 
 import { obterCredenciaisEvolution, obterCredenciaisMeta } from "../handlers/instancia";
@@ -81,7 +81,16 @@ export async function sendProviderMessage(params: SendMessageParams): Promise<st
 
   if (isEvolutionProvider(instance.provedor) && instance.evolucaoToken) {
     const creds = await obterCredenciaisEvolution(ctx.env);
-    const client = createEvolutionGoClient(creds, { instanceToken: instance.evolucaoToken });
+    const client = criarClienteEvolutionGo(
+      ctx.env,
+      creds,
+      { instanceToken: instance.evolucaoToken },
+      {
+        ...(instance.evolucaoInstanceId
+          ? { evolutionInstanceId: instance.evolucaoInstanceId }
+          : {}),
+      },
+    );
     const quoted = quotedFrom(params.contextoMensagemId);
 
     if (type === "text" && params.body) {
@@ -236,7 +245,16 @@ export async function markProviderMessageRead(
   }
   if (isEvolutionProvider(instance.provedor) && instance.evolucaoToken) {
     const creds = await obterCredenciaisEvolution(ctx.env);
-    const client = createEvolutionGoClient(creds, { instanceToken: instance.evolucaoToken });
+    const client = criarClienteEvolutionGo(
+      ctx.env,
+      creds,
+      { instanceToken: instance.evolucaoToken },
+      {
+        ...(instance.evolucaoInstanceId
+          ? { evolutionInstanceId: instance.evolucaoInstanceId }
+          : {}),
+      },
+    );
     await client.markRead(phone.replace(/\D/g, ""), [externalMessageId]);
   }
 }

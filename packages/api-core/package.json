@@ -7,7 +7,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@orpc/server": "^1.9.3",
@@ -17,11 +18,13 @@
     "@whasap/db": "workspace:*",
     "drizzle-orm": "^0.44.2",
     "@whasap/evlog": "workspace:*",
+    "@whasap/evolution": "workspace:*",
     "jose": "^6.0.11"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250705.0",
     "@whasap/typescript-config": "workspace:*",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   }
 }

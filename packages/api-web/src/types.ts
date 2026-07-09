@@ -30,6 +30,8 @@ export type WebEnv = BaseEnv & {
   OFFICE_URL: string;
   WEBHOOK_URL: string;
   CDN_URL: string;
+  R2?: R2Bucket;
+  WORKER_NAME?: string;
   ASSAS_API_KEY?: SecretsStoreSecretBinding | string;
   ASAAS_SANDBOX?: string;
   /** Secrets Store (produção) ou string JSON em `.dev.vars`: `{ "baseUrl", "apiKey" }` */

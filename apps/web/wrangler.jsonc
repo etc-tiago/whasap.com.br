@@ -22,8 +22,15 @@
     "WEBHOOK_URL": "https://webhook.whasap.com.br",
     "CDN_URL": "https://cdn.whasap.com.br",
     "EMAIL_FROM": "noreply@whasap.com.br",
-    "EVOLUTION_DEBUG": "false"
+    "EVOLUTION_DEBUG": "false",
+    "WORKER_NAME": "whasap-web"
   },
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "whasap"
+    }
+  ],
   "send_email": [
     {
       "name": "EMAIL",

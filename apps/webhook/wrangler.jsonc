@@ -34,7 +34,8 @@
   ],
   "vars": {
     // sync: packages/config/src/public-urls.ts → workerVarsProduction
-    "CDN_URL": "https://cdn.whasap.com.br"
+    "CDN_URL": "https://cdn.whasap.com.br",
+    "WORKER_NAME": "whasap-webhook"
   },
   "secrets": {
     "required": [

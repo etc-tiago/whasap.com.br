@@ -30,5 +30,6 @@ export type OfficeEnv = BaseEnv &
     OFFICE_URL: string;
     WEB_URL: string;
     R2: R2Bucket;
+    WORKER_NAME?: string;
     OFFICE_SESSION_JWT_SECRET: SecretsStoreSecretBinding | string;
   };

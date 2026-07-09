@@ -1,9 +1,6 @@
-import { getEvolutionCredentials } from "@whasap/api-core";
+import { criarClienteEvolutionGo, getEvolutionCredentials } from "@whasap/api-core";
 import { mvpDefaults } from "@whasap/config";
-import {
-  createEvolutionGoClient,
-  EVOLUTION_WEBHOOK_SUBSCRIBE_ALL,
-} from "@whasap/evolution";
+import { EVOLUTION_WEBHOOK_SUBSCRIBE_ALL } from "@whasap/evolution";
 import { log } from "@whasap/evlog";
 
 import type { WebEnv } from "../types";
@@ -20,10 +17,11 @@ export function urlWebhookEvolution(env: Pick<WebEnv, "WEBHOOK_URL">): string {
 export async function configurarWebhookInstanciaEvolution(
   env: WebEnv,
   instanceToken: string,
+  meta?: Record<string, string>,
 ): Promise<void> {
   try {
     const creds = await getEvolutionCredentials(env);
-    const client = createEvolutionGoClient(creds, { instanceToken });
+    const client = criarClienteEvolutionGo(env, creds, { instanceToken }, meta);
     await client.connect({
       webhookUrl: urlWebhookEvolution(env),
       subscribe: [...EVOLUTION_WEBHOOK_SUBSCRIBE_ALL],

@@ -11,8 +11,8 @@ Para integrações (Asaas, Evolution, Meta), veja também [SETUP.md](./SETUP.md)
 | App | Worker (`wrangler.jsonc`) | Domínio | Postgres | R2 | Secrets Store |
 |-----|---------------------------|---------|----------|----|---------------|
 | `site` | `whasap-site` | `whasap.com.br` | — | — | — |
-| `web` | `whasap-web` | `web.whasap.com.br` | Hyperdrive | — | Asaas |
-| `office` | `whasap-office` | `office.whasap.com.br` | Hyperdrive | — | — |
+| `web` | `whasap-web` | `web.whasap.com.br` | Hyperdrive | `whasap` | Asaas |
+| `office` | `whasap-office` | `office.whasap.com.br` | Hyperdrive | `whasap` | — |
 | `webhook` | `whasap-webhook` | `webhook.whasap.com.br` | Hyperdrive | `whasap` + `whasap-cdn` | Asaas |
 | `cdn` | `whasap-cdn` | `cdn.whasap.com.br` | — | `whasap-cdn` | — |
 
@@ -72,7 +72,7 @@ Crie na Cloudflare Dashboard → R2:
 
 | Bucket | Uso | Workers |
 |--------|-----|---------|
-| `whasap` | Logs brutos de webhooks (`webhook/evo/...`, `webhook/cloud/...`) | `webhook` (binding `R2`) |
+| `whasap` | Logs de webhooks (`webhook/evo/...`, `webhook/cloud/...`) e ações Evolution outbound (`acao/...`) | `web`, `webhook`, `office` (binding `R2`) |
 | `whasap-cdn` | Anexos de mensagens (`media/{instanciaUuid}/...`) | `webhook` (binding `CDN_R2`, escrita), `cdn` (binding `R2`, leitura) |
 
 ### 1.5 Secrets Store
@@ -160,6 +160,7 @@ Nenhum.
 | Tipo | Binding | Recurso |
 |------|---------|---------|
 | Hyperdrive | `HYPERDRIVE` | ID `c8f9852b6dc748489154722036fb4e48` |
+| R2 | `R2` | bucket `whasap` (logs `acao/...` das chamadas Evolution) |
 | Rate Limit | `AUTH_RATE_LIMIT` | namespace `1001` |
 | Secrets Store | `ASSAS_API_KEY` | store `ASSAS_API_KEY_ETC` → secret `ASSAS_API_KEY_ETC` |
 | Secrets Store | `EVOLUTION_SECRETS_STORE` | store `ASSAS_API_KEY_ETC` → secret `EVOLUTION_SECRETS_STORE` |
@@ -176,6 +177,7 @@ Fonte canônica: [`packages/config/src/public-urls.ts`](../packages/config/src/p
 | `WEBHOOK_URL` | `https://webhook.whasap.com.br` |
 | `CDN_URL` | `https://cdn.whasap.com.br` |
 | `EMAIL_FROM` | `noreply@whasap.com.br` |
+| `WORKER_NAME` | `whasap-web` |
 
 **Local:** overrides em `apps/web/.dev.vars` (localhost). Ver [ENV.md](./ENV.md).
 

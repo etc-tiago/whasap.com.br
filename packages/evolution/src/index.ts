@@ -16,7 +16,10 @@ export {
   extractGoMessageId,
   parseGoCreateResponse,
   type EvolutionConnectParams,
+  type EvolutionGoClientOptions,
   type EvolutionGoCreateResponse,
+  type EvolutionGoLogSink,
+  type EvolutionGoRequestLogEntry,
 } from "./client-go";
 export { EVOLUTION_WEBHOOK_SUBSCRIBE_ALL } from "./webhook-events";
 export {

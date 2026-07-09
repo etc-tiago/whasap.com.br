@@ -35,6 +35,14 @@ export {
   type EvolutionCredentials,
   type EvolutionSecretsEnv,
 } from "./lib/evolution-env";
+export {
+  buildAcaoEvolutionLogKey,
+  prepararEvolutionAcaoLogEntry,
+  putEvolutionAcaoLog,
+  redigirEvolutionLogPayload,
+  type EvolutionAcaoLogEntry,
+} from "./lib/evolution-acao-r2-log";
+export { criarClienteEvolutionGo, type EvolutionGoEnv } from "./lib/criar-cliente-evolution-go";
 export { getClientIp } from "./lib/client-ip";
 export {
   iniciarDemonstracaoSeNecessarioDb,

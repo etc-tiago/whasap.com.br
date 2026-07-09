@@ -123,7 +123,13 @@ LIMIT 20;
 
 ### R2
 
-Prefixo: `webhook/evo/{evolucaoNomeInstancia}/{YYYY-MM-DD}/`
+**Webhooks recebidos** — prefixo: `webhook/evo/{evolucaoNomeInstancia}/{YYYY-MM-DD}/`
+
+**Ações outbound (Evolution GO client)** — prefixo: `acao/{tipo}/{YYYY-MM-DD}/{HH-mm-ss}/{uuid}.json`
+
+Exemplos de `tipo`: `instance_create`, `instance_connect`, `instance_qr`, `instance_status`, `instance_disconnect`, `send_text`, `message_downloadmedia`.
+
+Gravado automaticamente por `criarClienteEvolutionGo` (`@whasap/api-core`) em `web`, `webhook` e `office`. Payload inclui request/response redigidos (tokens e base64 truncados), `durationMs`, `status` HTTP e `meta` (`worker`, `instanciaUuid`, `evolutionInstanceId`).
 
 ## Correções desta entrega
 
@@ -138,5 +144,6 @@ Prefixo: `webhook/evo/{evolucaoNomeInstancia}/{YYYY-MM-DD}/`
 - Parsers: [`packages/evolution/src/connection-state.ts`](../packages/evolution/src/connection-state.ts)
 - Handlers painel: [`packages/api-web/src/handlers/instancia.ts`](../packages/api-web/src/handlers/instancia.ts)
 - Marcação DB: [`packages/api-core/src/lib/instancia-evolution.ts`](../packages/api-core/src/lib/instancia-evolution.ts)
+- Log R2 ações: [`packages/api-core/src/lib/evolution-acao-r2-log.ts`](../packages/api-core/src/lib/evolution-acao-r2-log.ts)
 - Webhook processor: [`apps/webhook/src/processors.ts`](../apps/webhook/src/processors.ts)
 - Rótulos UI: [`apps/web/src/lib/instancia-status.ts`](../apps/web/src/lib/instancia-status.ts)

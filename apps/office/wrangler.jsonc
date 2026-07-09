@@ -16,7 +16,8 @@
     // sync: packages/config/src/public-urls.ts → workerVarsProduction
     "WEB_URL": "https://web.whasap.com.br",
     "OFFICE_URL": "https://office.whasap.com.br",
-    "EMAIL_FROM": "noreply@whasap.com.br"
+    "EMAIL_FROM": "noreply@whasap.com.br",
+    "WORKER_NAME": "whasap-office"
   },
   "send_email": [
     {

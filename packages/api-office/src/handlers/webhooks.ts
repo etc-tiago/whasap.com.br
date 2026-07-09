@@ -1,5 +1,5 @@
 import { and, count, desc, eq, ilike, isNull, or, type SQL } from "drizzle-orm";
-import { getEvolutionCredentials, notFound } from "@whasap/api-core";
+import { getEvolutionCredentials, notFound, criarClienteEvolutionGo } from "@whasap/api-core";
 import {
   colunasInstanciaOperacao,
   instancia,
@@ -7,7 +7,6 @@ import {
   type Db,
 } from "@whasap/db";
 import {
-  createEvolutionGoClient,
   parseGoConnectionState,
   parseGoQrResponse,
   type EvolutionGoStatusResponse,
@@ -196,7 +195,15 @@ export const evolutionDebugHandlers = {
 
     try {
       const creds = await getEvolutionCredentials(ctx.env);
-      const client = createEvolutionGoClient(creds, { instanceToken: row.evolucaoToken });
+      const client = criarClienteEvolutionGo(
+        ctx.env,
+        creds,
+        { instanceToken: row.evolucaoToken },
+        {
+          instanciaUuid: row.uuid,
+          ...(row.evolucaoInstanceId ? { evolutionInstanceId: row.evolucaoInstanceId } : {}),
+        },
+      );
 
       let statusBruto: EvolutionGoStatusResponse | null = null;
       let qrBruto: EvolutionQrResponse | null = null;
