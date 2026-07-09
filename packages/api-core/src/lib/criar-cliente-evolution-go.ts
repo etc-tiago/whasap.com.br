@@ -5,7 +5,7 @@ import {
   type EvolutionGoRequestLogEntry,
 } from "@whasap/evolution";
 
-import { putEvolutionAcaoLog } from "./evolution-acao-r2-log";
+import { putEvolutionAcaoLog, derivarEvolutionAcaoLog } from "./evolution-acao-r2-log";
 
 export type EvolutionGoEnv = {
   R2?: R2Bucket;
@@ -41,6 +41,7 @@ export function criarClienteEvolutionGo(
         putEvolutionAcaoLog(r2, {
           at: new Date().toISOString(),
           ...entry,
+          derivado: derivarEvolutionAcaoLog(entry.tipo, entry.responseBody),
           meta: mergedMeta,
         });
       },

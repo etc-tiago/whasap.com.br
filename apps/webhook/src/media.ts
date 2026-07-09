@@ -84,7 +84,11 @@ export async function storeInboundMedia(env: Env, db: Db, job: InboundMediaJob):
         env,
         creds,
         { instanceToken: job.instanceToken },
-        { instanciaUuid: job.instanceUuid },
+        {
+          instanciaUuid: job.instanceUuid,
+          origem: "webhook",
+          rpc: "webhook.media.download",
+        },
       );
       const result = await client.downloadMedia(job.waMessage ?? { key: job.messageKey });
       const b64 = result.base64 ?? result.data;

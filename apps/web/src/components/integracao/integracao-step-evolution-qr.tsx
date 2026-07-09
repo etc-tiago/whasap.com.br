@@ -1,15 +1,17 @@
-import { skipToken, useMutation, useQuery } from "@tanstack/react-query";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@whasap/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/card";
 import { Loader2 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { rotuloSeuWhatsApp, type InstanceProvider } from "@whasap/config";
 
 import { getOrpcErrorMessage } from "@/lib/orpc-error";
-import { orpc } from "@/lib/orpc";
+import { orpc, orpcClient } from "@/lib/orpc";
 
 import { TrocarTipoButton } from "./trocar-tipo-button";
+
+const POLLS_CLOSE_RECONNECT = 5;
 
 type Props = {
   instanciaId: string;
@@ -26,24 +28,50 @@ export function IntegracaoStepEvolutionQr({
   onConectado,
   onTrocarTipo,
 }: Props) {
+  const queryClient = useQueryClient();
   const provisionadoParaIdRef = useRef<string | null>(null);
   const navegouRef = useRef(false);
+  const pollsCloseRef = useRef(0);
+  const reconectouAutoRef = useRef(false);
 
   const provisionar = useMutation(
     orpc.instancia.provisionar.mutationOptions({
       retry: false,
+      onSuccess: () => {
+        pollsCloseRef.current = 0;
+        reconectouAutoRef.current = false;
+        void queryClient.invalidateQueries({
+          queryKey: orpc.instancia.obterQr.key({ input: { instanciaId } }),
+        });
+      },
     }),
   );
+
+  const reiniciarPareamento = useMutation({
+    mutationFn: async () => {
+      await orpcClient.instancia.encerrarPareamento({ instanciaId });
+      await orpcClient.instancia.provisionar({ instanciaId });
+    },
+    onSuccess: () => {
+      pollsCloseRef.current = 0;
+      reconectouAutoRef.current = false;
+      void queryClient.invalidateQueries({
+        queryKey: orpc.instancia.obterQr.key({ input: { instanciaId } }),
+      });
+    },
+  });
 
   useEffect(() => {
     if (provisionadoParaIdRef.current === instanciaId) return;
     provisionadoParaIdRef.current = instanciaId;
     navegouRef.current = false;
+    pollsCloseRef.current = 0;
+    reconectouAutoRef.current = false;
     provisionar.mutate({ instanciaId });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- dispara uma vez por instanciaId
   }, [instanciaId]);
 
-  const podePoll = provisionar.isSuccess && !provisionar.isError;
+  const podePoll = provisionar.isSuccess && !provisionar.isError && !reiniciarPareamento.isPending;
 
   const obterQr = useQuery(
     orpc.instancia.obterQr.queryOptions({
@@ -59,18 +87,15 @@ export function IntegracaoStepEvolutionQr({
     }),
   );
 
-  const statusConexao = useQuery(
-    orpc.instancia.statusConexao.queryOptions({
-      input: instanciaId ? { instanciaId } : skipToken,
-      enabled: podePoll,
-      refetchInterval: 3000,
-    }),
-  );
-
-  const conectado = statusConexao.data?.conectado ?? false;
+  const conectado = obterQr.data?.estado === "open";
   const qrBase64 = obterQr.data?.base64 ?? null;
   const pairingCode = obterQr.data?.pairingCode ?? null;
   const estadoQr = obterQr.data?.estado ?? null;
+
+  const tentarReiniciarPareamento = useCallback(() => {
+    if (reiniciarPareamento.isPending || provisionar.isPending) return;
+    reiniciarPareamento.mutate();
+  }, [reiniciarPareamento, provisionar.isPending]);
 
   useEffect(() => {
     if (!conectado || navegouRef.current) return;
@@ -78,12 +103,39 @@ export function IntegracaoStepEvolutionQr({
     onConectado();
   }, [conectado, onConectado]);
 
+  useEffect(() => {
+    if (!podePoll || qrBase64 || obterQr.isFetching) return;
+    if (estadoQr !== "close") {
+      pollsCloseRef.current = 0;
+      return;
+    }
+    pollsCloseRef.current += 1;
+    if (
+      pollsCloseRef.current >= POLLS_CLOSE_RECONNECT &&
+      !reconectouAutoRef.current &&
+      !reiniciarPareamento.isPending
+    ) {
+      reconectouAutoRef.current = true;
+      tentarReiniciarPareamento();
+    }
+  }, [
+    podePoll,
+    qrBase64,
+    estadoQr,
+    obterQr.isFetching,
+    reiniciarPareamento.isPending,
+    tentarReiniciarPareamento,
+  ]);
+
   const aguardandoQr =
     podePoll &&
     !qrBase64 &&
     !obterQr.isError &&
     !provisionar.isError &&
-    Boolean(obterQr.data || obterQr.isFetching);
+    !reiniciarPareamento.isError &&
+    Boolean(obterQr.data || obterQr.isFetching || reiniciarPareamento.isPending);
+
+  const sessaoFechada = estadoQr === "close" && !qrBase64 && podePoll;
 
   return (
     <Card>
@@ -96,10 +148,30 @@ export function IntegracaoStepEvolutionQr({
         </p>
 
         {provisionar.isError ? (
-          <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-destructive/30 bg-destructive/5 px-4">
+          <div className="flex h-48 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-destructive/30 bg-destructive/5 px-4">
             <p className="text-center text-sm text-destructive">
               {getOrpcErrorMessage(provisionar.error, "Não foi possível provisionar a instância.")}
             </p>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={provisionar.isPending}
+              onClick={() => provisionar.mutate({ instanciaId })}
+            >
+              Tentar novamente
+            </Button>
+          </div>
+        ) : reiniciarPareamento.isError ? (
+          <div className="flex h-48 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-destructive/30 bg-destructive/5 px-4">
+            <p className="text-center text-sm text-destructive">
+              {getOrpcErrorMessage(
+                reiniciarPareamento.error,
+                "Não foi possível reiniciar o pareamento.",
+              )}
+            </p>
+            <Button variant="outline" size="sm" onClick={tentarReiniciarPareamento}>
+              Tentar novamente
+            </Button>
           </div>
         ) : obterQr.isError ? (
           <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-destructive/30 bg-destructive/5 px-4">
@@ -119,7 +191,7 @@ export function IntegracaoStepEvolutionQr({
           <div className="flex h-48 flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-muted/30 px-4">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             <p className="text-center text-sm text-muted-foreground">
-              {provisionar.isPending
+              {provisionar.isPending || reiniciarPareamento.isPending
                 ? "Provisionando..."
                 : obterQr.isFetching
                   ? "Sincronizando QR Code..."
@@ -130,6 +202,11 @@ export function IntegracaoStepEvolutionQr({
                 A sessão está sendo preparada. Atualizamos automaticamente a cada poucos segundos.
               </p>
             )}
+            {sessaoFechada ? (
+              <p className="text-center text-xs text-muted-foreground">
+                Sessão desconectada no servidor. Reiniciando pareamento automaticamente...
+              </p>
+            ) : null}
           </div>
         ) : (
           <div className="flex h-48 flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/30">
@@ -148,15 +225,17 @@ export function IntegracaoStepEvolutionQr({
           Escaneie o QR Code no WhatsApp → Aparelhos conectados
         </p>
 
-        {(obterQr.data?._debug ?? statusConexao.data?._debug) ? (
+        {sessaoFechada && !reiniciarPareamento.isPending ? (
+          <Button variant="outline" className="w-full" onClick={tentarReiniciarPareamento}>
+            Reiniciar pareamento
+          </Button>
+        ) : null}
+
+        {obterQr.data?._debug ? (
           <details className="rounded-md border bg-muted/20 p-3 text-xs">
             <summary className="cursor-pointer font-medium">Debug Evolution (temporário)</summary>
             <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-all">
-              {JSON.stringify(
-                { obterQr: obterQr.data?._debug, statusConexao: statusConexao.data?._debug },
-                null,
-                2,
-              )}
+              {JSON.stringify({ obterQr: obterQr.data._debug }, null, 2)}
             </pre>
           </details>
         ) : null}

@@ -202,6 +202,9 @@ export const evolutionDebugHandlers = {
         {
           instanciaUuid: row.uuid,
           ...(row.evolucaoInstanceId ? { evolutionInstanceId: row.evolucaoInstanceId } : {}),
+          origem: "office",
+          rpc: "administracao.instancias.estadoEvolution",
+          dbStatus: row.status,
         },
       );
 

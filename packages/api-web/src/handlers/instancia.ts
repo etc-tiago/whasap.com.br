@@ -85,10 +85,16 @@ export async function obterCredenciaisEvolution(env: WebEnv) {
   }
 }
 
-function metaLogEvolution(row: { uuid: string; evolucaoInstanceId?: string | null }) {
+function metaLogEvolution(
+  row: { uuid: string; evolucaoInstanceId?: string | null; status?: string },
+  ctx: { origem: string; rpc: string },
+) {
   return {
     instanciaUuid: row.uuid,
     ...(row.evolucaoInstanceId ? { evolutionInstanceId: row.evolucaoInstanceId } : {}),
+    ...(row.status ? { dbStatus: row.status } : {}),
+    origem: ctx.origem,
+    rpc: ctx.rpc,
   };
 }
 
@@ -185,8 +191,10 @@ export const instanciaHandlers = {
     const instanceId = row.evolucaoInstanceId ?? row.uuid;
     const instanceToken = row.evolucaoToken ?? crypto.randomUUID().replace(/-/g, "");
 
+    const rowMeta = { uuid: row.uuid, evolucaoInstanceId: instanceId, status: row.status };
+
     try {
-      const meta = metaLogEvolution({ uuid: row.uuid, evolucaoInstanceId: instanceId });
+      const meta = metaLogEvolution(rowMeta, { origem: "provisionar", rpc: "instancia.provisionar" });
       const admin = criarClienteEvolutionGo(ctx.env, { baseUrl, apiKey }, undefined, meta);
       if (!row.evolucaoInstanceId) {
         await admin.createInstance({ name: instanceName, instanceId, token: instanceToken });
@@ -202,12 +210,14 @@ export const instanciaHandlers = {
         subscribe: EVOLUTION_WEBHOOK_SUBSCRIBE_ALL,
       });
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       log.warn({
         evolution: {
           provisionFalhou: true,
-          erro: err instanceof Error ? err.message : String(err),
+          erro: msg,
         },
       });
+      preconditionFailed(`Não foi possível provisionar a instância: ${msg}`);
     }
 
     await ctx.db
@@ -243,7 +253,7 @@ export const instanciaHandlers = {
           ctx.env,
           creds,
           { instanceToken: row.evolucaoToken },
-          metaLogEvolution(row),
+          metaLogEvolution(row, { origem: "encerrarPareamento", rpc: "instancia.encerrarPareamento" }),
         );
         await client.disconnect();
       } catch (err) {
@@ -283,11 +293,11 @@ export const instanciaHandlers = {
       if (row.evolucaoToken) {
         try {
           const client = criarClienteEvolutionGo(
-          ctx.env,
-          creds,
-          { instanceToken: row.evolucaoToken },
-          metaLogEvolution(row),
-        );
+            ctx.env,
+            creds,
+            { instanceToken: row.evolucaoToken },
+            metaLogEvolution(row, { origem: "descartar", rpc: "instancia.descartar" }),
+          );
           await client.disconnect();
         } catch (err) {
           log.warn({
@@ -300,7 +310,12 @@ export const instanciaHandlers = {
       }
       const evolutionId = row.evolucaoInstanceId ?? row.uuid;
       try {
-        const admin = criarClienteEvolutionGo(ctx.env, creds, undefined, metaLogEvolution(row));
+        const admin = criarClienteEvolutionGo(
+          ctx.env,
+          creds,
+          undefined,
+          metaLogEvolution(row, { origem: "descartar", rpc: "instancia.descartar" }),
+        );
         await admin.deleteInstance(evolutionId);
       } catch (err) {
         log.warn({
@@ -335,7 +350,7 @@ export const instanciaHandlers = {
       ctx.env,
       creds,
       { instanceToken: row.evolucaoToken },
-      metaLogEvolution(row),
+      metaLogEvolution(row, { origem: "obterQr", rpc: "instancia.obterQr" }),
     );
 
     let statusBruto: EvolutionGoStatusResponse;
@@ -402,14 +417,18 @@ export const instanciaHandlers = {
       ctx.env,
       creds,
       { instanceToken: row.evolucaoToken },
-      metaLogEvolution(row),
+      metaLogEvolution(row, { origem: "statusConexao", rpc: "instancia.statusConexao" }),
     );
     try {
       const statusBruto = await client.getStatus();
       const estado = parseGoConnectionState(statusBruto);
       const conectado = estado === "open";
       if (conectado && row.status !== "connected" && row.status !== "pending_payment") {
-        await configurarWebhookInstanciaEvolution(ctx.env, row.evolucaoToken, metaLogEvolution(row));
+        await configurarWebhookInstanciaEvolution(
+          ctx.env,
+          row.evolucaoToken,
+          metaLogEvolution(row, { origem: "statusConexao", rpc: "instancia.statusConexao" }),
+        );
         await marcarInstanciaConectada(ctx, row.id, row.organizacaoId, row.asaasIdAssinatura);
       }
       return {

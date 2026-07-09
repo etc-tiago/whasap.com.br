@@ -58,6 +58,38 @@ export const officeAdministracaoContract = {
     ),
   },
 
+  acoesEvolution: {
+    lista: oc
+      .input(
+        z.object({
+          instanciaId: z.string().uuid(),
+          limite: z.number().int().min(1).max(100).optional(),
+          cursor: z.string().optional(),
+        }),
+      )
+      .output(
+        z.object({
+          itens: z.array(
+            z.object({
+              chave: z.string(),
+              tipo: z.string().nullable(),
+              tamanho: z.number().int(),
+              gravadoEm: z.string(),
+            }),
+          ),
+          total: z.number().int(),
+          cursor: z.string().nullable(),
+        }),
+      ),
+
+    obter: oc.input(z.object({ chave: z.string().min(1) })).output(
+      z.object({
+        chave: z.string(),
+        conteudo: z.unknown(),
+      }),
+    ),
+  },
+
   webhooks: {
     lista: oc
       .input(

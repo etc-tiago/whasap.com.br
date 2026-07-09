@@ -37,9 +37,11 @@ export {
 } from "./lib/evolution-env";
 export {
   buildAcaoEvolutionLogKey,
+  derivarEvolutionAcaoLog,
   prepararEvolutionAcaoLogEntry,
   putEvolutionAcaoLog,
   redigirEvolutionLogPayload,
+  type EvolutionAcaoLogDerivado,
   type EvolutionAcaoLogEntry,
 } from "./lib/evolution-acao-r2-log";
 export { criarClienteEvolutionGo, type EvolutionGoEnv } from "./lib/criar-cliente-evolution-go";

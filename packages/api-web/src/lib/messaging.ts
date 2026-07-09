@@ -86,6 +86,8 @@ export async function sendProviderMessage(params: SendMessageParams): Promise<st
       creds,
       { instanceToken: instance.evolucaoToken },
       {
+        origem: "messaging",
+        rpc: "messaging.send",
         ...(instance.evolucaoInstanceId
           ? { evolutionInstanceId: instance.evolucaoInstanceId }
           : {}),
@@ -250,6 +252,8 @@ export async function markProviderMessageRead(
       creds,
       { instanceToken: instance.evolucaoToken },
       {
+        origem: "messaging",
+        rpc: "messaging.send",
         ...(instance.evolucaoInstanceId
           ? { evolutionInstanceId: instance.evolucaoInstanceId }
           : {}),

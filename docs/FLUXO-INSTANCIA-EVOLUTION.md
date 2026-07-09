@@ -125,11 +125,13 @@ LIMIT 20;
 
 **Webhooks recebidos** — prefixo: `webhook/evo/{evolucaoNomeInstancia}/{YYYY-MM-DD}/`
 
-**Ações outbound (Evolution GO client)** — prefixo: `acao/{tipo}/{YYYY-MM-DD}/{HH-mm-ss}/{uuid}.json`
+**Ações outbound (Evolution GO client)** — prefixo: `acao/{tipo}/{YYYY-MM-DD}/{HH-mm-ss}.{uuid}.json`
 
 Exemplos de `tipo`: `instance_create`, `instance_connect`, `instance_qr`, `instance_status`, `instance_disconnect`, `send_text`, `message_downloadmedia`.
 
-Gravado automaticamente por `criarClienteEvolutionGo` (`@whasap/api-core`) em `web`, `webhook` e `office`. Payload inclui request/response redigidos (tokens e base64 truncados), `durationMs`, `status` HTTP e `meta` (`worker`, `instanciaUuid`, `evolutionInstanceId`).
+Gravado automaticamente por `criarClienteEvolutionGo` (`@whasap/api-core`) em `web`, `webhook` e `office`. Payload inclui `derivado.estado`/`derivado.conectado`, request/response redigidos, `durationMs`, `status` HTTP e `meta` (`worker`, `origem`, `rpc`, `dbStatus`, `instanciaUuid`, `evolutionInstanceId`).
+
+Chave com instância: `acao/{instanciaUuid}/{tipo}/{YYYY-MM-DD}/{HH-mm-ss}.{uuid}.json`
 
 ## Correções desta entrega
 
