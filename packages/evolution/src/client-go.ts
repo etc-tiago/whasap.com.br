@@ -93,17 +93,24 @@ export function createEvolutionGoClient(
     path: string,
     body?: unknown,
     useInstanceToken = true,
+    timeoutMs?: number,
   ): Promise<T> {
     const started = Date.now();
     let status: number | null = null;
     let responseBody: unknown;
     let errorText: string | undefined;
+    const controller = timeoutMs ? new AbortController() : undefined;
+    const timer =
+      timeoutMs && controller
+        ? setTimeout(() => controller.abort(), timeoutMs)
+        : undefined;
 
     try {
       const res = await fetch(`${base}${path}`, {
         method,
         headers: headers(useInstanceToken),
         body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal: controller?.signal,
       });
       status = res.status;
       if (!res.ok) {
@@ -118,6 +125,7 @@ export function createEvolutionGoClient(
       }
       throw err;
     } finally {
+      if (timer) clearTimeout(timer);
       emitLog({
         tipo,
         method,
@@ -166,7 +174,7 @@ export function createEvolutionGoClient(
     },
 
     getQrCode() {
-      return request<EvolutionQrResponse>("instance_qr", "GET", "/instance/qr");
+      return request<EvolutionQrResponse>("instance_qr", "GET", "/instance/qr", undefined, true, 20_000);
     },
 
     getStatus() {

@@ -37,7 +37,7 @@ import {
   exigirAcessoDemonstracao,
   marcarInstanciaConectada,
 } from "../lib/demonstracao";
-import { configurarWebhookInstanciaEvolution, urlWebhookEvolution } from "../lib/evolution-webhook";
+import { configurarWebhookInstanciaEvolution, iniciarSessaoQrSeNecessario, urlWebhookEvolution } from "../lib/evolution-webhook";
 import {
   mensagemErroEvolution,
   montarDebugEvolution,
@@ -369,6 +369,25 @@ export const instanciaHandlers = {
     }
 
     const estado = parseGoConnectionState(statusBruto);
+
+    if (estado === "open") {
+      return {
+        base64: null,
+        pairingCode: null,
+        estado,
+        ...montarDebugEvolution(ctx.env, { statusBruto }),
+      };
+    }
+
+    if (estado === "close") {
+      await iniciarSessaoQrSeNecessario(client, ctx.env, estado);
+      return {
+        base64: null,
+        pairingCode: null,
+        estado: "connecting",
+        ...montarDebugEvolution(ctx.env, { statusBruto }),
+      };
+    }
 
     try {
       const qrBruto = await client.getQrCode();
