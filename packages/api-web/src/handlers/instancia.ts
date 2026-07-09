@@ -1,30 +1,30 @@
-import { and, eq, isNull } from "drizzle-orm";
-import { notFound, preconditionFailed } from "@whasap/api-core";
-import { log } from "@whasap/evlog";
+import { getEvolutionCredentials, notFound, preconditionFailed } from "@whasap/api-core";
 import { isEvolutionProvider } from "@whasap/config";
-import { createEvolutionGoClient, parseGoConnectionState } from "@whasap/evolution";
-import { createMetaClient } from "@whasap/meta";
 import {
-  instancia,
-  organizacao,
   colunasInstanciaOperacao,
   colunasInstanciaPublica,
   colunasInstanciaUso,
   colunasOrganizacaoPublica,
   colunasUsoMensal,
-  comTimestampsCriacao,
   comTimestampAtualizacao,
+  comTimestampsCriacao,
   incluirOrganizacaoPublica,
+  instancia,
+  organizacao,
   resolverIdInterno,
   usoMensal,
 } from "@whasap/db";
-
+import { log } from "@whasap/evlog";
 import {
-  diasTrialAsaasRestantes,
-  exigirAcessoDemonstracao,
-  marcarInstanciaConectada,
-} from "../lib/demonstracao";
-import { toInstanciaOutput } from "../lib/mappers";
+  createEvolutionGoClient,
+  EVOLUTION_WEBHOOK_SUBSCRIBE_ALL,
+  parseGoConnectionState,
+  parseGoQrResponse,
+  type EvolutionGoStatusResponse,
+} from "@whasap/evolution";
+import { createMetaClient } from "@whasap/meta";
+import { and, eq, isNull } from "drizzle-orm";
+
 import {
   createAsaasFromEnv,
   createConversationPackCheckout,
@@ -32,7 +32,19 @@ import {
   ensureAsaasCustomer,
   mvpDefaults,
 } from "../lib/asaas";
-import type { WebContext } from "../types";
+import {
+  diasTrialAsaasRestantes,
+  exigirAcessoDemonstracao,
+  marcarInstanciaConectada,
+} from "../lib/demonstracao";
+import { configurarWebhookInstanciaEvolution, urlWebhookEvolution } from "../lib/evolution-webhook";
+import {
+  mensagemErroEvolution,
+  montarDebugEvolution,
+  statusHttpErroEvolution,
+} from "../lib/evolution-debug";
+import { toInstanciaOutput } from "../lib/mappers";
+import type { WebContext, WebEnv } from "../types";
 import {
   exigirAdmin,
   exigirAdminPorIdInterno,
@@ -64,17 +76,13 @@ export async function buscarInstanciaDaOrganizacao(ctx: WebContext, instanciaUui
   return row;
 }
 
-/** Obtém credenciais Evolution do ambiente do worker. */
-export function obterCredenciaisEvolution(env: {
-  EVOLUTION_BASE_URL?: string;
-  EVOLUTION_API_KEY?: string;
-}) {
-  const baseUrl = env.EVOLUTION_BASE_URL;
-  const apiKey = env.EVOLUTION_API_KEY;
-  if (!baseUrl || !apiKey) {
+/** Obtém credenciais Evolution do Secrets Store (ou JSON em `.dev.vars`). */
+export async function obterCredenciaisEvolution(env: WebEnv) {
+  try {
+    return await getEvolutionCredentials(env);
+  } catch {
     preconditionFailed("Evolution API não configurada no worker");
   }
-  return { baseUrl, apiKey };
 }
 
 /** Obtém credenciais Meta Cloud API da instância. */
@@ -155,12 +163,16 @@ export const instanciaHandlers = {
     const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
     await exigirAcessoDemonstracao(ctx, row.organizacaoId);
     if (!isEvolutionProvider(row.provedor)) preconditionFailed("Instância não é Evolution");
-    if (row.status !== "pending_connection" && row.status !== "provisioning") {
+    if (
+      row.status !== "pending_connection" &&
+      row.status !== "provisioning" &&
+      row.status !== "disconnected"
+    ) {
       preconditionFailed("Instância já provisionada");
     }
 
-    const { baseUrl, apiKey } = obterCredenciaisEvolution(ctx.env);
-    const webhookUrl = `${ctx.env.WEBHOOK_URL}${mvpDefaults.evolution.webhookPath}`;
+    const { baseUrl, apiKey } = await obterCredenciaisEvolution(ctx.env);
+    const webhookUrl = urlWebhookEvolution(ctx.env);
 
     const instanceName = row.evolucaoNomeInstancia ?? `whasap-${row.uuid.slice(0, 8)}`;
     const instanceId = row.evolucaoInstanceId ?? row.uuid;
@@ -172,7 +184,10 @@ export const instanciaHandlers = {
         await admin.createInstance({ name: instanceName, instanceId, token: instanceToken });
       }
       const client = createEvolutionGoClient({ baseUrl, apiKey }, { instanceToken });
-      await client.connect(webhookUrl);
+      await client.connect({
+        webhookUrl,
+        subscribe: EVOLUTION_WEBHOOK_SUBSCRIBE_ALL,
+      });
     } catch (err) {
       log.warn({
         evolution: {
@@ -198,28 +213,89 @@ export const instanciaHandlers = {
     return { ok: true };
   },
 
+  /** Encerra sessão de pareamento Evolution (timeout do QR) e volta para `pending_connection`. */
+  encerrarPareamento: async (ctx: WebContext, input: { instanciaId: string }) => {
+    exigirAutenticacao(ctx);
+    const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
+    await exigirAcessoDemonstracao(ctx, row.organizacaoId);
+    if (!isEvolutionProvider(row.provedor)) preconditionFailed("Instância não é Evolution");
+    if (row.status !== "provisioning" && row.status !== "pending_connection") {
+      preconditionFailed("Instância não está aguardando conexão");
+    }
+
+    if (row.evolucaoToken) {
+      try {
+        const creds = await obterCredenciaisEvolution(ctx.env);
+        const client = createEvolutionGoClient(creds, { instanceToken: row.evolucaoToken });
+        await client.disconnect();
+      } catch (err) {
+        log.warn({
+          evolution: {
+            encerrarPareamentoFalhou: true,
+            erro: err instanceof Error ? err.message : String(err),
+          },
+        });
+      }
+    }
+
+    await ctx.db
+      .update(instancia)
+      .set(comTimestampAtualizacao({ status: "pending_connection" }))
+      .where(eq(instancia.id, row.id));
+
+    return { ok: true };
+  },
+
   obterQr: async (ctx: WebContext, input: { instanciaId: string }) => {
     exigirAutenticacao(ctx);
     const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
     await exigirAcessoDemonstracao(ctx, row.organizacaoId);
     if (!isEvolutionProvider(row.provedor)) {
-      preconditionFailed("Instância não é Evolution");
+      preconditionFailed("Instância não pode ser provisionada");
     }
 
     if (!row.evolucaoToken) preconditionFailed("Instância não provisionada");
 
-    const creds = obterCredenciaisEvolution(ctx.env);
+    const creds = await obterCredenciaisEvolution(ctx.env);
     const client = createEvolutionGoClient(creds, { instanceToken: row.evolucaoToken });
+
+    let statusBruto: EvolutionGoStatusResponse;
     try {
-      const qr = await client.getQrCode();
-      const state = await client.getStatus();
+      statusBruto = await client.getStatus();
+    } catch (err) {
       return {
-        base64: qr.base64 ?? null,
-        pairingCode: qr.pairingCode ?? null,
-        estado: parseGoConnectionState(state),
+        base64: null,
+        pairingCode: null,
+        estado: "connecting",
+        ...montarDebugEvolution(ctx.env, {
+          erro: mensagemErroEvolution(err),
+          statusHttp: statusHttpErroEvolution(err),
+        }),
       };
-    } catch {
-      return { base64: null, pairingCode: null, estado: "connecting" };
+    }
+
+    const estado = parseGoConnectionState(statusBruto);
+
+    try {
+      const qrBruto = await client.getQrCode();
+      const { base64, pairingCode } = parseGoQrResponse(qrBruto);
+      return {
+        base64,
+        pairingCode,
+        estado,
+        ...montarDebugEvolution(ctx.env, { statusBruto, qrBruto }),
+      };
+    } catch (err) {
+      return {
+        base64: null,
+        pairingCode: null,
+        estado,
+        ...montarDebugEvolution(ctx.env, {
+          statusBruto,
+          erro: mensagemErroEvolution(err),
+          statusHttp: statusHttpErroEvolution(err),
+        }),
+      };
     }
   },
 
@@ -233,7 +309,7 @@ export const instanciaHandlers = {
         row.nuvemIdNumeroTelefone && row.nuvemIdWaba && row.nuvemTokenAcesso,
       );
       if (conectado && row.status !== "connected") {
-        await marcarInstanciaConectada(ctx, row.id, row.organizacaoId);
+        await marcarInstanciaConectada(ctx, row.id, row.organizacaoId, row.asaasIdAssinatura);
       }
       return { estado: conectado ? "open" : "close", conectado };
     }
@@ -242,18 +318,30 @@ export const instanciaHandlers = {
       return { estado: "close", conectado: false };
     }
 
-    const creds = obterCredenciaisEvolution(ctx.env);
+    const creds = await obterCredenciaisEvolution(ctx.env);
     const client = createEvolutionGoClient(creds, { instanceToken: row.evolucaoToken });
     try {
-      const state = await client.getStatus();
-      const estado = parseGoConnectionState(state);
+      const statusBruto = await client.getStatus();
+      const estado = parseGoConnectionState(statusBruto);
       const conectado = estado === "open";
-      if (conectado && row.status !== "connected") {
-        await marcarInstanciaConectada(ctx, row.id, row.organizacaoId);
+      if (conectado && row.status !== "connected" && row.status !== "pending_payment") {
+        await configurarWebhookInstanciaEvolution(ctx.env, row.evolucaoToken);
+        await marcarInstanciaConectada(ctx, row.id, row.organizacaoId, row.asaasIdAssinatura);
       }
-      return { estado, conectado };
-    } catch {
-      return { estado: "connecting", conectado: false };
+      return {
+        estado,
+        conectado,
+        ...montarDebugEvolution(ctx.env, { statusBruto }),
+      };
+    } catch (err) {
+      return {
+        estado: "connecting",
+        conectado: false,
+        ...montarDebugEvolution(ctx.env, {
+          erro: mensagemErroEvolution(err),
+          statusHttp: statusHttpErroEvolution(err),
+        }),
+      };
     }
   },
 
@@ -299,7 +387,7 @@ export const instanciaHandlers = {
       )
       .where(eq(instancia.id, row.id));
 
-    await marcarInstanciaConectada(ctx, row.id, row.organizacaoId);
+    await marcarInstanciaConectada(ctx, row.id, row.organizacaoId, row.asaasIdAssinatura);
 
     return { ok: true };
   },

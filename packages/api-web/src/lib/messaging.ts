@@ -80,7 +80,7 @@ export async function sendProviderMessage(params: SendMessageParams): Promise<st
   assertMessageTypeSupported(type, instance.provedor);
 
   if (isEvolutionProvider(instance.provedor) && instance.evolucaoToken) {
-    const creds = obterCredenciaisEvolution(ctx.env);
+    const creds = await obterCredenciaisEvolution(ctx.env);
     const client = createEvolutionGoClient(creds, { instanceToken: instance.evolucaoToken });
     const quoted = quotedFrom(params.contextoMensagemId);
 
@@ -235,7 +235,7 @@ export async function markProviderMessageRead(
     return;
   }
   if (isEvolutionProvider(instance.provedor) && instance.evolucaoToken) {
-    const creds = obterCredenciaisEvolution(ctx.env);
+    const creds = await obterCredenciaisEvolution(ctx.env);
     const client = createEvolutionGoClient(creds, { instanceToken: instance.evolucaoToken });
     await client.markRead(phone.replace(/\D/g, ""), [externalMessageId]);
   }

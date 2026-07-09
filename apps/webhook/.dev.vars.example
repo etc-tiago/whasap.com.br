@@ -5,7 +5,6 @@
 
 # Overrides locais — sync: packages/config/src/public-urls.ts → workerVarsDevelopment
 CDN_URL=http://localhost:8789
-EVOLUTION_BASE_URL=http://localhost:8080
 
 # Meta Cloud API — verify token do GET /cloud (hub.verify_token).
 # Gerar: openssl rand -base64 32
@@ -21,5 +20,5 @@ ASSAS_API_KEY=$aact_placeholder
 # Sandbox Asaas — não definir em produção
 ASAAS_SANDBOX=true
 
-# Evolution — apikey global (mesmo valor do apps/web)
-EVOLUTION_API_KEY=dev-key
+# Evolution — JSON { baseUrl, apiKey } (mesmo valor do apps/web). Produção: Secrets Store.
+EVOLUTION_SECRETS_STORE={"baseUrl":"http://localhost:8080","apiKey":"dev-key"}

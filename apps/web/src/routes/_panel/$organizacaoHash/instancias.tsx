@@ -6,6 +6,11 @@ import { Badge } from "@whasap/ui/components/badge";
 
 import { rotuloWhatsApp } from "@whasap/config";
 
+import {
+  instanciaPrecisaConexao,
+  instanciasParaReconectar,
+  rotulosStatusInstancia,
+} from "@/lib/instancia-status";
 import { orgInput } from "@/lib/org-input";
 import { orpc, type InstanciaItem } from "@/lib/orpc";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
@@ -13,15 +18,6 @@ import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 export const Route = createFileRoute("/_panel/$organizacaoHash/instancias")({
   component: InstancesPage,
 });
-
-const statusLabels: Record<string, string> = {
-  pending_connection: "Configurando",
-  pending_payment: "Aguardando pagamento",
-  provisioning: "Provisionando",
-  disconnected: "Desconectada",
-  connected: "Conectada",
-  deactivated: "Desativada",
-};
 
 function InstancesPage() {
   const navigate = useNavigate();
@@ -40,35 +36,56 @@ function InstancesPage() {
   );
 
   const isAdmin = org.data?.meuPapel === "admin";
+  const lista = instances.data ?? [];
+  const paraReconectar = instanciasParaReconectar(lista);
+  const conectadas = lista.filter((i) => i.status === "connected");
 
   if (!organizacaoHash) return null;
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">WhatsApp</h1>
           <p className="text-sm text-muted-foreground">
-            R$ 99/mês por WhatsApp conectado — inclui 1.000 conversas/mês (3 dias grátis)
+            {lista.length} no total — {conectadas.length} conectada
+            {conectadas.length === 1 ? "" : "s"}
+            {paraReconectar.length > 0 && `, ${paraReconectar.length} aguardando conexão`}
           </p>
         </div>
         {isAdmin && (
-          <Button
-            onClick={() =>
-              navigate({
-                to: "/$organizacaoHash/integracao",
-                params: { organizacaoHash },
-                search: { instance: "", step: "" },
-              })
-            }
-          >
-            Conectar WhatsApp
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {paraReconectar.length > 0 && (
+              <Button
+                onClick={() =>
+                  navigate({
+                    to: "/$organizacaoHash/integracao",
+                    params: { organizacaoHash },
+                    search: { instance: "", step: "", modo: "" },
+                  })
+                }
+              >
+                Reconectar WhatsApp
+              </Button>
+            )}
+            <Button
+              variant={paraReconectar.length > 0 ? "outline" : "default"}
+              onClick={() =>
+                navigate({
+                  to: "/$organizacaoHash/integracao",
+                  params: { organizacaoHash },
+                  search: { instance: "", step: "", modo: "novo" },
+                })
+              }
+            >
+              Adicionar WhatsApp
+            </Button>
+          </div>
         )}
       </div>
 
       <div className="grid gap-4">
-        {(instances.data ?? []).map((inst: InstanciaItem) => (
+        {lista.map((inst: InstanciaItem) => (
           <Card key={inst.id}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div>
@@ -79,23 +96,25 @@ function InstancesPage() {
                 {inst.trialEndsAt && new Date(inst.trialEndsAt) > new Date() && (
                   <Badge variant="secondary">Trial</Badge>
                 )}
-                <Badge variant="outline">{statusLabels[inst.status] ?? inst.status}</Badge>
+                <Badge variant={inst.status === "connected" ? "default" : "outline"}>
+                  {rotulosStatusInstancia[inst.status] ?? inst.status}
+                </Badge>
               </div>
             </CardHeader>
             <CardContent className="flex gap-2">
-              {inst.status !== "connected" && (
+              {instanciaPrecisaConexao(inst.status) && (
                 <Button asChild size="sm" variant="outline">
                   <Link
                     to="/$organizacaoHash/integracao"
                     params={{ organizacaoHash }}
-                    search={{ instance: inst.id, step: "" }}
+                    search={{ instance: inst.id, step: "", modo: "" }}
                   >
-                    Configurar
+                    Reconectar
                   </Link>
                 </Button>
               )}
-              {inst.status === "connected" && inst.asaasSubscriptionId && (
-                <Button asChild size="sm">
+              {inst.status === "connected" && (
+                <Button asChild size="sm" variant={inst.asaasSubscriptionId ? "default" : "outline"}>
                   <Link
                     to="/$organizacaoHash/inbox/$instanceId"
                     params={{ organizacaoHash, instanceId: inst.id }}
@@ -107,16 +126,16 @@ function InstancesPage() {
             </CardContent>
           </Card>
         ))}
-        {instances.data?.length === 0 && (
+        {lista.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            Nenhum WhatsApp conectado ainda.{" "}
+            Nenhum WhatsApp cadastrado ainda.{" "}
             <Link
               to="/$organizacaoHash/integracao"
               params={{ organizacaoHash }}
-              search={{ instance: "", step: "" }}
+              search={{ instance: "", step: "", modo: "novo" }}
               className="text-wa-green underline"
             >
-              Conecte o primeiro
+              Adicione o primeiro
             </Link>
             .
           </p>

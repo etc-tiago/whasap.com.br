@@ -1,5 +1,15 @@
 import type { EvolutionCredentials, EvolutionGoInstanceContext } from "./credentials";
-import type { EvolutionConnectionState, EvolutionQrResponse, EvolutionSendResponse } from "./types";
+import type { EvolutionQrResponse, EvolutionSendResponse } from "./types";
+
+export type { EvolutionGoStatusResponse } from "./connection-state";
+
+export type EvolutionConnectParams = {
+  webhookUrl: string;
+  phone?: string;
+  subscribe?: readonly string[];
+  /** Instância já conectada: aplica webhook/eventos sem reiniciar o QR. */
+  immediate?: boolean;
+};
 
 export type EvolutionGoCreateResponse = {
   instanceId?: string;
@@ -12,12 +22,7 @@ export type EvolutionGoCreateResponse = {
   };
 };
 
-export type EvolutionGoStatusResponse = {
-  state?: EvolutionConnectionState;
-  status?: string;
-  connected?: boolean;
-  data?: { state?: EvolutionConnectionState; status?: string };
-};
+import type { EvolutionGoStatusResponse } from "./connection-state";
 
 type Quoted = { messageId: string; participant?: string };
 
@@ -85,11 +90,16 @@ export function createEvolutionGoClient(
       );
     },
 
-    connect(webhookUrl: string, phone?: string) {
+    connect(params: EvolutionConnectParams) {
       return request(
         "POST",
         "/instance/connect",
-        { webhookUrl, phone },
+        {
+          webhookUrl: params.webhookUrl,
+          phone: params.phone,
+          subscribe: params.subscribe,
+          immediate: params.immediate,
+        },
         Boolean(instanceCtx?.instanceToken),
       );
     },
@@ -107,7 +117,7 @@ export function createEvolutionGoClient(
     },
 
     disconnect() {
-      return request("POST", "/instance/disconnect", undefined, false);
+      return request("POST", "/instance/disconnect", undefined, Boolean(instanceCtx?.instanceToken));
     },
 
     deleteInstance(instanceId: string) {
@@ -230,12 +240,11 @@ export function parseGoCreateResponse(res: EvolutionGoCreateResponse) {
   };
 }
 
-export function parseGoConnectionState(res: EvolutionGoStatusResponse): EvolutionConnectionState {
-  const state = res.state ?? res.data?.state ?? res.status ?? res.data?.status;
-  if (state === "open" || state === "close" || state === "connecting") return state;
-  if (res.connected === true) return "open";
-  return "connecting";
-}
+export {
+  parseConnectionUpdateWebhook,
+  parseGoConnectionState,
+  parseGoQrResponse,
+} from "./connection-state";
 
 export function extractGoMessageId(
   res: EvolutionSendResponse & { id?: string; messageId?: string },

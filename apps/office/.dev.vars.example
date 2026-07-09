@@ -7,4 +7,5 @@ WEB_URL=http://localhost:3000
 OFFICE_URL=http://localhost:3001
 EMAIL_FROM=noreply@localhost
 # OFFICE_SESSION_JWT_SECRET: string em .dev.vars (local) ou `wrangler secret put` (produção)
+EVOLUTION_SECRETS_STORE={"baseUrl":"http://localhost:8080","apiKey":"dev-key"}
 OFFICE_SESSION_JWT_SECRET=dev-office-session-jwt-secret-change-in-production

@@ -4,6 +4,10 @@
  * Mensagens com mídia disparam download assíncrono via `scheduleInboundMedia`.
  */
 import {
+  marcarInstanciaConectadaEvolution,
+  marcarInstanciaDesconectadaEvolution,
+} from "@whasap/api-core";
+import {
   colunasContatoCaixaEntrada,
   colunasInstanciaWebhook,
   colunasMensagemWebhook,
@@ -22,6 +26,7 @@ import {
   usoMensalContato,
 } from "@whasap/db";
 import type { WorkerExecutionContext } from "@whasap/evlog/workers";
+import { parseConnectionUpdateWebhook } from "@whasap/evolution";
 import { and, eq, isNull, or } from "drizzle-orm";
 import type { Env } from "./env";
 import { scheduleInboundMedia } from "./media";
@@ -135,17 +140,15 @@ export async function processEvolutionWebhook(
   if (!instance) return;
 
   if (event === "connection.update") {
-    const state = payload.data?.state;
-    if (state === "open") {
-      await db
-        .update(instancia)
-        .set(
-          comTimestampAtualizacao({
-            status: instance.asaasIdAssinatura ? "connected" : "pending_payment",
-            conectadoEm: new Date(),
-          }),
-        )
-        .where(eq(instancia.id, instance.id));
+    const estado = parseConnectionUpdateWebhook(payload);
+    if (estado === "open") {
+      await marcarInstanciaConectadaEvolution(db, {
+        instanciaIdInterno: instance.id,
+        orgIdInterno: instance.organizacaoId,
+        asaasIdAssinatura: instance.asaasIdAssinatura,
+      });
+    } else if (estado === "close") {
+      await marcarInstanciaDesconectadaEvolution(db, instance.id);
     }
     return;
   }

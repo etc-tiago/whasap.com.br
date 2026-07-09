@@ -31,8 +31,10 @@ export function createTestWebEnv(overrides?: Partial<WebEnv>): WebEnv {
     WEB_SESSION_JWT_SECRET: "test-jwt-secret",
     ASSAS_API_KEY: "test-asaas-key",
     ASAAS_SANDBOX: "true",
-    EVOLUTION_BASE_URL: "http://localhost:8080",
-    EVOLUTION_API_KEY: "test-evolution-key",
+    EVOLUTION_SECRETS_STORE: JSON.stringify({
+      baseUrl: "http://localhost:8080",
+      apiKey: "test-evolution-key",
+    }),
     ...overrides,
   };
 }

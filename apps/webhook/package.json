@@ -18,7 +18,8 @@
     "@whasap/evolution": "workspace:*",
     "@whasap/meta": "workspace:*",
     "drizzle-orm": "^0.44.2",
-    "evlog": "^2.20.0"
+    "evlog": "^2.20.0",
+    "hono": "^4.11.3"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250705.0",

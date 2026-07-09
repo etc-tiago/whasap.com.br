@@ -9,10 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AdminRouteRouteImport } from './routes/_admin/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RpcIndexRouteImport } from './routes/rpc/index'
 import { Route as RpcSplatRouteImport } from './routes/rpc/$'
+import { Route as AdminAdministracaoWebhooksRouteImport } from './routes/_admin/administracao/webhooks'
+import { Route as AdminAdministracaoInstanciasInstanciaIdRouteImport } from './routes/_admin/administracao/instancias/$instanciaId'
 
+const AdminRouteRoute = AdminRouteRouteImport.update({
+  id: '/_admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -28,39 +35,83 @@ const RpcSplatRoute = RpcSplatRouteImport.update({
   path: '/rpc/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAdministracaoWebhooksRoute =
+  AdminAdministracaoWebhooksRouteImport.update({
+    id: '/administracao/webhooks',
+    path: '/administracao/webhooks',
+    getParentRoute: () => AdminRouteRoute,
+  } as any)
+const AdminAdministracaoInstanciasInstanciaIdRoute =
+  AdminAdministracaoInstanciasInstanciaIdRouteImport.update({
+    id: '/administracao/instancias/$instanciaId',
+    path: '/administracao/instancias/$instanciaId',
+    getParentRoute: () => AdminRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/rpc/$': typeof RpcSplatRoute
   '/rpc/': typeof RpcIndexRoute
+  '/administracao/webhooks': typeof AdminAdministracaoWebhooksRoute
+  '/administracao/instancias/$instanciaId': typeof AdminAdministracaoInstanciasInstanciaIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/rpc/$': typeof RpcSplatRoute
   '/rpc': typeof RpcIndexRoute
+  '/administracao/webhooks': typeof AdminAdministracaoWebhooksRoute
+  '/administracao/instancias/$instanciaId': typeof AdminAdministracaoInstanciasInstanciaIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_admin': typeof AdminRouteRouteWithChildren
   '/rpc/$': typeof RpcSplatRoute
   '/rpc/': typeof RpcIndexRoute
+  '/_admin/administracao/webhooks': typeof AdminAdministracaoWebhooksRoute
+  '/_admin/administracao/instancias/$instanciaId': typeof AdminAdministracaoInstanciasInstanciaIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/rpc/$' | '/rpc/'
+  fullPaths:
+    | '/'
+    | '/rpc/$'
+    | '/rpc/'
+    | '/administracao/webhooks'
+    | '/administracao/instancias/$instanciaId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/rpc/$' | '/rpc'
-  id: '__root__' | '/' | '/rpc/$' | '/rpc/'
+  to:
+    | '/'
+    | '/rpc/$'
+    | '/rpc'
+    | '/administracao/webhooks'
+    | '/administracao/instancias/$instanciaId'
+  id:
+    | '__root__'
+    | '/'
+    | '/_admin'
+    | '/rpc/$'
+    | '/rpc/'
+    | '/_admin/administracao/webhooks'
+    | '/_admin/administracao/instancias/$instanciaId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
   RpcSplatRoute: typeof RpcSplatRoute
   RpcIndexRoute: typeof RpcIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/_admin': {
+      id: '/_admin'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AdminRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -82,11 +133,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RpcSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_admin/administracao/webhooks': {
+      id: '/_admin/administracao/webhooks'
+      path: '/administracao/webhooks'
+      fullPath: '/administracao/webhooks'
+      preLoaderRoute: typeof AdminAdministracaoWebhooksRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/_admin/administracao/instancias/$instanciaId': {
+      id: '/_admin/administracao/instancias/$instanciaId'
+      path: '/administracao/instancias/$instanciaId'
+      fullPath: '/administracao/instancias/$instanciaId'
+      preLoaderRoute: typeof AdminAdministracaoInstanciasInstanciaIdRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
   }
 }
 
+interface AdminRouteRouteChildren {
+  AdminAdministracaoWebhooksRoute: typeof AdminAdministracaoWebhooksRoute
+  AdminAdministracaoInstanciasInstanciaIdRoute: typeof AdminAdministracaoInstanciasInstanciaIdRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminAdministracaoWebhooksRoute: AdminAdministracaoWebhooksRoute,
+  AdminAdministracaoInstanciasInstanciaIdRoute:
+    AdminAdministracaoInstanciasInstanciaIdRoute,
+}
+
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
   RpcSplatRoute: RpcSplatRoute,
   RpcIndexRoute: RpcIndexRoute,
 }

@@ -10,4 +10,4 @@ Implementação: [`src/client.ts`](./src/client.ts).
 
 ## Versão Graph API
 
-Definida em `@whasap/config` → `mvpDefaults.meta.apiVersion` (atualmente `v21.0`).
+Definida em `@whasap/config` → `mvpDefaults.meta.apiVersion` (atualmente `v25.0`).

@@ -34,8 +34,7 @@
   ],
   "vars": {
     // sync: packages/config/src/public-urls.ts → workerVarsProduction
-    "CDN_URL": "https://cdn.whasap.com.br",
-    "EVOLUTION_BASE_URL": "https://evolution.whasap.com.br"
+    "CDN_URL": "https://cdn.whasap.com.br"
   },
   "secrets": {
     "required": [
@@ -48,6 +47,11 @@
       "binding": "ASSAS_API_KEY",
       "store_id": "76b096bc6b03460dabd7744ba277a1ee",
       "secret_name": "ASSAS_API_KEY_ETC"
+    },
+    {
+      "binding": "EVOLUTION_SECRETS_STORE",
+      "store_id": "76b096bc6b03460dabd7744ba277a1ee",
+      "secret_name": "EVOLUTION_SECRETS_STORE"
     }
   ]
 }

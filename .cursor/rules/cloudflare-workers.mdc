@@ -20,6 +20,7 @@ alwaysApply: false
 | Binding | Store (nome) | Secret no store | Uso |
 |---------|--------------|-----------------|-----|
 | `ASSAS_API_KEY` | `ASSAS_API_KEY_ETC` | `ASSAS_API_KEY_ETC` | API key Asaas (`web`, `webhook`) |
+| `EVOLUTION_SECRETS_STORE` | `ASSAS_API_KEY_ETC` | `EVOLUTION_SECRETS_STORE` | JSON `{ baseUrl, apiKey }` Evolution (`web`, `webhook`) |
 
 ```jsonc
 "secrets_store_secrets": [
@@ -27,6 +28,11 @@ alwaysApply: false
     "binding": "ASSAS_API_KEY",
     "store_id": "<uuid-do-store-ASSAS_API_KEY_ETC>",
     "secret_name": "ASSAS_API_KEY_ETC"
+  },
+  {
+    "binding": "EVOLUTION_SECRETS_STORE",
+    "store_id": "<uuid-do-store-ASSAS_API_KEY_ETC>",
+    "secret_name": "EVOLUTION_SECRETS_STORE"
   }
 ]
 ```

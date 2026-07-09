@@ -15,6 +15,7 @@
     "@whasap/config": "workspace:*",
     "@whasap/db": "workspace:*",
     "@whasap/evlog": "workspace:*",
+    "@whasap/evolution": "workspace:*",
     "@whasap/orpc": "workspace:*",
     "drizzle-orm": "^0.44.2"
   },

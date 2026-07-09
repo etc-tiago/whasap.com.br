@@ -5,13 +5,20 @@ export {
   type EvolutionGoInstanceContext,
 } from "./credentials";
 export {
+  parseConnectionUpdateWebhook,
+  parseGoConnectionState,
+  parseGoQrResponse,
+  type EvolutionConnectionUpdatePayload,
+  type EvolutionGoStatusResponse,
+} from "./connection-state";
+export {
   createEvolutionGoClient,
   extractGoMessageId,
-  parseGoConnectionState,
   parseGoCreateResponse,
+  type EvolutionConnectParams,
   type EvolutionGoCreateResponse,
-  type EvolutionGoStatusResponse,
 } from "./client-go";
+export { EVOLUTION_WEBHOOK_SUBSCRIBE_ALL } from "./webhook-events";
 export {
   type EvolutionConnectionState,
   type EvolutionQrResponse,

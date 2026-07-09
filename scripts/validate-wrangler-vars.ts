@@ -13,7 +13,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const apps: Array<{ app: string; keys: readonly (keyof typeof workerVarsProduction)[] }> = [
   {
     app: "web",
-    keys: ["WEB_URL", "OFFICE_URL", "WEBHOOK_URL", "CDN_URL", "EMAIL_FROM", "EVOLUTION_BASE_URL"],
+    keys: ["WEB_URL", "OFFICE_URL", "WEBHOOK_URL", "CDN_URL", "EMAIL_FROM"],
   },
   {
     app: "office",
@@ -21,7 +21,7 @@ const apps: Array<{ app: string; keys: readonly (keyof typeof workerVarsProducti
   },
   {
     app: "webhook",
-    keys: ["CDN_URL", "EVOLUTION_BASE_URL"],
+    keys: ["CDN_URL"],
   },
 ];
 

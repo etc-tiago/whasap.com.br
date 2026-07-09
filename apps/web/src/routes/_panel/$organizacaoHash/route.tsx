@@ -51,7 +51,7 @@ function OrganizacaoLayout() {
     navigate({
       to: "/$organizacaoHash/integracao",
       params: { organizacaoHash },
-      search: { instance: "", step: "" },
+      search: { instance: "", step: "", modo: "" },
     });
   }, [needsOnboarding, navigate, organizacaoHash]);
 

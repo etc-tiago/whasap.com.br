@@ -1,4 +1,5 @@
 import type { WorkerExecutionContext } from "@whasap/evlog/workers";
+import { getEvolutionCredentials } from "@whasap/api-core";
 import { log } from "@whasap/evlog";
 import { eq } from "drizzle-orm";
 import { buildMediaR2Key, mimeToExtension } from "@whasap/config";
@@ -72,17 +73,15 @@ export async function storeInboundMedia(env: Env, db: Db, job: InboundMediaJob):
       mimeType = job.mimeType ?? "application/octet-stream";
       buffer = base64ToArrayBuffer(job.base64);
     } else {
-      const baseUrl = env.EVOLUTION_BASE_URL;
-      const apiKey = env.EVOLUTION_API_KEY;
-      if (!baseUrl || !apiKey) {
+      let creds: { baseUrl: string; apiKey: string };
+      try {
+        creds = await getEvolutionCredentials(env);
+      } catch {
         log.error({ contexto: "webhook.media", erro: "Evolution API não configurada no worker" });
         return;
       }
 
-      const client = createEvolutionGoClient(
-        { baseUrl, apiKey },
-        { instanceToken: job.instanceToken },
-      );
+      const client = createEvolutionGoClient(creds, { instanceToken: job.instanceToken });
       const result = await client.downloadMedia(job.waMessage ?? { key: job.messageKey });
       const b64 = result.base64 ?? result.data;
       if (!b64) {

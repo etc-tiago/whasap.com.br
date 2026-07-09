@@ -8,11 +8,13 @@ export function isOrganizacaoConectada(
   return instancias.some((i) => i.status === "connected");
 }
 
-export type PassoOnboarding = "tipo" | "conexao" | "concluido";
+export type PassoOnboarding = "escolher" | "tipo" | "conexao" | "concluido";
 
 type DerivarPassoParams = {
   searchStep: string;
   activeInstanceId: string;
+  modoNovo: boolean;
+  temInstanciasParaReconectar: boolean;
   instancia?: {
     status: string;
     provider: string;
@@ -21,12 +23,16 @@ type DerivarPassoParams = {
 
 /**
  * Deriva o passo atual do wizard de onboarding a partir do status da instância.
- * Fluxo: tipo → conexao → concluido
+ * Fluxo: escolher → conexao → concluido (ou tipo ao criar nova instância)
  */
 export function derivarPassoOnboarding(params: DerivarPassoParams): PassoOnboarding {
-  const { searchStep, activeInstanceId, instancia: inst } = params;
+  const { searchStep, activeInstanceId, modoNovo, temInstanciasParaReconectar, instancia: inst } =
+    params;
 
   if (searchStep === "concluido" || inst?.status === "connected") return "concluido";
-  if (!activeInstanceId) return "tipo";
+  if (!activeInstanceId) {
+    if (modoNovo || !temInstanciasParaReconectar) return "tipo";
+    return "escolher";
+  }
   return "conexao";
 }

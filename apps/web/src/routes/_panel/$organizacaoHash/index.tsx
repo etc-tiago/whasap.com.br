@@ -2,9 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@whasap/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/card";
+import { Badge } from "@whasap/ui/components/badge";
 import { Plus } from "lucide-react";
 
 import { rotuloWhatsApp } from "@whasap/config";
+import { instanciaPrecisaConexao, rotulosStatusInstancia } from "@/lib/instancia-status";
 import { orpc, type InstanciaItem } from "@/lib/orpc";
 import { orgInput } from "@/lib/org-input";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
@@ -22,19 +24,23 @@ function HomePage() {
     }),
   );
 
-  const connected = (instances.data ?? []).filter((i: InstanciaItem) => i.status === "connected");
+  const lista = instances.data ?? [];
+  const connected = lista.filter((i: InstanciaItem) => i.status === "connected");
+  const desconectadas = lista.filter((i: InstanciaItem) => instanciaPrecisaConexao(i.status));
 
   if (!organizacaoHash) return null;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Inbox</h1>
           <p className="text-sm text-muted-foreground">
             {connected.length > 0
               ? "Selecione um WhatsApp conectado para ver conversas."
-              : "Conecte seu WhatsApp Business ou Cloud para começar."}
+              : desconectadas.length > 0
+                ? "Há WhatsApps desconectados aguardando reconexão."
+                : "Conecte seu WhatsApp Business ou Cloud para começar."}
           </p>
         </div>
         <Button asChild>
@@ -45,45 +51,89 @@ function HomePage() {
         </Button>
       </div>
 
-      {connected.length === 0 ? (
+      {lista.length === 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>Nenhum WhatsApp conectado</CardTitle>
+            <CardTitle>Nenhum WhatsApp cadastrado</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              O painel está pronto. Conecte seu primeiro WhatsApp Business ou Cloud para começar a
+              O painel está pronto. Adicione seu primeiro WhatsApp Business ou Cloud para começar a
               receber mensagens.
             </p>
             <Button asChild>
-              <Link to="/$organizacaoHash/instancias" params={{ organizacaoHash }}>
-                Conectar WhatsApp
+              <Link
+                to="/$organizacaoHash/integracao"
+                params={{ organizacaoHash }}
+                search={{ instance: "", step: "", modo: "novo" }}
+              >
+                Adicionar WhatsApp
               </Link>
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {connected.map((inst: InstanciaItem) => (
-            <Card key={inst.id}>
-              <CardHeader>
-                <CardTitle className="text-base">{inst.nome}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground mb-3">
-                  {rotuloWhatsApp(inst.provider)}
-                </p>
-                <Button asChild size="sm" variant="outline">
-                  <Link
-                    to="/$organizacaoHash/inbox/$instanceId"
-                    params={{ organizacaoHash, instanceId: inst.id }}
-                  >
-                    Abrir inbox
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="space-y-6">
+          {connected.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="text-sm font-medium text-muted-foreground">Conectados</h2>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {connected.map((inst: InstanciaItem) => (
+                  <Card key={inst.id}>
+                    <CardHeader className="flex flex-row items-start justify-between space-y-0">
+                      <CardTitle className="text-base">{inst.nome}</CardTitle>
+                      <Badge>{rotulosStatusInstancia[inst.status]}</Badge>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="mb-3 text-xs text-muted-foreground">
+                        {rotuloWhatsApp(inst.provider)}
+                      </p>
+                      <Button asChild size="sm" variant="outline">
+                        <Link
+                          to="/$organizacaoHash/inbox/$instanceId"
+                          params={{ organizacaoHash, instanceId: inst.id }}
+                        >
+                          Abrir inbox
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {desconectadas.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="text-sm font-medium text-muted-foreground">Desconectados</h2>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {desconectadas.map((inst: InstanciaItem) => (
+                  <Card key={inst.id}>
+                    <CardHeader className="flex flex-row items-start justify-between space-y-0">
+                      <CardTitle className="text-base">{inst.nome}</CardTitle>
+                      <Badge variant="outline">
+                        {rotulosStatusInstancia[inst.status] ?? inst.status}
+                      </Badge>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="mb-3 text-xs text-muted-foreground">
+                        {rotuloWhatsApp(inst.provider)}
+                      </p>
+                      <Button asChild size="sm" variant="outline">
+                        <Link
+                          to="/$organizacaoHash/integracao"
+                          params={{ organizacaoHash }}
+                          search={{ instance: inst.id, step: "", modo: "" }}
+                        >
+                          Reconectar
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
     </div>

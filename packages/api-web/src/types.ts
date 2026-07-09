@@ -32,7 +32,9 @@ export type WebEnv = BaseEnv & {
   CDN_URL: string;
   ASSAS_API_KEY?: SecretsStoreSecretBinding | string;
   ASAAS_SANDBOX?: string;
-  EVOLUTION_BASE_URL?: string;
-  EVOLUTION_API_KEY?: string;
+  /** Secrets Store (produção) ou string JSON em `.dev.vars`: `{ "baseUrl", "apiKey" }` */
+  EVOLUTION_SECRETS_STORE?: SecretsStoreSecretBinding | string;
+  /** Quando `EVOLUTION_DEBUG=true`: respostas brutas da Evolution (tokens redigidos). */
+  EVOLUTION_DEBUG?: string;
   WEB_SESSION_JWT_SECRET: SecretsStoreSecretBinding | string;
 };

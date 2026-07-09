@@ -13,11 +13,11 @@ Infra geral (Hyperdrive, R2, deploy): [PRODUCAO.md](./PRODUCAO.md) · Integraç�
 | `WHATSAPP_CLOUD_WEBHOOK_SECRET` | Sim | Worker secret | `wrangler secret put` + app Meta |
 | `ASAAS_WEBHOOK_TOKEN` | Sim | Worker secret | `wrangler secret put` + painel Asaas |
 | `ASSAS_API_KEY` | Sim | Secrets Store | binding em `wrangler.jsonc` |
-| `EVOLUTION_API_KEY` | Recomendado* | Worker secret | `wrangler secret put` (mesmo valor do `web`) |
+| `EVOLUTION_SECRETS_STORE` | Recomendado* | Secrets Store | binding em `wrangler.jsonc` (mesmo valor do `web`) |
 
 \* Necessário se houver instâncias `evolution` recebendo mídia inbound (download via `/message/downloadmedia`).
 
-Vars **não secretas** no mesmo worker: ver [ENV.md](./ENV.md) (`CDN_URL`, `EVOLUTION_BASE_URL` em `wrangler.jsonc`; dev em `.dev.vars`).
+Vars **não secretas** no mesmo worker: ver [ENV.md](./ENV.md) (`CDN_URL` em `wrangler.jsonc`; dev em `.dev.vars`).
 
 ---
 
@@ -133,21 +133,32 @@ openssl rand -hex 32
 
 ---
 
-## `EVOLUTION_API_KEY` (opcional no schema, recomendado em uso)
+## `EVOLUTION_SECRETS_STORE` (opcional no schema, recomendado em uso)
 
-**Função:** chave global Evolution (`apikey` header) para download de mídia inbound no webhook.
+**Função:** credenciais do servidor Evolution da plataforma (URL + `apikey`) — provisionamento, QR, envio e download de mídia inbound.
+
+**Tipo:** Secrets Store da Cloudflare (JSON único, não vars/secrets separados).
 
 ### Requisitos
 
 | Requisito | Detalhe |
 |-----------|---------|
-| Valor | Mesmo `GLOBAL_API_KEY` / `apikey` do servidor Evolution |
-| Par | Exige `EVOLUTION_BASE_URL` (var) apontando para o servidor |
-| Workers | Mesmo valor em `apps/web` e `apps/webhook` |
+| Formato | JSON: `{ "baseUrl": "https://...", "apiKey": "..." }` |
+| Valor | `baseUrl` = URL do servidor; `apiKey` = `GLOBAL_API_KEY` / header `apikey` |
+| Workers | Mesmo secret em `apps/web` e `apps/webhook` |
+| Binding | `EVOLUTION_SECRETS_STORE` no worker; secret `EVOLUTION_SECRETS_STORE` no store |
 
-```bash
-cd apps/webhook && wrangler secret put EVOLUTION_API_KEY
-```
+### Onde configurar
+
+1. Criar secret no Secrets Store (mesmo store Asaas ou outro):
+   ```bash
+   wrangler secrets-store secret create $STORE_ID \
+     --name EVOLUTION_SECRETS_STORE \
+     --value '{"baseUrl":"https://evolution.example/","apiKey":"..."}' \
+     --scopes workers
+   ```
+2. Binding em `apps/web/wrangler.jsonc` e `apps/webhook/wrangler.jsonc`
+3. **Local:** `EVOLUTION_SECRETS_STORE={"baseUrl":"http://localhost:8080","apiKey":"dev-key"}` em `.dev.vars`
 
 ---
 
@@ -156,7 +167,7 @@ cd apps/webhook && wrangler secret put EVOLUTION_API_KEY
 - [ ] `WHATSAPP_CLOUD_WEBHOOK_SECRET` no Worker **e** Verify token idêntico no app Meta
 - [ ] `ASAAS_WEBHOOK_TOKEN` no Worker **e** auth token idêntico no webhook Asaas
 - [ ] `ASSAS_API_KEY` no Secrets Store com binding nos workers `web` e `webhook`
-- [ ] `EVOLUTION_API_KEY` + `EVOLUTION_BASE_URL` se usar WhatsApp Comercial (`evolution`)
+- [ ] `EVOLUTION_SECRETS_STORE` (JSON `{ baseUrl, apiKey }`) se usar WhatsApp Comercial (`evolution`)
 - [ ] `.dev.vars` no `.gitignore`; apenas `.dev.vars.example` versionado
 - [ ] Secrets de sandbox **não** reutilizados em produção
 

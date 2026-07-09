@@ -22,7 +22,7 @@
     "WEBHOOK_URL": "https://webhook.whasap.com.br",
     "CDN_URL": "https://cdn.whasap.com.br",
     "EMAIL_FROM": "noreply@whasap.com.br",
-    "EVOLUTION_BASE_URL": "https://evolution.whasap.com.br"
+    "EVOLUTION_DEBUG": "false"
   },
   "send_email": [
     {
@@ -35,6 +35,11 @@
       "binding": "ASSAS_API_KEY",
       "store_id": "76b096bc6b03460dabd7744ba277a1ee",
       "secret_name": "ASSAS_API_KEY_ETC"
+    },
+    {
+      "binding": "EVOLUTION_SECRETS_STORE",
+      "store_id": "76b096bc6b03460dabd7744ba277a1ee",
+      "secret_name": "EVOLUTION_SECRETS_STORE"
     }
   ],
   "hyperdrive": [
@@ -57,6 +62,7 @@
   "assets": {
     "directory": "./dist/client",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/rpc/*"]
+    // /rpc* → Worker. !/assets* e !/*.js → asset layer (sem invocar o script).
+    "run_worker_first": ["/rpc/*", "!/assets*", "!/*.js"]
   }
 }

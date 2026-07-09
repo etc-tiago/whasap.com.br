@@ -18,6 +18,7 @@ Guia para configurar Asaas, Evolution API e Meta Cloud API.
    | Tipo | Nome | Workers |
    |------|------|---------|
    | Secrets Store | `ASSAS_API_KEY` → secret `ASSAS_API_KEY_ETC` no store `ASSAS_API_KEY_ETC` | `web`, `webhook` |
+   | Secrets Store | `EVOLUTION_SECRETS_STORE` → JSON `{ baseUrl, apiKey }` no mesmo store | `web`, `webhook`, `office` |
 
    ```bash
    wrangler secrets-store store list   # anote o store_id do store Asaas
@@ -54,7 +55,7 @@ Anexos recebidos (imagem, áudio, documento, vídeo) são baixados pelos webhook
 
 Chaves no R2: `media/{instanciaUuid}/{mensagemExternaId}.{ext}`
 
-O painel expõe `mediaUrl` nas mensagens (campo `midiaR2Chave` no banco). Download de mídia Evolution usa `EVOLUTION_BASE_URL` / `EVOLUTION_API_KEY` do worker; Meta usa credenciais da instância no Neon.
+O painel expõe `mediaUrl` nas mensagens (campo `midiaR2Chave` no banco). Download de mídia Evolution usa `EVOLUTION_SECRETS_STORE` do worker; Meta usa credenciais da instância no Neon.
 
 ```bash
 cd apps/cdn && bun run deploy
@@ -71,12 +72,16 @@ Motor único **Evolution GO** (whatsmeow), provedor `evolution` no Neon.
 Spec OpenAPI oficial: [`packages/evolution/swagger.json`](../packages/evolution/swagger.json) e [`packages/evolution/README.md`](../packages/evolution/README.md).
 
 1. Suba Evolution GO na plataforma.
-2. Configure nos workers `apps/web` e `apps/webhook`:
-   - `EVOLUTION_BASE_URL` — URL do servidor Evolution
-   - `EVOLUTION_API_KEY` — chave global (`apikey` header)
-   - `WEBHOOK_URL` — ex. `https://webhook.whasap.com.br`
+2. Configure nos workers `apps/web`, `apps/webhook` e `apps/office` (debug):
+   - `EVOLUTION_SECRETS_STORE` — JSON `{ "baseUrl", "apiKey" }` (Secrets Store; local em `.dev.vars`)
+   - `WEBHOOK_URL` — ex. `https://webhook.whasap.com.br` (só no `web`)
+   - `EVOLUTION_DEBUG` — `true` no `.dev.vars` do `web` para expor `_debug` em `obterQr` / `statusConexao` (default `false` em produção)
 3. Webhooks em `POST /evo` (lookup por `instance` ou `instanceId`).
 4. Token por instância gerado no provisionamento; chamadas `/send/*` usam esse token no header `apikey`.
+
+Fluxo detalhado (status banco vs Evolution vs webhook): [FLUXO-INSTANCIA-EVOLUTION.md](./FLUXO-INSTANCIA-EVOLUTION.md).
+
+Office: worker com binding R2 `whasap` para consultar logs de webhook e endpoint `administracao.instancias.estadoEvolution`.
 
 Migração de instâncias antigas:
 

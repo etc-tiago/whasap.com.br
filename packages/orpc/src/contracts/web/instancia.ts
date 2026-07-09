@@ -3,6 +3,15 @@ import { z } from "zod";
 
 import { instanciaSchema, instanceProviderSchema, organizacaoHashSchema } from "../../schemas";
 
+const evolutionDebugSchema = z
+  .object({
+    statusBruto: z.unknown().optional(),
+    qrBruto: z.unknown().optional(),
+    erro: z.string().optional(),
+    statusHttp: z.number().optional(),
+  })
+  .optional();
+
 export const instanciaContract = {
   lista: oc
     .input(z.object({ organizacaoHash: organizacaoHashSchema }))
@@ -22,17 +31,28 @@ export const instanciaContract = {
     .input(z.object({ instanciaId: z.string().uuid() }))
     .output(z.object({ ok: z.boolean() })),
 
+  encerrarPareamento: oc
+    .input(z.object({ instanciaId: z.string().uuid() }))
+    .output(z.object({ ok: z.boolean() })),
+
   obterQr: oc.input(z.object({ instanciaId: z.string().uuid() })).output(
     z.object({
       base64: z.string().nullable(),
       pairingCode: z.string().nullable(),
       estado: z.string(),
+      _debug: evolutionDebugSchema,
     }),
   ),
 
   statusConexao: oc
     .input(z.object({ instanciaId: z.string().uuid() }))
-    .output(z.object({ estado: z.string(), conectado: z.boolean() })),
+    .output(
+      z.object({
+        estado: z.string(),
+        conectado: z.boolean(),
+        _debug: evolutionDebugSchema,
+      }),
+    ),
 
   configurarCloud: oc
     .input(

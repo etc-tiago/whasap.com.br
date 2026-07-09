@@ -38,14 +38,13 @@ Não usamos `wrangler deploy --env production` — isso criaria workers com sufi
 |----------|------|----------|-------|
 | `WEB_URL`, `OFFICE_URL`, `WEBHOOK_URL`, `CDN_URL` | var | `wrangler.jsonc` | `.dev.vars` |
 | `EMAIL_FROM` | var | `wrangler.jsonc` | `.dev.vars` |
-| `EVOLUTION_BASE_URL` | var | `wrangler.jsonc` (`web`, `webhook`) | `.dev.vars` |
 | `VITE_WEB_PANEL_URL` | build | `apps/site/.env.production` | `.env` / `.env.example` |
 | `VITE_META_APP_ID`, `VITE_META_CONFIG_ID` | build | `apps/web/.env.production` | `.env` |
 | `ASAAS_SANDBOX` | flag dev | não definir | `.dev.vars` = `true` |
 | `ASSAS_API_KEY` | secret | Secrets Store | `.dev.vars` |
+| `EVOLUTION_SECRETS_STORE` | secret | Secrets Store (JSON `{ baseUrl, apiKey }`) | `.dev.vars` |
 | `WEB_SESSION_JWT_SECRET` | secret | `wrangler secret put` | `.dev.vars` |
 | `OFFICE_SESSION_JWT_SECRET` | secret | `wrangler secret put` | `.dev.vars` |
-| `EVOLUTION_API_KEY` | secret | `wrangler secret put` | `.dev.vars` |
 | `WHATSAPP_CLOUD_WEBHOOK_SECRET` | secret | `wrangler secret put` | `.dev.vars` |
 | `ASAAS_WEBHOOK_TOKEN` | secret | `wrangler secret put` | `.dev.vars` |
 
@@ -59,7 +58,8 @@ Não usamos `wrangler deploy --env production` — isso criaria workers com sufi
 
 ### `apps/web`
 
-- Worker vars: `WEB_URL`, `OFFICE_URL`, `WEBHOOK_URL`, `CDN_URL`, `EMAIL_FROM`, `EVOLUTION_BASE_URL`
+- Worker vars: `WEB_URL`, `OFFICE_URL`, `WEBHOOK_URL`, `CDN_URL`, `EMAIL_FROM`
+- Secrets Store: `ASSAS_API_KEY`, `EVOLUTION_SECRETS_STORE`
 - Build: `apps/web/.env.production` → `VITE_META_*`
 - Dev: `apps/web/.dev.vars` + `.env` raiz
 
@@ -70,7 +70,8 @@ Não usamos `wrangler deploy --env production` — isso criaria workers com sufi
 
 ### `apps/webhook`
 
-- Worker vars: `CDN_URL`, `EVOLUTION_BASE_URL`
+- Worker vars: `CDN_URL`
+- Secrets Store: `ASSAS_API_KEY`, `EVOLUTION_SECRETS_STORE`
 - Secrets: ver [SECRETS-WEBHOOK.md](./SECRETS-WEBHOOK.md)
 - Dev: `apps/webhook/.dev.vars`
 

@@ -2,6 +2,7 @@ import adicionarPacoteConversas from "./adicionar-pacote-conversas";
 import configurarCloud from "./configurar-cloud";
 import criar from "./criar";
 import criarCheckout from "./criar-checkout";
+import encerrarPareamento from "./encerrar-pareamento";
 import lista from "./lista";
 import obter from "./obter";
 import obterQr from "./obter-qr";
@@ -12,6 +13,7 @@ export default {
   lista,
   criar,
   provisionar,
+  encerrarPareamento,
   obterQr,
   statusConexao,
   configurarCloud,

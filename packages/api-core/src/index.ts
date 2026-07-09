@@ -30,6 +30,18 @@ export {
   type AsaasSecretsEnv,
   type SecretsStoreSecretBinding,
 } from "./lib/asaas-env";
+export {
+  getEvolutionCredentials,
+  type EvolutionCredentials,
+  type EvolutionSecretsEnv,
+} from "./lib/evolution-env";
 export { getClientIp } from "./lib/client-ip";
+export {
+  iniciarDemonstracaoSeNecessarioDb,
+  marcarInstanciaConectadaEvolution,
+  marcarInstanciaDesconectadaEvolution,
+  resolverStatusAposConexaoEvolution,
+  type StatusInstanciaAposConexao,
+} from "./lib/instancia-evolution";
 export { resolveSessionJwtSecret } from "./lib/session-jwt-secret";
 export type { BaseEnv, DbContext } from "./types";

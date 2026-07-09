@@ -30,6 +30,19 @@
       "localConnectionString": "postgres://postgres:postgres@db.localtest.me:5432/whasap"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "whasap"
+    }
+  ],
+  "secrets_store_secrets": [
+    {
+      "binding": "EVOLUTION_SECRETS_STORE",
+      "store_id": "76b096bc6b03460dabd7744ba277a1ee",
+      "secret_name": "EVOLUTION_SECRETS_STORE"
+    }
+  ],
   // Mesmo namespace_id que web — limite compartilhado por email
   "ratelimits": [
     {

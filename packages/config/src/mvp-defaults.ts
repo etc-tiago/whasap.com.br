@@ -22,7 +22,7 @@ export const mvpDefaults = {
     uniquePerContactPerInstancePerMonth: true,
   },
   meta: {
-    apiVersion: "v21.0",
+    apiVersion: "v25.0",
     customerOwnsNumber: true,
     customerPaysMeta: true,
     webhookPath: "/cloud",

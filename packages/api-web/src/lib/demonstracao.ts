@@ -1,4 +1,4 @@
-import { preconditionFailed } from "@whasap/api-core";
+import { preconditionFailed, marcarInstanciaConectadaEvolution } from "@whasap/api-core";
 import { mvpDefaults } from "@whasap/config";
 import {
   colunasInstanciaPublica,
@@ -114,13 +114,13 @@ export async function marcarInstanciaConectada(
   ctx: WebContext,
   instanciaIdInterno: number,
   orgIdInterno: number,
+  asaasIdAssinatura?: string | null,
 ): Promise<void> {
-  await ctx.db
-    .update(instancia)
-    .set(comTimestampAtualizacao({ status: "connected", conectadoEm: new Date() }))
-    .where(eq(instancia.id, instanciaIdInterno));
-
-  await iniciarDemonstracaoSeNecessario(ctx, orgIdInterno);
+  await marcarInstanciaConectadaEvolution(ctx.db, {
+    instanciaIdInterno,
+    orgIdInterno,
+    asaasIdAssinatura,
+  });
 }
 
 async function carregarDemonstracaoOrg(
