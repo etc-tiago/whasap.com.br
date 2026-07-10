@@ -1,26 +1,16 @@
-import { Button } from "@whasap/ui/components/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@whasap/ui/components/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@whasap/ui/components/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@whasap/ui/components/select";
 import { ArrowLeft, MoreVertical, Search, Video } from "lucide-react";
 
+import { WaAtribuirPopover } from "@/components/inbox/wa-atribuir-popover";
+import { WaEtiquetasPopover } from "@/components/inbox/wa-etiquetas-popover";
 import { WaIconButton } from "@/components/inbox/wa-icon-button";
+import { WaJanelaCloudCountdown } from "@/components/inbox/wa-janela-cloud-countdown";
+import { WaNomeContatoEditor } from "@/components/inbox/wa-nome-contato-editor";
 import { corAvatarContato, estiloAvatarContato } from "@/lib/inbox-utils";
 import type { ConversaItem } from "@/lib/orpc";
 
@@ -33,24 +23,22 @@ type Membro = {
 
 type WaChatHeaderProps = {
   conversa: ConversaItem;
+  instanciaId: string;
+  organizacaoHash: string;
   membros: Membro[];
-  assignOpen: boolean;
-  assignUserId: string;
-  onAssignOpenChange: (open: boolean) => void;
-  onAssignUserIdChange: (id: string) => void;
-  onAtribuir: () => void;
+  podeAtribuir?: boolean;
+  podeEtiquetar?: boolean;
   onFechar: () => void;
   onVoltarMobile?: () => void;
 };
 
 export function WaChatHeader({
   conversa,
+  instanciaId,
+  organizacaoHash,
   membros,
-  assignOpen,
-  assignUserId,
-  onAssignOpenChange,
-  onAssignUserIdChange,
-  onAtribuir,
+  podeAtribuir = true,
+  podeEtiquetar = true,
   onFechar,
   onVoltarMobile,
 }: WaChatHeaderProps) {
@@ -58,7 +46,11 @@ export function WaChatHeader({
   const cor = corAvatarContato(conversa.contatoId);
 
   return (
-    <>
+    <WaEtiquetasPopover
+      organizacaoHash={organizacaoHash}
+      contatoId={conversa.contatoId}
+      disabled={!podeEtiquetar}
+    >
       <header className="flex items-center justify-between border-l border-wa-divider bg-wa-panel-header px-3 py-2.5 md:px-4">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           {onVoltarMobile ? (
@@ -78,21 +70,29 @@ export function WaChatHeader({
             {nome.slice(0, 1).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-[15px] font-medium text-wa-text">{nome}</p>
+            <WaNomeContatoEditor
+              contatoId={conversa.contatoId}
+              contatoNome={conversa.contatoNome}
+              contatoTelefone={conversa.contatoTelefone}
+              instanciaId={instanciaId}
+              disabled={!podeEtiquetar}
+            />
             {conversa.janelaCloudExpiraEm ? (
-              <p className="truncate text-xs text-wa-text-muted">
-                Janela 24h até{" "}
-                {new Date(conversa.janelaCloudExpiraEm).toLocaleString("pt-BR")}
-              </p>
+              <WaJanelaCloudCountdown expiraEm={conversa.janelaCloudExpiraEm} />
             ) : null}
-            {conversa.usuarioAtribuidoNome ? (
-              <p className="truncate text-xs text-wa-text-muted">
-                Atribuído: {conversa.usuarioAtribuidoNome}
-              </p>
-            ) : null}
+            <WaEtiquetasPopover.Resumo />
+            <WaAtribuirPopover
+              conversaId={conversa.id}
+              instanciaId={instanciaId}
+              usuarioAtribuidoId={conversa.usuarioAtribuidoId}
+              usuarioAtribuidoNome={conversa.usuarioAtribuidoNome}
+              membros={membros}
+              disabled={!podeAtribuir}
+            />
           </div>
         </div>
         <div className="flex items-center gap-1 text-wa-icon">
+          <WaEtiquetasPopover.Icone />
           <WaIconButton disabled label="Chamada de vídeo">
             <Video className="h-5 w-5" />
           </WaIconButton>
@@ -110,9 +110,6 @@ export function WaChatHeader({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => onAssignOpenChange(true)}>
-                Atribuir conversa
-              </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
                 onSelect={onFechar}
@@ -123,29 +120,6 @@ export function WaChatHeader({
           </DropdownMenu>
         </div>
       </header>
-
-      <Dialog open={assignOpen} onOpenChange={onAssignOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Atribuir conversa</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Select value={assignUserId} onValueChange={onAssignUserIdChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um agente" />
-              </SelectTrigger>
-              <SelectContent>
-                {membros.map((m) => (
-                  <SelectItem key={m.id} value={m.usuarioId}>
-                    {m.usuarioNome ?? m.usuarioId.slice(0, 8)} ({m.role})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={onAtribuir}>Salvar</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+    </WaEtiquetasPopover>
   );
 }

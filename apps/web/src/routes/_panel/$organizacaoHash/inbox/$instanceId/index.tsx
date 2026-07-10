@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { WaChatHeader } from "@/components/inbox/wa-chat-header";
 import { WaChatRow } from "@/components/inbox/wa-chat-row";
-import { WaComposer } from "@/components/inbox/wa-composer";
+import { WaComposer, type MidiaAnexada } from "@/components/inbox/wa-composer";
 import { WaMessageArea } from "@/components/inbox/wa-message-area";
 import { WaShell } from "@/components/inbox/wa-shell";
 import { useSession } from "@/lib/auth";
@@ -29,12 +29,7 @@ function InboxPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [message, setMessage] = useState("");
-  const [tipoMensagem, setTipoMensagem] = useState<
-    "text" | "image" | "audio" | "video" | "document"
-  >("text");
-  const [mediaUrl, setMediaUrl] = useState("");
-  const [assignOpen, setAssignOpen] = useState(false);
-  const [assignUserId, setAssignUserId] = useState<string>("");
+  const [midia, setMidia] = useState<MidiaAnexada | null>(null);
 
   const { data: session } = useSession();
 
@@ -84,17 +79,6 @@ function InboxPage() {
     }),
   );
 
-  const atribuir = useMutation(
-    orpc.caixaEntrada.conversas.atribuir.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: orpc.caixaEntrada.conversas.lista.key({ input: { instanciaId: instanceId } }),
-        });
-        setAssignOpen(false);
-      },
-    }),
-  );
-
   const fechar = useMutation(
     orpc.caixaEntrada.conversas.fechar.mutationOptions({
       onSuccess: () => {
@@ -121,6 +105,9 @@ function InboxPage() {
   const isCloud = instance.data?.provider === "cloud_api";
   const cloudWindowOpen = janelaCloudAberta(selected?.janelaCloudExpiraEm);
 
+  const podeEscrever =
+    org.data?.meuPapel === "admin" || org.data?.meuPapel === "usuario";
+
   const canSend = podeEnviarMensagem({
     papel: org.data?.meuPapel,
     usuarioId: session?.usuario?.id,
@@ -131,6 +118,14 @@ function InboxPage() {
     org.data?.meuPapel === "admin" || org.data?.meuPapel === "usuario";
 
   const composerDisabled = isCloud && !cloudWindowOpen;
+
+  useEffect(() => {
+    setMidia((atual) => {
+      if (atual?.previewUrl) URL.revokeObjectURL(atual.previewUrl);
+      return null;
+    });
+    setMessage("");
+  }, [selectedId]);
 
   useEffect(() => {
     if (!selectedId || !messages.data?.length) return;
@@ -147,21 +142,21 @@ function InboxPage() {
 
   async function handleSend() {
     if (!selectedId) return;
-    if (tipoMensagem === "text") {
-      if (!message.trim()) return;
-      await sendMessage.mutateAsync({ conversaId: selectedId, tipo: "text", body: message });
-    } else {
-      if (!mediaUrl.trim()) return;
+    if (midia) {
       await sendMessage.mutateAsync({
         conversaId: selectedId,
-        tipo: tipoMensagem,
-        mediaUrl,
+        tipo: midia.tipo,
+        mediaR2Key: midia.mediaR2Key,
+        filename: midia.filename,
         body: message || undefined,
       });
+    } else {
+      if (!message.trim()) return;
+      await sendMessage.mutateAsync({ conversaId: selectedId, tipo: "text", body: message });
     }
+    if (midia?.previewUrl) URL.revokeObjectURL(midia.previewUrl);
     setMessage("");
-    setMediaUrl("");
-    setTipoMensagem("text");
+    setMidia(null);
   }
 
   const listaConversas =
@@ -206,17 +201,11 @@ function InboxPage() {
         selected ? (
           <WaChatHeader
             conversa={selected}
+            instanciaId={instanceId}
+            organizacaoHash={organizacaoHash ?? ""}
             membros={membros.data ?? []}
-            assignOpen={assignOpen}
-            assignUserId={assignUserId}
-            onAssignOpenChange={setAssignOpen}
-            onAssignUserIdChange={setAssignUserId}
-            onAtribuir={() =>
-              atribuir.mutate({
-                conversaId: selected.id,
-                usuarioId: assignUserId || null,
-              })
-            }
+            podeAtribuir={podeEscrever}
+            podeEtiquetar={podeEscrever}
             onFechar={() => fechar.mutate({ conversaId: selected.id })}
             onVoltarMobile={() => setSelectedId(null)}
           />
@@ -231,14 +220,13 @@ function InboxPage() {
             </p>
           ) : (
             <WaComposer
+              conversaId={selected.id}
               message={message}
-              tipoMensagem={tipoMensagem}
-              mediaUrl={mediaUrl}
+              midia={midia}
               disabled={!canSend}
               pending={sendMessage.isPending}
               onChange={setMessage}
-              onTipoMensagemChange={setTipoMensagem}
-              onMediaUrlChange={setMediaUrl}
+              onMidiaChange={setMidia}
               onSend={handleSend}
             />
           )

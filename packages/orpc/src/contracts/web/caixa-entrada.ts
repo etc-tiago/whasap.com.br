@@ -1,7 +1,13 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-import { enviarMensagemInputSchema, messageTemplateSchema } from "../../schemas";
+import { enviarMensagemInputSchema, messageTemplateSchema, organizacaoHashSchema } from "../../schemas";
+
+const etiquetaSchema = z.object({
+  id: z.string().uuid(),
+  nome: z.string(),
+  cor: z.string().nullable(),
+});
 
 const conversaSchema = z.object({
   id: z.string().uuid(),
@@ -87,6 +93,25 @@ export const caixaEntradaContract = {
       .output(z.object({ ok: z.boolean() })),
   },
 
+  midia: {
+    upload: oc
+      .input(
+        z.object({
+          conversaId: z.string().uuid(),
+          tipo: z.enum(["image", "audio", "video", "document"]),
+          nomeArquivo: z.string().min(1),
+          tipoConteudo: z.string().min(1),
+          dados: z.string().min(1),
+        }),
+      )
+      .output(
+        z.object({
+          mediaR2Key: z.string(),
+          mediaUrl: z.string().url(),
+        }),
+      ),
+  },
+
   templates: {
     lista: oc
       .input(z.object({ instanciaId: z.string().uuid() }))
@@ -118,5 +143,49 @@ export const caixaEntradaContract = {
         }),
       )
       .output(z.object({ id: z.string().uuid() })),
+  },
+
+  etiquetas: {
+    lista: oc
+      .input(z.object({ organizacaoHash: organizacaoHashSchema }))
+      .output(z.array(etiquetaSchema)),
+
+    porContato: oc
+      .input(z.object({ contatoId: z.string().uuid() }))
+      .output(z.array(etiquetaSchema)),
+
+    atribuir: oc
+      .input(
+        z.object({
+          contatoId: z.string().uuid(),
+          etiquetaId: z.string().uuid(),
+        }),
+      )
+      .output(z.object({ ok: z.boolean() })),
+
+    remover: oc
+      .input(
+        z.object({
+          contatoId: z.string().uuid(),
+          etiquetaId: z.string().uuid(),
+        }),
+      )
+      .output(z.object({ ok: z.boolean() })),
+  },
+
+  contatos: {
+    atualizarNome: oc
+      .input(
+        z.object({
+          contatoId: z.string().uuid(),
+          nome: z.string().max(200),
+        }),
+      )
+      .output(
+        z.object({
+          ok: z.boolean(),
+          nome: z.string().nullable(),
+        }),
+      ),
   },
 };

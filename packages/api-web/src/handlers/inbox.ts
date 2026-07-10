@@ -1,13 +1,16 @@
 import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { forbidden, notFound, preconditionFailed } from "@whasap/api-core";
 import { isEvolutionProvider } from "@whasap/config";
-import { cdnMediaUrl } from "@whasap/config";
+import { cdnMediaUrl, buildOutboundMediaR2Key, mimeToExtension } from "@whasap/config";
 import { createMetaClient, type MetaTemplate } from "@whasap/meta";
 import {
   contato,
+  contatoTag,
+  contatoTagAtribuicao,
   conversa,
   conversaAnotacao,
   colunasContatoCaixaEntrada,
+  colunasContatoTag,
   colunasConversaAnotacao,
   colunasConversaComRelacoes,
   colunasConversaLista,
@@ -37,10 +40,41 @@ import {
   sendProviderMessage,
 } from "../lib/messaging";
 import type { WebContext } from "../types";
-import { exigirAutenticacao, resolverMembroPorIdInterno } from "./auth";
+import { exigirAutenticacao, resolverMembro, resolverMembroPorIdInterno } from "./auth";
 import { exigirAcessoDemonstracao } from "../lib/demonstracao";
 import { isInstanceOperational } from "../lib/instance-operational";
 import type { MemberRole } from "../types";
+
+function base64ParaArrayBuffer(base64: string): ArrayBuffer {
+  const normalized = base64.replace(/^data:[^;]+;base64,/, "");
+  const binary = atob(normalized);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+const LIMITE_MIDIA_BYTES = 20 * 1024 * 1024;
+
+function mimeCompativelComTipo(tipo: string, tipoConteudo: string): boolean {
+  const mime = tipoConteudo.split(";")[0]?.trim().toLowerCase() ?? "";
+  if (tipo === "image") return mime.startsWith("image/");
+  if (tipo === "audio") return mime.startsWith("audio/");
+  if (tipo === "video") return mime.startsWith("video/");
+  if (tipo === "document") {
+    return mime.startsWith("application/") || mime.startsWith("text/");
+  }
+  return false;
+}
+
+function resolverUrlMidia(
+  ctx: WebContext,
+  mediaUrl?: string,
+  mediaR2Key?: string,
+): string | undefined {
+  if (mediaUrl) return mediaUrl;
+  if (mediaR2Key && ctx.env.CDN_URL) return cdnMediaUrl(ctx.env.CDN_URL, mediaR2Key);
+  return undefined;
+}
 
 /**
  * Busca conversa ativa com instância e contato relacionados.
@@ -69,6 +103,18 @@ async function exigirAcessoConversa(ctx: WebContext, conversaUuid: string) {
   const { role } = await resolverMembroPorIdInterno(ctx, conv.instance.organizacaoId);
   await exigirAcessoDemonstracao(ctx, conv.instance.organizacaoId);
   return { ...conv, role };
+}
+
+async function exigirAcessoContato(ctx: WebContext, contatoUuid: string) {
+  const contact = await ctx.db.query.contato.findFirst({
+    where: and(eq(contato.uuid, contatoUuid), isNull(contato.excluidoEm)),
+    columns: colunasContatoCaixaEntrada,
+    with: { instancia: incluirInstanciaOperacao },
+  });
+  if (!contact?.instancia) notFound();
+  const { role } = await resolverMembroPorIdInterno(ctx, contact.instancia.organizacaoId);
+  await exigirAcessoDemonstracao(ctx, contact.instancia.organizacaoId);
+  return { contact, instance: contact.instancia, role };
 }
 
 /** Exige que o usuário seja membro da org dona da instância. */
@@ -427,13 +473,18 @@ export const caixaEntradaHandlers = {
         preconditionFailed("Fora da janela de 24h — use um template");
       }
 
+      const mediaUrl = resolverUrlMidia(ctx, input.mediaUrl, input.mediaR2Key);
+      if (["image", "audio", "video", "document", "sticker"].includes(tipo) && !mediaUrl) {
+        preconditionFailed("Mídia não informada");
+      }
+
       const externalId = await sendProviderMessage({
         ctx,
         instance: conv.instance,
         phone: conv.contact.telefone,
         type: tipo,
         body: input.body,
-        mediaUrl: input.mediaUrl,
+        mediaUrl,
         mediaR2Key: input.mediaR2Key,
         caption: input.body,
         filename: input.filename,
@@ -666,6 +717,157 @@ export const caixaEntradaHandlers = {
         )
         .returning();
       return { id: note!.uuid };
+    },
+  },
+
+  etiquetas: {
+    lista: async (ctx: WebContext, input: { organizacaoHash: string }) => {
+      exigirAutenticacao(ctx);
+      await resolverMembro(ctx, input.organizacaoHash);
+      const organizacaoId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
+      if (organizacaoId === null) notFound();
+
+      const rows = await ctx.db.query.contatoTag.findMany({
+        where: eq(contatoTag.organizacaoId, organizacaoId),
+        columns: colunasContatoTag,
+        orderBy: [asc(contatoTag.nome)],
+      });
+
+      return rows.map((row) => ({
+        id: row.uuid,
+        nome: row.nome,
+        cor: row.cor,
+      }));
+    },
+
+    porContato: async (ctx: WebContext, input: { contatoId: string }) => {
+      exigirAutenticacao(ctx);
+      const { contact } = await exigirAcessoContato(ctx, input.contatoId);
+
+      const rows = await ctx.db.query.contatoTagAtribuicao.findMany({
+        where: eq(contatoTagAtribuicao.contatoId, contact.id),
+        with: { tag: { columns: colunasContatoTag } },
+      });
+
+      return rows
+        .filter((row) => row.tag)
+        .map((row) => ({
+          id: row.tag!.uuid,
+          nome: row.tag!.nome,
+          cor: row.tag!.cor,
+        }));
+    },
+
+    atribuir: async (ctx: WebContext, input: { contatoId: string; etiquetaId: string }) => {
+      exigirAutenticacao(ctx);
+      const { contact, instance, role } = await exigirAcessoContato(ctx, input.contatoId);
+      verificarPodeEscreverCaixaEntrada(role);
+
+      const tag = await ctx.db.query.contatoTag.findFirst({
+        where: eq(contatoTag.uuid, input.etiquetaId),
+        columns: colunasContatoTag,
+      });
+      if (!tag || tag.organizacaoId !== instance.organizacaoId) {
+        notFound("Etiqueta não encontrada");
+      }
+
+      const existing = await ctx.db.query.contatoTagAtribuicao.findFirst({
+        where: and(
+          eq(contatoTagAtribuicao.contatoId, contact.id),
+          eq(contatoTagAtribuicao.tagId, tag.id),
+        ),
+        columns: colunasSomenteId,
+      });
+      if (!existing) {
+        await ctx.db.insert(contatoTagAtribuicao).values(
+          comCriadoEm({
+            contatoId: contact.id,
+            tagId: tag.id,
+          }),
+        );
+      }
+      return { ok: true };
+    },
+
+    remover: async (ctx: WebContext, input: { contatoId: string; etiquetaId: string }) => {
+      exigirAutenticacao(ctx);
+      const { contact, role } = await exigirAcessoContato(ctx, input.contatoId);
+      verificarPodeEscreverCaixaEntrada(role);
+
+      const tag = await ctx.db.query.contatoTag.findFirst({
+        where: eq(contatoTag.uuid, input.etiquetaId),
+        columns: colunasSomenteId,
+      });
+      if (!tag) notFound("Etiqueta não encontrada");
+
+      await ctx.db
+        .delete(contatoTagAtribuicao)
+        .where(
+          and(
+            eq(contatoTagAtribuicao.contatoId, contact.id),
+            eq(contatoTagAtribuicao.tagId, tag.id),
+          ),
+        );
+      return { ok: true };
+    },
+  },
+
+  contatos: {
+    atualizarNome: async (ctx: WebContext, input: { contatoId: string; nome: string }) => {
+      exigirAutenticacao(ctx);
+      const { contact, role } = await exigirAcessoContato(ctx, input.contatoId);
+      verificarPodeEscreverCaixaEntrada(role);
+
+      const nome = input.nome.trim() || null;
+
+      await ctx.db
+        .update(contato)
+        .set(comTimestampAtualizacao({ nome }))
+        .where(eq(contato.id, contact.id));
+
+      return { ok: true, nome };
+    },
+  },
+
+  midia: {
+    upload: async (
+      ctx: WebContext,
+      input: {
+        conversaId: string;
+        tipo: "image" | "audio" | "video" | "document";
+        nomeArquivo: string;
+        tipoConteudo: string;
+        dados: string;
+      },
+    ) => {
+      exigirAutenticacao(ctx);
+      if (!ctx.env.R2) preconditionFailed("Armazenamento de mídia não configurado");
+
+      const conv = await exigirAcessoConversa(ctx, input.conversaId);
+      verificarPodeEscreverCaixaEntrada(conv.role);
+      if (!mimeCompativelComTipo(input.tipo, input.tipoConteudo)) {
+        preconditionFailed("Tipo de arquivo incompatível com o anexo selecionado");
+      }
+
+      const buffer = base64ParaArrayBuffer(input.dados);
+      if (buffer.byteLength > LIMITE_MIDIA_BYTES) {
+        preconditionFailed("Arquivo muito grande (máx. 20 MB)");
+      }
+      if (buffer.byteLength === 0) preconditionFailed("Arquivo vazio");
+
+      const ext = mimeToExtension(input.tipoConteudo, input.nomeArquivo);
+      const r2Key = buildOutboundMediaR2Key(conv.instance.uuid, ext);
+
+      await ctx.env.R2.put(r2Key, buffer, {
+        httpMetadata: { contentType: input.tipoConteudo.split(";")[0]?.trim() },
+      });
+
+      if (!ctx.env.CDN_URL) preconditionFailed("CDN não configurado");
+
+      return {
+        mediaR2Key: r2Key,
+        mediaUrl: cdnMediaUrl(ctx.env.CDN_URL, r2Key),
+      };
     },
   },
 };

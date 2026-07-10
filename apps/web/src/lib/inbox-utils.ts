@@ -91,3 +91,24 @@ export function nomeExibicaoDoEmail(email: string): string {
   if (local.length < 2) return email;
   return local.charAt(0).toUpperCase() + local.slice(1);
 }
+
+/** Tempo restante até o fim da janela Cloud API. Retorna `null` se já expirou. */
+export function tempoRestanteJanela(
+  expiraEm: string,
+  agora: Date = new Date(),
+): { horas: number; minutos: number } | null {
+  const ms = new Date(expiraEm).getTime() - agora.getTime();
+  if (ms <= 0) return null;
+  const totalMinutos = Math.floor(ms / 60_000);
+  return {
+    horas: Math.floor(totalMinutos / 60),
+    minutos: totalMinutos % 60,
+  };
+}
+
+/** Formata countdown da janela de 24h para exibição no header. */
+export function formatarCountdownJanela(tempo: { horas: number; minutos: number }): string {
+  const rotuloHoras = tempo.horas === 1 ? "hora" : "horas";
+  const rotuloMinutos = tempo.minutos === 1 ? "minuto" : "minutos";
+  return `${tempo.horas} ${rotuloHoras} e ${tempo.minutos} ${rotuloMinutos}`;
+}

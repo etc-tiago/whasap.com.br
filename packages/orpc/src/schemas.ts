@@ -111,9 +111,9 @@ export const enviarMensagemTextoSchema = enviarMensagemBase.extend({
 
 export const enviarMensagemMidiaSchema = enviarMensagemBase.extend({
   tipo: z.enum(["image", "audio", "video", "document", "sticker"]),
-  mediaUrl: z.string().url(),
+  mediaUrl: z.string().url().optional(),
   body: z.string().optional(),
-  mediaR2Key: z.string().optional(),
+  mediaR2Key: z.string().min(1).optional(),
   filename: z.string().optional(),
   voice: z.boolean().optional(),
   ...quotedFields,

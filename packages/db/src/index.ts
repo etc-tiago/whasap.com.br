@@ -2,6 +2,7 @@ export { criarDb, type Db, schema } from "./client";
 export {
   colunasCodigoOtpVerificacao,
   colunasContatoCaixaEntrada,
+  colunasContatoTag,
   colunasConversaAnotacao,
   colunasConversaComRelacoes,
   colunasConversaLista,

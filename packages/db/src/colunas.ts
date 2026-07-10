@@ -167,6 +167,18 @@ export const colunasOfficeUsuarioSessao = {
   nome: true,
 } as const;
 
+/** Etiqueta de contato na organização. */
+export const colunasContatoTag = {
+  id: true,
+  uuid: true,
+  nome: true,
+  cor: true,
+  organizacaoId: true,
+} as const;
+
+/** Atribuição de etiqueta a contato — só PK interna. */
+export const colunasContatoTagAtribuicao = colunasSomenteId;
+
 /** Contato na caixa de entrada. */
 export const colunasContatoCaixaEntrada = {
   id: true,

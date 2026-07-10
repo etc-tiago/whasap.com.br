@@ -36,3 +36,8 @@ export function buildMediaR2Key(instanceUuid: string, externalId: string, ext: s
   const safeId = externalId.replace(/[^a-zA-Z0-9_-]/g, "_");
   return `${mvpDefaults.cdn.mediaPrefix}/${instanceUuid}/${safeId}.${ext}`;
 }
+
+/** Chave R2 para mídia enviada pelo painel antes de existir id externo da mensagem. */
+export function buildOutboundMediaR2Key(instanceUuid: string, ext: string): string {
+  return `${mvpDefaults.cdn.mediaPrefix}/${instanceUuid}/outbound/${crypto.randomUUID()}.${ext}`;
+}

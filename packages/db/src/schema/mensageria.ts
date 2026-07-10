@@ -36,6 +36,7 @@ export const contatoTag = pgTable(
   "contato_tag",
   {
     id: serial().primaryKey(),
+    uuid: uuid().notNull().unique().defaultRandom(),
     organizacaoId: integer()
       .notNull()
       .references(() => organizacao.id, { onDelete: "cascade" }),

@@ -2,7 +2,15 @@ import { relations } from "drizzle-orm";
 
 import { sessao, usuario } from "./autenticacao";
 import { instancia, instanciaAddon } from "./instancias";
-import { contato, conversa, conversaAnotacao, mensagem, mensagemTemplate } from "./mensageria";
+import {
+  contato,
+  contatoTag,
+  contatoTagAtribuicao,
+  conversa,
+  conversaAnotacao,
+  mensagem,
+  mensagemTemplate,
+} from "./mensageria";
 import { officeSessao, officeUsuario } from "./office";
 import { organizacao, organizacaoConvite, organizacaoMembro } from "./organizacoes";
 
@@ -95,6 +103,26 @@ export const contatoRelations = relations(contato, ({ one, many }) => ({
     references: [instancia.id],
   }),
   conversas: many(conversa),
+  tagAtribuicoes: many(contatoTagAtribuicao),
+}));
+
+export const contatoTagRelations = relations(contatoTag, ({ one, many }) => ({
+  organizacao: one(organizacao, {
+    fields: [contatoTag.organizacaoId],
+    references: [organizacao.id],
+  }),
+  atribuicoes: many(contatoTagAtribuicao),
+}));
+
+export const contatoTagAtribuicaoRelations = relations(contatoTagAtribuicao, ({ one }) => ({
+  contato: one(contato, {
+    fields: [contatoTagAtribuicao.contatoId],
+    references: [contato.id],
+  }),
+  tag: one(contatoTag, {
+    fields: [contatoTagAtribuicao.tagId],
+    references: [contatoTag.id],
+  }),
 }));
 
 export const conversaRelations = relations(conversa, ({ one, many }) => ({
