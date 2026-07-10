@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 import { useSession } from "@/lib/auth";
 import { orpc } from "@/lib/orpc";
+import { buscarDestinoInboxOperacional } from "@/lib/resolver-destino-painel";
 
 export const Route = createFileRoute("/")({
   component: RootPage,
@@ -30,11 +31,34 @@ function RootPage() {
       return;
     }
 
-    navigate({
-      to: "/$organizacaoHash",
-      params: { organizacaoHash: orgs.data[0]!.id },
-      replace: true,
-    });
+    let cancelled = false;
+
+    void (async () => {
+      const destino = await buscarDestinoInboxOperacional(orgs.data);
+      if (cancelled) return;
+
+      if (destino) {
+        navigate({
+          to: "/$organizacaoHash/inbox/$instanceId",
+          params: {
+            organizacaoHash: destino.organizacaoHash,
+            instanceId: destino.instanceId,
+          },
+          replace: true,
+        });
+        return;
+      }
+
+      navigate({
+        to: "/$organizacaoHash",
+        params: { organizacaoHash: orgs.data[0]!.id },
+        replace: true,
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [session?.usuario, isPending, orgs.isSuccess, orgs.data, navigate]);
 
   return (

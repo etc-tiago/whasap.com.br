@@ -371,6 +371,14 @@ export const instanciaHandlers = {
     const estado = parseGoConnectionState(statusBruto);
 
     if (estado === "open") {
+      if (row.status !== "connected" && row.status !== "pending_payment") {
+        await configurarWebhookInstanciaEvolution(
+          ctx.env,
+          row.evolucaoToken,
+          metaLogEvolution(row, { origem: "obterQr", rpc: "instancia.obterQr" }),
+        );
+        await marcarInstanciaConectada(ctx, row.id, row.organizacaoId, row.asaasIdAssinatura);
+      }
       return {
         base64: null,
         pairingCode: null,

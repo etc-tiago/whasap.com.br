@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@whasap/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/card";
@@ -6,7 +6,7 @@ import { Badge } from "@whasap/ui/components/badge";
 import { Plus } from "lucide-react";
 
 import { rotuloWhatsApp } from "@whasap/config";
-import { instanciaPrecisaConexao, rotulosStatusInstancia } from "@/lib/instancia-status";
+import { instanciaOperacional, instanciaPrecisaConexao, rotulosStatusInstancia } from "@/lib/instancia-status";
 import { orpc, type InstanciaItem } from "@/lib/orpc";
 import { orgInput } from "@/lib/org-input";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
@@ -25,10 +25,19 @@ function HomePage() {
   );
 
   const lista = instances.data ?? [];
-  const connected = lista.filter((i: InstanciaItem) => i.status === "connected");
+  const operacionais = lista.filter((i: InstanciaItem) => instanciaOperacional(i.status));
   const desconectadas = lista.filter((i: InstanciaItem) => instanciaPrecisaConexao(i.status));
 
   if (!organizacaoHash) return null;
+
+  if (operacionais.length === 1) {
+    return (
+      <Navigate
+        to="/$organizacaoHash/inbox/$instanceId"
+        params={{ organizacaoHash, instanceId: operacionais[0].id }}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -36,8 +45,8 @@ function HomePage() {
         <div>
           <h1 className="text-2xl font-semibold">Inbox</h1>
           <p className="text-sm text-muted-foreground">
-            {connected.length > 0
-              ? "Selecione um WhatsApp conectado para ver conversas."
+            {operacionais.length > 0
+              ? "Selecione um WhatsApp para abrir a caixa de entrada."
               : desconectadas.length > 0
                 ? "Há WhatsApps desconectados aguardando reconexão."
                 : "Conecte seu WhatsApp Business ou Cloud para começar."}
@@ -74,11 +83,11 @@ function HomePage() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {connected.length > 0 && (
+          {operacionais.length > 0 && (
             <section className="space-y-3">
-              <h2 className="text-sm font-medium text-muted-foreground">Conectados</h2>
+              <h2 className="text-sm font-medium text-muted-foreground">Disponíveis</h2>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {connected.map((inst: InstanciaItem) => (
+                {operacionais.map((inst: InstanciaItem) => (
                   <Card key={inst.id}>
                     <CardHeader className="flex flex-row items-start justify-between space-y-0">
                       <CardTitle className="text-base">{inst.nome}</CardTitle>
@@ -88,12 +97,12 @@ function HomePage() {
                       <p className="mb-3 text-xs text-muted-foreground">
                         {rotuloWhatsApp(inst.provider)}
                       </p>
-                      <Button asChild size="sm" variant="outline">
+                      <Button asChild size="sm">
                         <Link
                           to="/$organizacaoHash/inbox/$instanceId"
                           params={{ organizacaoHash, instanceId: inst.id }}
                         >
-                          Abrir inbox
+                          Abrir conversas
                         </Link>
                       </Button>
                     </CardContent>

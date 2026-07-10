@@ -16,6 +16,7 @@ import { DemonstracaoBanner } from "@/components/demonstracao-banner";
 import { DemonstracaoLockout } from "@/components/demonstracao-lockout";
 import { WaBackdrop } from "@/components/wa-backdrop";
 import { useSession } from "@/lib/auth";
+import { instanciaOperacional } from "@/lib/instancia-status";
 import { orgInput } from "@/lib/org-input";
 import { orpc, orpcClient } from "@/lib/orpc";
 import { cn } from "@whasap/ui/lib/utils";
@@ -41,8 +42,11 @@ export function PanelShell({
 
   const instanciaPagamento =
     instancias.data?.find((i) => i.status === "connected" && !i.asaasSubscriptionId) ??
-    instancias.data?.find((i) => i.status === "connected") ??
+    instancias.data?.find((i) => instanciaOperacional(i.status)) ??
     null;
+
+  const instanciaInbox =
+    instancias.data?.find((i) => instanciaOperacional(i.status)) ?? null;
 
   const logout = useMutation(
     orpc.autenticacao.sair.mutationOptions({
@@ -55,6 +59,27 @@ export function PanelShell({
   const bloqueado = organizacao.demonstracao.estado === "bloqueado";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const comWallpaper = pathname.endsWith("/integracao");
+  const modoInbox = /\/inbox\//.test(pathname);
+
+  if (modoInbox) {
+    return (
+      <div className="flex min-h-screen flex-col bg-wa-bg">
+        <DemonstracaoBanner
+          demonstracao={organizacao.demonstracao}
+          isAdmin={organizacao.meuPapel === "admin"}
+          instanciaId={instanciaPagamento?.id ?? null}
+          instanciaNome={instanciaPagamento?.nome ?? null}
+        />
+        <main className="relative min-h-0 flex-1">
+          {children ?? <Outlet />}
+          <DemonstracaoLockout
+            demonstracao={organizacao.demonstracao}
+            isAdmin={organizacao.meuPapel === "admin"}
+          />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -106,8 +131,16 @@ export function PanelShell({
           </div>
           <nav className="flex flex-1 flex-col gap-1 p-2">
             <Link
-              to="/$organizacaoHash"
-              params={{ organizacaoHash }}
+              to={
+                instanciaInbox
+                  ? "/$organizacaoHash/inbox/$instanceId"
+                  : "/$organizacaoHash"
+              }
+              params={
+                instanciaInbox
+                  ? { organizacaoHash, instanceId: instanciaInbox.id }
+                  : { organizacaoHash }
+              }
               className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
             >
               <MessageCircle className="h-4 w-4" />

@@ -5,7 +5,7 @@
 export function isOrganizacaoConectada(
   instancias: Array<{ status: string }>,
 ): boolean {
-  return instancias.some((i) => i.status === "connected");
+  return instancias.some((i) => i.status === "connected" || i.status === "pending_payment");
 }
 
 export type { IntegracaoStep as PassoIntegracao } from "./integracao/wizard-state";

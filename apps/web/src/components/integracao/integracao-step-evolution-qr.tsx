@@ -6,8 +6,8 @@ import { useCallback, useEffect, useRef } from "react";
 
 import { rotuloSeuWhatsApp, type InstanceProvider } from "@whasap/config";
 
-import { getOrpcErrorMessage } from "@/lib/orpc-error";
 import { orpc, orpcClient } from "@/lib/orpc";
+import { getOrpcErrorMessage } from "@/lib/orpc-error";
 
 import { TrocarTipoButton } from "./trocar-tipo-button";
 
@@ -17,6 +17,7 @@ type Props = {
   instanciaId: string;
   instanciaNome: string;
   provider: string;
+  organizacaoHash: string;
   onConectado: () => void;
   onTrocarTipo: () => void;
 };
@@ -25,6 +26,7 @@ export function IntegracaoStepEvolutionQr({
   instanciaId,
   instanciaNome,
   provider,
+  organizacaoHash,
   onConectado,
   onTrocarTipo,
 }: Props) {
@@ -87,7 +89,16 @@ export function IntegracaoStepEvolutionQr({
     }),
   );
 
-  const conectado = obterQr.data?.estado === "open";
+  const statusConexao = useQuery(
+    orpc.instancia.statusConexao.queryOptions({
+      input: instanciaId ? { instanciaId } : skipToken,
+      enabled: podePoll,
+      refetchInterval: 3000,
+    }),
+  );
+
+  const conectado =
+    obterQr.data?.estado === "open" || statusConexao.data?.conectado === true;
   const qrBase64 = obterQr.data?.base64 ?? null;
   const pairingCode = obterQr.data?.pairingCode ?? null;
   const estadoQr = obterQr.data?.estado ?? null;
@@ -98,10 +109,16 @@ export function IntegracaoStepEvolutionQr({
   }, [reiniciarPareamento, provisionar.isPending]);
 
   useEffect(() => {
-    if (!conectado || navegouRef.current) return;
+    if (!conectado || navegouRef.current || !organizacaoHash) return;
     navegouRef.current = true;
+    void queryClient.invalidateQueries({
+      queryKey: orpc.instancia.lista.key({ input: { organizacaoHash } }),
+    });
+    void queryClient.invalidateQueries({
+      queryKey: orpc.instancia.obter.key({ input: { instanciaId } }),
+    });
     onConectado();
-  }, [conectado, onConectado]);
+  }, [conectado, onConectado, queryClient, organizacaoHash, instanciaId]);
 
   useEffect(() => {
     if (!podePoll || qrBase64 || obterQr.isFetching) return;
@@ -214,12 +231,6 @@ export function IntegracaoStepEvolutionQr({
             <p className="text-sm text-muted-foreground">Gerando QR Code...</p>
           </div>
         )}
-
-        {pairingCode ? (
-          <p className="text-center text-xs">
-            Código de pareamento: <strong>{pairingCode}</strong>
-          </p>
-        ) : null}
 
         <p className="text-center text-muted-foreground">
           Escaneie o QR Code no WhatsApp → Aparelhos conectados

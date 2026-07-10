@@ -39,6 +39,7 @@ import {
 import type { WebContext } from "../types";
 import { exigirAutenticacao, resolverMembroPorIdInterno } from "./auth";
 import { exigirAcessoDemonstracao } from "../lib/demonstracao";
+import { isInstanceOperational } from "../lib/instance-operational";
 import type { MemberRole } from "../types";
 
 /**
@@ -222,7 +223,7 @@ export const caixaEntradaHandlers = {
       exigirAutenticacao(ctx);
       const { instance, role } = await exigirAcessoInstancia(ctx, input.instanciaId);
       verificarPodeEscreverCaixaEntrada(role);
-      if (instance.status !== "connected") preconditionFailed("Instância não operacional");
+      if (!isInstanceOperational(instance)) preconditionFailed("Instância não operacional");
 
       if (instance.provedor === "cloud_api" && !input.templateId) {
         preconditionFailed("Cloud API exige template para iniciar conversa");
@@ -402,7 +403,7 @@ export const caixaEntradaHandlers = {
       if (!conv.contact) notFound();
 
       verificarPodeEscreverCaixaEntrada(conv.role);
-      if (conv.instance.status !== "connected") preconditionFailed("Instância não conectada");
+      if (!isInstanceOperational(conv.instance)) preconditionFailed("Instância não conectada");
       if (
         conv.role === "usuario" &&
         conv.conversation.atribuidoUsuarioId &&

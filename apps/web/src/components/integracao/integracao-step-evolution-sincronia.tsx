@@ -1,21 +1,41 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/card";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
 import { useAguardarMinimo } from "@/lib/integracao/use-aguardar-minimo";
+import { orpc } from "@/lib/orpc";
 
-const SINCRONIA_MS = 5000;
+const SINCRONIA_MS = 3000;
 
 type Props = {
+  instanciaId: string;
+  organizacaoHash: string;
   onConcluir: () => void;
 };
 
-export function IntegracaoStepEvolutionSincronia({ onConcluir }: Props) {
+export function IntegracaoStepEvolutionSincronia({
+  instanciaId,
+  organizacaoHash,
+  onConcluir,
+}: Props) {
+  const queryClient = useQueryClient();
   const pronto = useAguardarMinimo(SINCRONIA_MS);
 
+  useQuery(
+    orpc.instancia.statusConexao.queryOptions({
+      input: { instanciaId },
+      refetchInterval: 1500,
+    }),
+  );
+
   useEffect(() => {
-    if (pronto) onConcluir();
-  }, [pronto, onConcluir]);
+    if (!pronto) return;
+    void queryClient.invalidateQueries({
+      queryKey: orpc.instancia.lista.key({ input: { organizacaoHash } }),
+    });
+    onConcluir();
+  }, [pronto, onConcluir, queryClient, organizacaoHash]);
 
   return (
     <Card>

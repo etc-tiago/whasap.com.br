@@ -1,5 +1,7 @@
 import { isEvolutionProvider } from "@whasap/config";
 
+import { instanciaOperacional } from "@/lib/instancia-status";
+
 export const INTEGRACAO_STEPS = [
   "escolher",
   "tipo",
@@ -35,7 +37,7 @@ export function resolverIntegracaoStep(params: ResolverStepParams): IntegracaoSt
   const { searchStep, instanceId, modoNovo, temInstanciasParaReconectar, instancia: inst } =
     params;
 
-  if (searchStep === "concluido" || inst?.status === "connected") return "concluido";
+  if (searchStep === "concluido" || (inst && instanciaOperacional(inst.status))) return "concluido";
   if (searchStep && isIntegracaoStep(searchStep)) return searchStep;
 
   if (!instanceId) {

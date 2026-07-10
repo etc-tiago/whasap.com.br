@@ -1,8 +1,5 @@
 /**
- * Caixa de entrada por instância: lista de conversas, mensagens e ações.
- *
- * RBAC (envio): admin em qualquer conversa; usuario só na atribuída;
- * analista somente leitura. Cloud API bloqueia composer fora da janela 24h.
+ * Caixa de entrada estilo WhatsApp Web por instância.
  */
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -16,7 +13,6 @@ import {
   DialogTrigger,
 } from "@whasap/ui/components/dialog";
 import { Input } from "@whasap/ui/components/input";
-import { ScrollArea } from "@whasap/ui/components/scroll-area";
 import {
   Select,
   SelectContent,
@@ -24,9 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@whasap/ui/components/select";
-import { cn } from "@whasap/ui/lib/utils";
 import { useEffect, useState } from "react";
 
+import {
+  InboxWaBolha,
+  InboxWaComposer,
+  InboxWaConversaItem,
+  InboxWaShell,
+} from "@/components/inbox/inbox-wa-shell";
 import { useSession } from "@/lib/auth";
 import { janelaCloudAberta, podeEnviarMensagem } from "@/lib/inbox-permissoes";
 import { orgInput } from "@/lib/org-input";
@@ -89,6 +90,9 @@ function InboxPage() {
         if (selectedId) {
           queryClient.invalidateQueries({
             queryKey: orpc.caixaEntrada.mensagens.lista.key({ input: { conversaId: selectedId } }),
+          });
+          queryClient.invalidateQueries({
+            queryKey: orpc.caixaEntrada.conversas.lista.key({ input: { instanciaId: instanceId } }),
           });
         }
       },
@@ -160,190 +164,164 @@ function InboxPage() {
     setMediaUrl("");
   }
 
+  const composerExtra =
+    tipoMensagem !== "text" ? (
+      <Input
+        value={mediaUrl}
+        onChange={(e) => setMediaUrl(e.target.value)}
+        placeholder="URL da mídia"
+        disabled={!canSend || sendMessage.isPending}
+        className="max-w-40"
+      />
+    ) : (
+      <Select
+        value={tipoMensagem}
+        onValueChange={(v) => setTipoMensagem(v as typeof tipoMensagem)}
+      >
+        <SelectTrigger className="h-9 w-24 border-0 bg-transparent shadow-none">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="text">Texto</SelectItem>
+          <SelectItem value="image">Imagem</SelectItem>
+          <SelectItem value="audio">Áudio</SelectItem>
+          <SelectItem value="video">Vídeo</SelectItem>
+          <SelectItem value="document">Doc</SelectItem>
+        </SelectContent>
+      </Select>
+    );
+
   return (
-    <div className="flex h-[calc(100vh)]">
-      <div className="w-80 border-r border-border">
-        <div className="border-b border-border p-4">
-          <h2 className="font-semibold">Conversas</h2>
-        </div>
-        <ScrollArea className="h-[calc(100vh-4rem)]">
-          {(conversations.data ?? []).map((c: ConversaItem) => (
-            <button
+    <InboxWaShell
+      organizacaoHash={organizacaoHash ?? ""}
+      instanceNome={instance.data?.nome ?? "WhatsApp"}
+      selectedId={selectedId}
+      conversas={
+        (conversations.data ?? []).length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm text-wa-text-muted">
+            Nenhuma conversa ainda. Mensagens recebidas aparecerão aqui.
+          </p>
+        ) : (
+          (conversations.data ?? []).map((c: ConversaItem) => (
+            <InboxWaConversaItem
               key={c.id}
-              type="button"
+              nome={c.contatoNome ?? c.contatoTelefone}
+              preview={c.ultimaMensagemPreview}
+              ativo={selectedId === c.id}
+              badge={
+                c.usuarioAtribuidoNome ? (
+                  <Badge variant="secondary" className="text-[10px]">
+                    {c.usuarioAtribuidoNome}
+                  </Badge>
+                ) : undefined
+              }
               onClick={() => setSelectedId(c.id)}
-              className={cn(
-                "w-full border-b border-border px-4 py-3 text-left hover:bg-accent",
-                selectedId === c.id && "bg-accent",
-              )}
-            >
-              <p className="truncate text-sm font-medium">{c.contatoNome ?? c.contatoTelefone}</p>
-              {c.usuarioAtribuidoNome && (
-                <Badge variant="secondary" className="mt-1 text-[10px]">
-                  {c.usuarioAtribuidoNome}
-                </Badge>
-              )}
-              <p className="truncate text-xs text-muted-foreground">{c.ultimaMensagemPreview}</p>
-            </button>
-          ))}
-        </ScrollArea>
-      </div>
-      <div className="flex flex-1 flex-col">
-        {selected ? (
+            />
+          ))
+        )
+      }
+      chatHeader={
+        selected ? (
           <>
-            <div className="flex items-center justify-between border-b border-border p-4">
-              <div>
-                <p className="font-medium">{selected.contatoNome ?? selected.contatoTelefone}</p>
-                {selected.janelaCloudExpiraEm && (
-                  <p className="text-xs text-amber-600">
-                    Janela 24h até {new Date(selected.janelaCloudExpiraEm).toLocaleString("pt-BR")}
-                  </p>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" variant="outline">
-                      Atribuir
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Atribuir conversa</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-3">
-                      <Select value={assignUserId} onValueChange={setAssignUserId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um agente" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(membros.data ?? []).map((m) => (
-                            <SelectItem key={m.id} value={m.usuarioId}>
-                              {m.usuarioNome ?? m.usuarioId.slice(0, 8)} ({m.role})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        onClick={() =>
-                          atribuir.mutate({
-                            conversaId: selected.id,
-                            usuarioId: assignUserId || null,
-                          })
-                        }
-                      >
-                        Salvar
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => fechar.mutate({ conversaId: selected.id })}
-                >
-                  Fechar
-                </Button>
-              </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-sm font-semibold">
+              {(selected.contatoNome ?? selected.contatoTelefone).slice(0, 1).toUpperCase()}
             </div>
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-2">
-                {(messages.data ?? []).map((m: MensagemItem) => (
-                  <div
-                    key={m.id}
-                    className={cn(
-                      "max-w-[75%] rounded-lg px-3 py-2 text-sm",
-                      m.direction === "outbound" ? "ml-auto bg-wa-green text-white" : "bg-muted",
-                    )}
-                  >
-                    <p>{m.body}</p>
-                    {m.enviadoPorNome && m.direction === "outbound" && (
-                      <p className="mt-1 text-[10px] opacity-80">{m.enviadoPorNome}</p>
-                    )}
-                    {m.mediaUrl && (
-                      <a
-                        href={m.mediaUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-1 block text-xs underline"
-                      >
-                        Ver mídia
-                      </a>
-                    )}
-                    {m.templateNome && (
-                      <p className="mt-1 text-[10px] opacity-80">Template: {m.templateNome}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-            <div className="flex gap-2 border-t border-border p-4">
-              {composerDisabled ? (
-                <p className="flex-1 text-sm text-muted-foreground">
-                  Fora da janela de 24h — use um template para responder (Cloud API).
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-medium">{selected.contatoNome ?? selected.contatoTelefone}</p>
+              {selected.janelaCloudExpiraEm && (
+                <p className="truncate text-xs text-white/80">
+                  Janela 24h até {new Date(selected.janelaCloudExpiraEm).toLocaleString("pt-BR")}
                 </p>
-              ) : (
-                <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-end">
-                  <Select
-                    value={tipoMensagem}
-                    onValueChange={(v) =>
-                      setTipoMensagem(v as "text" | "image" | "audio" | "video" | "document")
-                    }
-                  >
-                    <SelectTrigger className="w-full sm:w-36">
-                      <SelectValue />
+              )}
+            </div>
+            <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="secondary" className="bg-white/15 text-white hover:bg-white/25">
+                  Atribuir
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Atribuir conversa</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3">
+                  <Select value={assignUserId} onValueChange={setAssignUserId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um agente" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="text">Texto</SelectItem>
-                      <SelectItem value="image">Imagem</SelectItem>
-                      <SelectItem value="audio">Áudio</SelectItem>
-                      <SelectItem value="video">Vídeo</SelectItem>
-                      <SelectItem value="document">Documento</SelectItem>
+                      {(membros.data ?? []).map((m) => (
+                        <SelectItem key={m.id} value={m.usuarioId}>
+                          {m.usuarioNome ?? m.usuarioId.slice(0, 8)} ({m.role})
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                  {tipoMensagem !== "text" && (
-                    <Input
-                      value={mediaUrl}
-                      onChange={(e) => setMediaUrl(e.target.value)}
-                      placeholder="URL da mídia (HTTPS)"
-                      disabled={!canSend || sendMessage.isPending}
-                      className="flex-1"
-                    />
-                  )}
-                  <Input
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder={
-                      tipoMensagem === "text"
-                        ? canSend
-                          ? "Digite uma mensagem..."
-                          : "Sem permissão para enviar"
-                        : "Legenda (opcional)"
-                    }
-                    disabled={!canSend || sendMessage.isPending}
-                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                    className="flex-1"
-                  />
                   <Button
-                    onClick={handleSend}
-                    disabled={
-                      !canSend ||
-                      sendMessage.isPending ||
-                      (tipoMensagem === "text" ? !message.trim() : !mediaUrl.trim())
+                    onClick={() =>
+                      atribuir.mutate({
+                        conversaId: selected.id,
+                        usuarioId: assignUserId || null,
+                      })
                     }
                   >
-                    Enviar
+                    Salvar
                   </Button>
                 </div>
-              )}
-            </div>
+              </DialogContent>
+            </Dialog>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-white hover:bg-white/15"
+              onClick={() => fechar.mutate({ conversaId: selected.id })}
+            >
+              Fechar
+            </Button>
           </>
+        ) : null
+      }
+      chatBody={
+        <div className="flex flex-col gap-2">
+          {(messages.data ?? []).map((m: MensagemItem) => (
+            <InboxWaBolha key={m.id} outbound={m.direction === "outbound"}>
+              <p className="whitespace-pre-wrap break-words">{m.body}</p>
+              {m.enviadoPorNome && m.direction === "outbound" && (
+                <p className="mt-1 text-[10px] opacity-70">{m.enviadoPorNome}</p>
+              )}
+              {m.mediaUrl && (
+                <a
+                  href={m.mediaUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1 block text-xs underline"
+                >
+                  Ver mídia
+                </a>
+              )}
+              {m.templateNome && (
+                <p className="mt-1 text-[10px] opacity-70">Template: {m.templateNome}</p>
+              )}
+            </InboxWaBolha>
+          ))}
+        </div>
+      }
+      composer={
+        composerDisabled ? (
+          <p className="px-2 py-2 text-sm text-wa-text-muted">
+            Fora da janela de 24h — use um template para responder (Cloud API).
+          </p>
         ) : (
-          <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-            Selecione uma conversa
-          </div>
-        )}
-      </div>
-    </div>
+          <InboxWaComposer
+            message={message}
+            disabled={!canSend}
+            pending={sendMessage.isPending}
+            onChange={setMessage}
+            onSend={handleSend}
+            extra={composerExtra}
+          />
+        )
+      }
+    />
   );
 }

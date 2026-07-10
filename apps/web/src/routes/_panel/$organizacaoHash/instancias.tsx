@@ -7,6 +7,7 @@ import { Badge } from "@whasap/ui/components/badge";
 import { rotuloWhatsApp } from "@whasap/config";
 
 import {
+  instanciaOperacional,
   instanciaPrecisaConexao,
   instanciasParaReconectar,
   rotulosStatusInstancia,
@@ -38,7 +39,7 @@ function InstancesPage() {
   const isAdmin = org.data?.meuPapel === "admin";
   const lista = instances.data ?? [];
   const paraReconectar = instanciasParaReconectar(lista);
-  const conectadas = lista.filter((i) => i.status === "connected");
+  const conectadas = lista.filter((i) => instanciaOperacional(i.status));
 
   if (!organizacaoHash) return null;
 
@@ -96,7 +97,7 @@ function InstancesPage() {
                 {inst.trialEndsAt && new Date(inst.trialEndsAt) > new Date() && (
                   <Badge variant="secondary">Trial</Badge>
                 )}
-                <Badge variant={inst.status === "connected" ? "default" : "outline"}>
+                <Badge variant={instanciaOperacional(inst.status) ? "default" : "outline"}>
                   {rotulosStatusInstancia[inst.status] ?? inst.status}
                 </Badge>
               </div>
@@ -113,13 +114,13 @@ function InstancesPage() {
                   </Link>
                 </Button>
               )}
-              {inst.status === "connected" && (
+              {instanciaOperacional(inst.status) && (
                 <Button asChild size="sm" variant={inst.asaasSubscriptionId ? "default" : "outline"}>
                   <Link
                     to="/$organizacaoHash/inbox/$instanceId"
                     params={{ organizacaoHash, instanceId: inst.id }}
                   >
-                    Inbox
+                    Abrir conversas
                   </Link>
                 </Button>
               )}

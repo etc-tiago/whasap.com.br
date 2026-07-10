@@ -18,7 +18,7 @@ export function IntegracaoStepConcluido({ onRedirecionar }: Props) {
         <Check className="mx-auto h-12 w-12 text-wa-green" />
         <h2 className="text-xl font-semibold">Tudo pronto!</h2>
         <p className="text-sm text-muted-foreground">
-          Você tem 3 dias de demonstração gratuita. Redirecionando para o painel...
+          Abrindo sua caixa de entrada...
         </p>
       </CardContent>
     </Card>

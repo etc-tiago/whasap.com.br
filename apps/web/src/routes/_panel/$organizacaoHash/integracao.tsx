@@ -146,6 +146,8 @@ function IntegracaoPage() {
     irPara({ instance: instanceId, step: "cloud_sincronia" });
   }
 
+  if (!organizacaoHash) return null;
+
   return (
     <div className="relative mx-auto max-w-lg p-6">
       <div className="mb-6">
@@ -180,14 +182,20 @@ function IntegracaoPage() {
             instanciaId={instanceId}
             instanciaNome={inst.nome}
             provider={inst.provider}
+            organizacaoHash={organizacaoHash}
             onConectado={() => irPara({ instance: instanceId, step: "evolution_sincronia" })}
             onTrocarTipo={irParaTipo}
           />
         )}
 
-        {wizardStep === "evolution_sincronia" && (
+        {wizardStep === "evolution_sincronia" && instanceId && (
           <IntegracaoStepEvolutionSincronia
-            onConcluir={() => irPara({ instance: instanceId, step: "concluido" })}
+            instanciaId={instanceId}
+            organizacaoHash={organizacaoHash}
+            onConcluir={() => {
+              invalidarLista();
+              irPara({ instance: instanceId, step: "concluido" });
+            }}
           />
         )}
 
@@ -219,9 +227,14 @@ function IntegracaoPage() {
           />
         )}
 
-        {wizardStep === "concluido" && organizacaoHash && (
+        {wizardStep === "concluido" && organizacaoHash && instanceId && (
           <IntegracaoStepConcluido
-            onRedirecionar={() => navigate({ to: "/$organizacaoHash", params: { organizacaoHash } })}
+            onRedirecionar={() =>
+              navigate({
+                to: "/$organizacaoHash/inbox/$instanceId",
+                params: { organizacaoHash, instanceId },
+              })
+            }
           />
         )}
       </IntegracaoWizardShell>

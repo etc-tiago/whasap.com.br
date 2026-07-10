@@ -3,9 +3,9 @@ type InstanceRow = {
   asaasIdAssinatura: string | null;
 };
 
-/** Instância pronta para uso no painel (conectada). Assinatura não é exigida durante demonstração. */
+/** Instância pronta para uso no painel. `pending_payment` = pareada sem assinatura (demo). */
 export function isInstanceOperational(instance: InstanceRow): boolean {
-  return instance.status === "connected";
+  return instance.status === "connected" || instance.status === "pending_payment";
 }
 
 export function isOrgOnboardingComplete(instances: InstanceRow[]): boolean {

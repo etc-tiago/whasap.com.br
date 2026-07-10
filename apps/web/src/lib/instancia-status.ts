@@ -1,3 +1,8 @@
+/** Instância pareada e utilizável no painel (conectada ou em demonstração). */
+export function instanciaOperacional(status: string): boolean {
+  return status === "connected" || status === "pending_payment";
+}
+
 /** Rótulos de status de instância WhatsApp para exibição no painel. */
 export const rotulosStatusInstancia: Record<string, string> = {
   pending_connection: "Configurando",
@@ -10,7 +15,7 @@ export const rotulosStatusInstancia: Record<string, string> = {
 
 /** Instância ainda não conectada e elegível para fluxo de pareamento/reconexão. */
 export function instanciaPrecisaConexao(status: string): boolean {
-  return status !== "connected" && status !== "deactivated";
+  return !instanciaOperacional(status) && status !== "deactivated";
 }
 
 /** Filtra instâncias que podem entrar no onboarding de reconexão. */

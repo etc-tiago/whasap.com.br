@@ -11,3 +11,4 @@ dist
 .tanstack
 .vitest-attachments
 __screenshots__
+.demo
