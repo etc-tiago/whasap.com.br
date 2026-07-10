@@ -1,26 +1,23 @@
 import type { EvolutionCredentials, EvolutionGoInstanceContext } from "./credentials";
+import type {
+  EvolutionConnectParams,
+  EvolutionGoConnectResponse,
+  EvolutionGoCreateParams,
+  EvolutionGoCreateResponse,
+} from "./instance-types";
 import type { EvolutionQrResponse, EvolutionSendResponse } from "./types";
 
 export type { EvolutionGoStatusResponse } from "./connection-state";
-
-export type EvolutionConnectParams = {
-  webhookUrl: string;
-  phone?: string;
-  subscribe?: readonly string[];
-  /** Instância já conectada: aplica webhook/eventos sem reiniciar o QR. */
-  immediate?: boolean;
-};
-
-export type EvolutionGoCreateResponse = {
-  instanceId?: string;
-  token?: string;
-  name?: string;
-  data?: {
-    instanceId?: string;
-    token?: string;
-    name?: string;
-  };
-};
+export type {
+  EvolutionConnectParams,
+  EvolutionGoApiError,
+  EvolutionGoApiSuccess,
+  EvolutionGoConnectData,
+  EvolutionGoConnectResponse,
+  EvolutionGoCreateInstanceData,
+  EvolutionGoCreateParams,
+  EvolutionGoCreateResponse,
+} from "./instance-types";
 
 export type EvolutionGoRequestLogEntry = {
   tipo: string;
@@ -52,7 +49,7 @@ function quotedField(quoted?: Quoted) {
 
 /**
  * Client Evolution GO (whatsmeow).
- * Spec oficial: `packages/evolution/swagger.json`
+ * Spec oficial: `packages/evolution/doc-oficial.json`
  *
  * Auth (padrão Evolution API, mesmo modelo do GO):
  * - Header `apikey` com GLOBAL_API_KEY em `/instance/create` e `/instance/connect`
@@ -140,7 +137,7 @@ export function createEvolutionGoClient(
   }
 
   return {
-    createInstance(params: { name: string; instanceId: string; token: string }) {
+    createInstance(params: EvolutionGoCreateParams) {
       return request<EvolutionGoCreateResponse>(
         "instance_create",
         "POST",
@@ -149,13 +146,15 @@ export function createEvolutionGoClient(
           name: params.name,
           instanceId: params.instanceId,
           token: params.token,
+          advancedSettings: params.advancedSettings,
+          proxy: params.proxy,
         },
         false,
       );
     },
 
     connect(params: EvolutionConnectParams) {
-      return request(
+      return request<EvolutionGoConnectResponse>(
         "instance_connect",
         "POST",
         "/instance/connect",
@@ -164,6 +163,9 @@ export function createEvolutionGoClient(
           phone: params.phone,
           subscribe: params.subscribe,
           immediate: params.immediate,
+          rabbitmqEnable: params.rabbitmqEnable,
+          websocketEnable: params.websocketEnable,
+          natsEnable: params.natsEnable,
         },
         Boolean(instanceCtx?.instanceToken),
       );
@@ -307,7 +309,7 @@ export function createEvolutionGoClient(
 
 export function parseGoCreateResponse(res: EvolutionGoCreateResponse) {
   return {
-    instanceId: res.instanceId ?? res.data?.instanceId ?? null,
+    instanceId: res.instanceId ?? res.data?.id ?? res.data?.instanceId ?? null,
     token: res.token ?? res.data?.token ?? null,
     name: res.name ?? res.data?.name ?? null,
   };

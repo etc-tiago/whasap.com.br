@@ -46,8 +46,7 @@ function IntegracaoPage() {
   const { instance: instanceId, step: searchStep, modo } = Route.useSearch();
   const modoNovo = modo === "novo";
 
-  const [provider, setProvider] = useState<InstanceProvider>("evolution");
-  const [nome, setNome] = useState("");
+  const NOME_INSTANCIA_PADRAO = "Atendimento";
   const [cloudPhone, setCloudPhone] = useState("");
   const [cloudWaba, setCloudWaba] = useState("");
   const [cloudToken, setCloudToken] = useState("");
@@ -123,11 +122,11 @@ function IntegracaoPage() {
     irPara({ step: "tipo", instance: "", modo: "" });
   }, [irPara, invalidarLista]);
 
-  async function handleCriarInstancia() {
-    if (!organizacaoHash || !nome.trim()) return;
+  async function handleSelecionarTipo(provider: InstanceProvider) {
+    if (!organizacaoHash || criar.isPending) return;
     const created = await criar.mutateAsync({
       organizacaoHash,
-      nome: nome.trim(),
+      nome: NOME_INSTANCIA_PADRAO,
       provider,
     });
     const step: IntegracaoStep =
@@ -167,14 +166,10 @@ function IntegracaoPage() {
 
         {wizardStep === "tipo" && (
           <IntegracaoStepTipo
-            provider={provider}
-            nome={nome}
             instanceId={instanceId}
             criando={criar.isPending}
             temReconectar={listaReconectar.length > 0}
-            onProviderChange={setProvider}
-            onNomeChange={setNome}
-            onContinuar={() => void handleCriarInstancia()}
+            onSelecionarProvider={(p) => void handleSelecionarTipo(p)}
             onVoltarReconectar={() => irPara({ step: "escolher" })}
             onTrocarTipo={irParaTipo}
           />

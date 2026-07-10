@@ -15,15 +15,26 @@ export {
   createEvolutionGoClient,
   extractGoMessageId,
   parseGoCreateResponse,
-  type EvolutionConnectParams,
   type EvolutionGoClientOptions,
-  type EvolutionGoCreateResponse,
   type EvolutionGoLogSink,
   type EvolutionGoRequestLogEntry,
 } from "./client-go";
+export {
+  type EvolutionConnectParams,
+  type EvolutionGoApiError,
+  type EvolutionGoApiSuccess,
+  type EvolutionGoConnectData,
+  type EvolutionGoConnectResponse,
+  type EvolutionGoCreateInstanceData,
+  type EvolutionGoCreateParams,
+  type EvolutionGoCreateResponse,
+  isEvolutionGoApiError,
+  isEvolutionGoApiSuccess,
+} from "./instance-types";
 export { EVOLUTION_WEBHOOK_SUBSCRIBE_ALL } from "./webhook-events";
 export {
   type EvolutionConnectionState,
+  type EvolutionQrData,
   type EvolutionQrResponse,
   type EvolutionSendResponse,
 } from "./types";

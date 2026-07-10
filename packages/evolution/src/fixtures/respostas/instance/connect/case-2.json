@@ -1,0 +1,8 @@
+{
+  "data": {
+    "eventString": "MESSAGE,SEND_MESSAGE,READ_RECEIPT,PRESENCE,HISTORY_SYNC,CHAT_PRESENCE,CALL,CONNECTION,LABEL,CONTACT,GROUP,NEWSLETTER,QRCODE,BUTTON_CLICK,PICTURE,USER_ABOUT",
+    "jid": "",
+    "webhookUrl": "https://webhook.whasap.com.br/evo"
+  },
+  "message": "success"
+}

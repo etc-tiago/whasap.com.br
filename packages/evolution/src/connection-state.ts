@@ -7,12 +7,14 @@ export type EvolutionGoStatusData = {
   LoggedIn?: boolean;
   connected?: boolean;
   loggedIn?: boolean;
+  Name?: string;
 };
 
 export type EvolutionGoStatusResponse = {
   state?: EvolutionConnectionState | string;
   status?: string;
   connected?: boolean;
+  message?: string;
   data?: EvolutionGoStatusData;
 };
 

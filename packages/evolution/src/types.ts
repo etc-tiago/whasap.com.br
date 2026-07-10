@@ -1,19 +1,23 @@
 export type EvolutionConnectionState = "open" | "close" | "connecting";
 
+export type EvolutionQrData = {
+  qrcode?: string;
+  code?: string;
+  /** Legado */
+  base64?: string;
+  pairingCode?: string;
+  qr?: string;
+};
+
 export type EvolutionQrResponse = {
   pairingCode?: string;
   code?: string;
   base64?: string;
   qr?: string;
   count?: number;
-  data?: {
-    qrcode?: string;
-    base64?: string;
-    pairingCode?: string;
-    code?: string;
-    qr?: string;
-  };
+  data?: EvolutionQrData;
   message?: string;
+  error?: string;
 };
 
 export type EvolutionSendResponse = {

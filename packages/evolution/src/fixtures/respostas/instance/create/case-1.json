@@ -1,0 +1,28 @@
+{
+  "data": {
+    "id": "d5db2cfc-f9b9-4f5d-8016-f38b8420d667",
+    "name": "s1a123as",
+    "token": "85602900-a25f-4f1f-8f8d-a970b9ea029f",
+    "webhook": "",
+    "rabbitmqEnable": "",
+    "websocketEnable": "",
+    "natsEnable": "",
+    "jid": "",
+    "qrcode": "",
+    "connected": false,
+    "expiration": 0,
+    "disconnect_reason": "",
+    "events": "",
+    "os_name": "Linux",
+    "proxy": "null",
+    "client_name": "evolution",
+    "createdAt": "2026-07-09T21:57:07.866673245-03:00",
+    "alwaysOnline": false,
+    "rejectCall": false,
+    "msgRejectCall": "",
+    "readMessages": false,
+    "ignoreGroups": false,
+    "ignoreStatus": false
+  },
+  "message": "success"
+}
