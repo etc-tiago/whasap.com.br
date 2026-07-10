@@ -2,15 +2,18 @@ import { Send } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@whasap/ui/lib/utils";
 
-import { WaChatListPanel } from "@/components/inbox/wa-chat-list-panel";
+import { WaChatListPanel, type FiltroConversa } from "@/components/inbox/wa-chat-list-panel";
 import { WaEmptyChat } from "@/components/inbox/wa-message-bubble";
 
 type WaShellProps = {
   busca: string;
   onBuscaChange: (value: string) => void;
+  filtroAtivo?: FiltroConversa;
+  onFiltroChange?: (filtro: FiltroConversa) => void;
   listaConversas: ReactNode;
   conversaAberta: boolean;
   instanciaId?: string;
+  organizacaoHash?: string;
   provedor?: string;
   podeIniciarConversa?: boolean;
   onConversaIniciada?: (conversaId: string) => void;
@@ -22,9 +25,12 @@ type WaShellProps = {
 export function WaShell({
   busca,
   onBuscaChange,
+  filtroAtivo,
+  onFiltroChange,
   listaConversas,
   conversaAberta,
   instanciaId,
+  organizacaoHash,
   provedor,
   podeIniciarConversa,
   onConversaIniciada,
@@ -37,8 +43,11 @@ export function WaShell({
       <WaChatListPanel
         busca={busca}
         onBuscaChange={onBuscaChange}
+        filtroAtivo={filtroAtivo}
+        onFiltroChange={onFiltroChange}
         mobileHidden={conversaAberta}
         instanciaId={instanciaId}
+        organizacaoHash={organizacaoHash}
         provedor={provedor}
         podeIniciarConversa={podeIniciarConversa}
         onConversaIniciada={onConversaIniciada}

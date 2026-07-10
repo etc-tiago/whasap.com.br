@@ -1,22 +1,23 @@
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { forbidden, notFound, preconditionFailed } from "@whasap/api-core";
-import { isEvolutionProvider } from "@whasap/config";
+import { isEvoProvider, isMetaCloudProvider } from "@whasap/config";
 import { cdnMediaUrl, buildOutboundMediaR2Key, mimeToExtension } from "@whasap/config";
 import { createMetaClient, type MetaTemplate } from "@whasap/meta";
 import {
   contato,
+  contatoInstancia,
   contatoTag,
   contatoTagAtribuicao,
   conversa,
   conversaAnotacao,
   colunasContatoCaixaEntrada,
+  colunasContatoInstancia,
   colunasContatoTag,
   colunasConversaAnotacao,
   colunasConversaComRelacoes,
   colunasConversaLista,
   colunasInstanciaOperacao,
   colunasMensagemLista,
-  colunasMensagemPreview,
   colunasMensagemTemplate,
   colunasSomenteId,
   comCriadoEm,
@@ -35,13 +36,20 @@ import { obterCredenciaisMeta } from "./instancia";
 import {
   assertMessageTypeSupported,
   cloudRequiresTemplate,
-  isCloudWindowOpen,
+  isMetaCloudWindowOpen,
   markProviderMessageRead,
   sendProviderMessage,
 } from "../lib/messaging";
+import type { InstanciaComProvedor } from "../lib/instancia-provedor";
 import type { WebContext } from "../types";
 import { exigirAutenticacao, resolverMembro, resolverMembroPorIdInterno } from "./auth";
 import { exigirAcessoDemonstracao } from "../lib/demonstracao";
+import {
+  atribuirEtiquetaEvolution,
+  criarEtiquetaEvolution,
+  garantirEtiquetaEvolution,
+  removerEtiquetaEvolution,
+} from "../lib/evolution-etiquetas";
 import { isInstanceOperational } from "../lib/instance-operational";
 import type { MemberRole } from "../types";
 
@@ -109,12 +117,50 @@ async function exigirAcessoContato(ctx: WebContext, contatoUuid: string) {
   const contact = await ctx.db.query.contato.findFirst({
     where: and(eq(contato.uuid, contatoUuid), isNull(contato.excluidoEm)),
     columns: colunasContatoCaixaEntrada,
-    with: { instancia: incluirInstanciaOperacao },
   });
-  if (!contact?.instancia) notFound();
-  const { role } = await resolverMembroPorIdInterno(ctx, contact.instancia.organizacaoId);
-  await exigirAcessoDemonstracao(ctx, contact.instancia.organizacaoId);
-  return { contact, instance: contact.instancia, role };
+  if (!contact) notFound();
+  const { role } = await resolverMembroPorIdInterno(ctx, contact.organizacaoId);
+  await exigirAcessoDemonstracao(ctx, contact.organizacaoId);
+  return { contact, role, organizacaoId: contact.organizacaoId };
+}
+
+async function resolverInstanciaEvoDoContato(
+  ctx: WebContext,
+  contactId: number,
+): Promise<InstanciaComProvedor | null> {
+  const vinculos = await ctx.db.query.contatoInstancia.findMany({
+    where: eq(contatoInstancia.contatoId, contactId),
+    columns: colunasContatoInstancia,
+  });
+  for (const vinculo of vinculos) {
+    const row = await ctx.db.query.instancia.findFirst({
+      where: and(eq(instancia.id, vinculo.instanciaId), isNull(instancia.excluidoEm)),
+      columns: colunasInstanciaOperacao,
+      with: {
+        evo: incluirInstanciaOperacao.with.evo,
+        metaCloud: incluirInstanciaOperacao.with.metaCloud,
+      },
+    });
+    if (row && isEvoProvider(row.provedor) && isInstanceOperational(row)) {
+      return row;
+    }
+  }
+  return null;
+}
+
+async function resolverIdExternoLinhaContato(
+  ctx: WebContext,
+  contactId: number,
+  instanciaId: number,
+): Promise<string | null> {
+  const vinculo = await ctx.db.query.contatoInstancia.findFirst({
+    where: and(
+      eq(contatoInstancia.contatoId, contactId),
+      eq(contatoInstancia.instanciaId, instanciaId),
+    ),
+    columns: colunasContatoInstancia,
+  });
+  return vinculo?.idExterno ?? null;
 }
 
 /** Exige que o usuário seja membro da org dona da instância. */
@@ -122,6 +168,10 @@ async function exigirAcessoInstancia(ctx: WebContext, instanciaUuid: string) {
   const instance = await ctx.db.query.instancia.findFirst({
     where: and(eq(instancia.uuid, instanciaUuid), isNull(instancia.excluidoEm)),
     columns: colunasInstanciaOperacao,
+    with: {
+      evo: incluirInstanciaOperacao.with.evo,
+      metaCloud: incluirInstanciaOperacao.with.metaCloud,
+    },
   });
   if (!instance) notFound();
   const { role } = await resolverMembroPorIdInterno(ctx, instance.organizacaoId);
@@ -214,12 +264,35 @@ async function sincronizarTemplateMeta(
  */
 export const caixaEntradaHandlers = {
   conversas: {
-    lista: async (ctx: WebContext, input: { instanciaId: string }) => {
+    lista: async (
+      ctx: WebContext,
+      input: { organizacaoHash: string; instanciaId?: string },
+    ) => {
       exigirAutenticacao(ctx);
-      const { instance } = await exigirAcessoInstancia(ctx, input.instanciaId);
+      await resolverMembro(ctx, input.organizacaoHash);
+      const organizacaoId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
+      if (organizacaoId === null) notFound();
+      await exigirAcessoDemonstracao(ctx, organizacaoId);
+
+      let instances: InstanciaComProvedor[];
+      if (input.instanciaId) {
+        const { instance } = await exigirAcessoInstancia(ctx, input.instanciaId);
+        if (instance.organizacaoId !== organizacaoId) notFound();
+        instances = [instance];
+      } else {
+        instances = await ctx.db.query.instancia.findMany({
+          where: and(eq(instancia.organizacaoId, organizacaoId), isNull(instancia.excluidoEm)),
+          columns: colunasInstanciaOperacao,
+        });
+      }
+
+      if (instances.length === 0) return [];
+
+      const instanceById = new Map(instances.map((i) => [i.id, i]));
+      const instanceIds = instances.map((i) => i.id);
 
       const rows = await ctx.db.query.conversa.findMany({
-        where: and(eq(conversa.instanciaId, instance.id), isNull(conversa.excluidoEm)),
+        where: and(inArray(conversa.instanciaId, instanceIds), isNull(conversa.excluidoEm)),
         columns: colunasConversaLista,
         with: {
           contato: incluirContatoCaixaEntrada,
@@ -228,28 +301,75 @@ export const caixaEntradaHandlers = {
         orderBy: [desc(conversa.ultimaMensagemEm)],
       });
 
-      const rowsWithContato = rows.filter((row) => row.contato);
+      let rowsWithContato = rows.filter((row) => row.contato);
+
+      if (!input.instanciaId) {
+        const byContato = new Map<number, (typeof rows)[number]>();
+        for (const row of rowsWithContato) {
+          const existing = byContato.get(row.contatoId);
+          if (!existing) {
+            byContato.set(row.contatoId, row);
+            continue;
+          }
+          const existingTime = existing.ultimaMensagemEm?.getTime() ?? 0;
+          const rowTime = row.ultimaMensagemEm?.getTime() ?? 0;
+          if (rowTime > existingTime) byContato.set(row.contatoId, row);
+        }
+        rowsWithContato = [...byContato.values()].sort(
+          (a, b) => (b.ultimaMensagemEm?.getTime() ?? 0) - (a.ultimaMensagemEm?.getTime() ?? 0),
+        );
+      }
+
+      const contatoIds = rowsWithContato.map((row) => row.contato!.id);
+
+      const atribuicoes =
+        contatoIds.length > 0
+          ? await ctx.db.query.contatoTagAtribuicao.findMany({
+              where: inArray(contatoTagAtribuicao.contatoId, contatoIds),
+              with: { tag: { columns: colunasContatoTag } },
+            })
+          : [];
+
+      const etiquetasPorContato = new Map<
+        string,
+        Array<{ id: string; nome: string; cor: string | null }>
+      >();
+      for (const atrib of atribuicoes) {
+        if (!atrib.tag) continue;
+        const lista = etiquetasPorContato.get(String(atrib.contatoId)) ?? [];
+        lista.push({
+          id: atrib.tag.uuid,
+          nome: atrib.tag.nome,
+          cor: atrib.tag.cor,
+        });
+        etiquetasPorContato.set(String(atrib.contatoId), lista);
+      }
 
       return Promise.all(
         rowsWithContato.map(async (row) => {
           const contatoRow = row.contato!;
+          const inst = instanceById.get(row.instanciaId)!;
           const lastMsg = await ctx.db.query.mensagem.findFirst({
             where: and(eq(mensagem.conversaId, row.id), isNull(mensagem.excluidoEm)),
-            columns: colunasMensagemPreview,
+            columns: { corpo: true, tipo: true },
             orderBy: [desc(mensagem.criadoEm)],
           });
           return {
             id: row.uuid,
-            instanciaId: instance.uuid,
+            instanciaId: inst.uuid,
+            instanciaNome: inst.nome,
             contatoId: contatoRow.uuid,
             contatoNome: contatoRow.nome,
-            contatoTelefone: contatoRow.telefone,
+            contatoTelefone: contatoRow.telefone ?? "",
             usuarioAtribuidoId: row.atribuidoUsuario?.uuid ?? null,
             usuarioAtribuidoNome: row.atribuidoUsuario?.nome ?? null,
             status: row.status,
-            janelaCloudExpiraEm: row.nuvemJanelaExpiraEm?.toISOString() ?? null,
+            metaCloudJanelaExpiraEm: row.metaCloudJanelaExpiraEm?.toISOString() ?? null,
             ultimaMensagemEm: row.ultimaMensagemEm?.toISOString() ?? null,
+            ultimaMensagemTipo: lastMsg?.tipo ?? null,
             ultimaMensagemPreview: lastMsg?.corpo ?? null,
+            naoLidas: row.naoLidas ?? 0,
+            etiquetas: etiquetasPorContato.get(String(contatoRow.id)) ?? [],
           };
         }),
       );
@@ -271,18 +391,20 @@ export const caixaEntradaHandlers = {
       verificarPodeEscreverCaixaEntrada(role);
       if (!isInstanceOperational(instance)) preconditionFailed("Instância não operacional");
 
-      if (instance.provedor === "cloud_api" && !input.templateId) {
+      if (isMetaCloudProvider(instance.provedor) && !input.templateId) {
         preconditionFailed("Cloud API exige template para iniciar conversa");
       }
-      if (isEvolutionProvider(instance.provedor) && !input.corpo) {
+      if (isEvoProvider(instance.provedor) && !input.corpo) {
         preconditionFailed("Informe a mensagem inicial");
       }
 
       const phone = input.telefone.replace(/\D/g, "");
+      const idExterno = `${phone}@s.whatsapp.net`;
+
       let contact = await ctx.db.query.contato.findFirst({
         where: and(
-          eq(contato.instanciaId, instance.id),
-          eq(contato.telefone, phone),
+          eq(contato.organizacaoId, instance.organizacaoId),
+          eq(contato.idExterno, idExterno),
           isNull(contato.excluidoEm),
         ),
         columns: colunasContatoCaixaEntrada,
@@ -292,12 +414,30 @@ export const caixaEntradaHandlers = {
           .insert(contato)
           .values(
             comTimestampsCriacao({
-              instanciaId: instance.id,
+              organizacaoId: instance.organizacaoId,
+              idExterno,
               telefone: phone,
               nome: input.nome ?? null,
             }),
           )
           .returning();
+      }
+
+      const vinculoExistente = await ctx.db.query.contatoInstancia.findFirst({
+        where: and(
+          eq(contatoInstancia.contatoId, contact!.id),
+          eq(contatoInstancia.instanciaId, instance.id),
+        ),
+        columns: colunasSomenteId,
+      });
+      if (!vinculoExistente) {
+        await ctx.db.insert(contatoInstancia).values(
+          comTimestampsCriacao({
+            contatoId: contact!.id,
+            instanciaId: instance.id,
+            idExterno,
+          }),
+        );
       }
 
       const [conversation] = await ctx.db
@@ -464,11 +604,11 @@ export const caixaEntradaHandlers = {
       if (
         cloudRequiresTemplate(
           conv.instance.provedor,
-          conv.conversation.nuvemJanelaExpiraEm,
+          conv.conversation.metaCloudJanelaExpiraEm,
           false,
         ) &&
         tipo === "text" &&
-        !isCloudWindowOpen(conv.conversation.nuvemJanelaExpiraEm)
+        !isMetaCloudWindowOpen(conv.conversation.metaCloudJanelaExpiraEm)
       ) {
         preconditionFailed("Fora da janela de 24h — use um template");
       }
@@ -477,6 +617,8 @@ export const caixaEntradaHandlers = {
       if (["image", "audio", "video", "document", "sticker"].includes(tipo) && !mediaUrl) {
         preconditionFailed("Mídia não informada");
       }
+
+      if (!conv.contact.telefone) notFound("Telefone do contato não informado");
 
       const externalId = await sendProviderMessage({
         ctx,
@@ -546,12 +688,25 @@ export const caixaEntradaHandlers = {
       const conv = await exigirAcessoConversa(ctx, input.conversaId);
       if (!conv.contact) notFound();
 
+      if (!conv.contact.telefone) notFound("Telefone do contato não informado");
+
       await markProviderMessageRead(
         ctx,
         conv.instance,
         conv.contact.telefone,
         input.mensagemIdExterno,
       );
+
+      await ctx.db
+        .update(conversa)
+        .set(
+          comTimestampAtualizacao({
+            naoLidas: 0,
+            ultimaLeituraEm: new Date(),
+          }),
+        )
+        .where(eq(conversa.id, conv.conversation.id));
+
       return { ok: true };
     },
 
@@ -576,6 +731,7 @@ export const caixaEntradaHandlers = {
         columns: colunasMensagemTemplate,
       });
       if (!template) notFound("Template não encontrado");
+      if (!conv.contact.telefone) notFound("Telefone do contato não informado");
 
       const externalId = await sendProviderMessage({
         ctx,
@@ -663,7 +819,7 @@ export const caixaEntradaHandlers = {
     sincronizar: async (ctx: WebContext, input: { instanciaId: string }) => {
       exigirAutenticacao(ctx);
       const { instance } = await exigirAcessoInstancia(ctx, input.instanciaId);
-      if (instance.provedor !== "cloud_api") preconditionFailed("Somente Cloud API");
+      if (!isMetaCloudProvider(instance.provedor)) preconditionFailed("Somente Cloud API");
 
       const creds = obterCredenciaisMeta(instance);
       const meta = createMetaClient(creds);
@@ -760,15 +916,29 @@ export const caixaEntradaHandlers = {
 
     atribuir: async (ctx: WebContext, input: { contatoId: string; etiquetaId: string }) => {
       exigirAutenticacao(ctx);
-      const { contact, instance, role } = await exigirAcessoContato(ctx, input.contatoId);
+      const { contact, role, organizacaoId } = await exigirAcessoContato(ctx, input.contatoId);
       verificarPodeEscreverCaixaEntrada(role);
 
       const tag = await ctx.db.query.contatoTag.findFirst({
         where: eq(contatoTag.uuid, input.etiquetaId),
         columns: colunasContatoTag,
       });
-      if (!tag || tag.organizacaoId !== instance.organizacaoId) {
+      if (!tag || tag.organizacaoId !== organizacaoId) {
         notFound("Etiqueta não encontrada");
+      }
+
+      const evoInstance = await resolverInstanciaEvoDoContato(ctx, contact.id);
+
+      const labelId =
+        evoInstance && isEvoProvider(evoInstance.provedor)
+          ? await garantirEtiquetaEvolution(ctx, evoInstance, tag)
+          : tag.idExterno;
+
+      if (labelId && tag.idExterno !== labelId) {
+        await ctx.db
+          .update(contatoTag)
+          .set({ idExterno: labelId })
+          .where(eq(contatoTag.id, tag.id));
       }
 
       const existing = await ctx.db.query.contatoTagAtribuicao.findFirst({
@@ -786,6 +956,21 @@ export const caixaEntradaHandlers = {
           }),
         );
       }
+
+      if (labelId && evoInstance && isEvoProvider(evoInstance.provedor)) {
+        const idExternoLinha = await resolverIdExternoLinhaContato(
+          ctx,
+          contact.id,
+          evoInstance.id,
+        );
+        await atribuirEtiquetaEvolution(
+          ctx,
+          evoInstance,
+          { telefone: contact.telefone, idExternoLinha },
+          labelId,
+        );
+      }
+
       return { ok: true };
     },
 
@@ -796,9 +981,24 @@ export const caixaEntradaHandlers = {
 
       const tag = await ctx.db.query.contatoTag.findFirst({
         where: eq(contatoTag.uuid, input.etiquetaId),
-        columns: colunasSomenteId,
+        columns: { ...colunasContatoTag },
       });
       if (!tag) notFound("Etiqueta não encontrada");
+
+      const evoInstance = await resolverInstanciaEvoDoContato(ctx, contact.id);
+      if (tag.idExterno && evoInstance && isEvoProvider(evoInstance.provedor)) {
+        const idExternoLinha = await resolverIdExternoLinhaContato(
+          ctx,
+          contact.id,
+          evoInstance.id,
+        );
+        await removerEtiquetaEvolution(
+          ctx,
+          evoInstance,
+          { telefone: contact.telefone, idExternoLinha },
+          tag.idExterno,
+        );
+      }
 
       await ctx.db
         .delete(contatoTagAtribuicao)
@@ -818,6 +1018,7 @@ export const caixaEntradaHandlers = {
         nome: string;
         cor?: string | null;
         contatoId?: string;
+        instanciaId?: string;
       },
     ) => {
       exigirAutenticacao(ctx);
@@ -827,6 +1028,35 @@ export const caixaEntradaHandlers = {
       const organizacaoId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
       if (organizacaoId === null) notFound();
 
+      let instanceForEvolution: InstanciaComProvedor | null = null;
+      let contactForAssign: Awaited<ReturnType<typeof exigirAcessoContato>>["contact"] | null =
+        null;
+
+      if (input.contatoId) {
+        const access = await exigirAcessoContato(ctx, input.contatoId);
+        if (access.organizacaoId !== organizacaoId) notFound("Contato não encontrado");
+        contactForAssign = access.contact;
+        instanceForEvolution =
+          (await resolverInstanciaEvoDoContato(ctx, access.contact.id)) ??
+          (input.instanciaId
+            ? (await exigirAcessoInstancia(ctx, input.instanciaId)).instance
+            : null);
+      } else if (input.instanciaId) {
+        const access = await exigirAcessoInstancia(ctx, input.instanciaId);
+        if (access.instance.organizacaoId !== organizacaoId) notFound();
+        instanceForEvolution = access.instance;
+      }
+
+      let idExterno: string | null = null;
+      if (instanceForEvolution && isEvoProvider(instanceForEvolution.provedor)) {
+        idExterno = await criarEtiquetaEvolution(
+          ctx,
+          instanceForEvolution,
+          input.nome,
+          input.cor,
+        );
+      }
+
       const [tag] = await ctx.db
         .insert(contatoTag)
         .values(
@@ -834,6 +1064,7 @@ export const caixaEntradaHandlers = {
             organizacaoId,
             nome: input.nome,
             cor: input.cor ?? null,
+            idExterno,
           }),
         )
         .returning({
@@ -843,18 +1074,27 @@ export const caixaEntradaHandlers = {
           cor: contatoTag.cor,
         });
 
-      if (input.contatoId) {
-        const { contact, instance } = await exigirAcessoContato(ctx, input.contatoId);
-        if (instance.organizacaoId !== organizacaoId) {
-          notFound("Contato não encontrado");
-        }
-
+      if (contactForAssign && instanceForEvolution) {
         await ctx.db.insert(contatoTagAtribuicao).values(
           comCriadoEm({
-            contatoId: contact.id,
+            contatoId: contactForAssign.id,
             tagId: tag!.id,
           }),
         );
+
+        if (idExterno && isEvoProvider(instanceForEvolution.provedor)) {
+          const idExternoLinha = await resolverIdExternoLinhaContato(
+            ctx,
+            contactForAssign.id,
+            instanceForEvolution.id,
+          );
+          await atribuirEtiquetaEvolution(
+            ctx,
+            instanceForEvolution,
+            { telefone: contactForAssign.telefone, idExternoLinha },
+            idExterno,
+          );
+        }
       }
 
       return {

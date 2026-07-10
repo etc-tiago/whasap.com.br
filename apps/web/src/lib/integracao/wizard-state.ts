@@ -1,4 +1,9 @@
-import { isEvolutionProvider } from "@whasap/config";
+import {
+  isEvoProvider,
+  isMetaCloudProvider,
+  rotuloProvedor,
+  type InstanceProvider,
+} from "@whasap/config";
 
 import { instanciaOperacional } from "@/lib/instancia-status";
 
@@ -45,14 +50,14 @@ export function resolverIntegracaoStep(params: ResolverStepParams): IntegracaoSt
     return "escolher";
   }
 
-  if (inst && isEvolutionProvider(inst.provider)) {
+  if (inst && isEvoProvider(inst.provider)) {
     if (inst.status === "provisioning" || inst.status === "pending_connection") {
       return "evolution_qr";
     }
     if (inst.status === "disconnected") return "evolution_qr";
   }
 
-  if (inst?.provider === "cloud_api") {
+  if (inst && isMetaCloudProvider(inst.provider)) {
     return "cloud_config";
   }
 
@@ -65,7 +70,7 @@ export function passoEvolutionQr(step: IntegracaoStep): boolean {
 
 export function subtituloIntegracao(
   passo: IntegracaoStep,
-  provedor?: "evolution" | "cloud_api",
+  provedor?: InstanceProvider,
 ): string {
   switch (passo) {
     case "escolher":
@@ -83,7 +88,7 @@ export function subtituloIntegracao(
     case "concluido":
       return "Pronto para começar";
     default:
-      return provedor ? `Configurar ${provedor}` : "Configurar integração";
+      return provedor ? `Configurar ${rotuloProvedor(provedor)}` : "Configurar integração";
   }
 }
 

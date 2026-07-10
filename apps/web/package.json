@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "deploy": "vite build && wrangler deploy",
     "cf-typegen": "wrangler types",
+    "test": "vitest run src/lib",
     "dev:e2e": "bun --env-file=../../.env ../../scripts/with-hyperdrive-env.ts vite dev --port 3099 --strictPort",
     "test:browser": "bun e2e/run.ts",
     "test:browser:ui": "E2E_HEADED=1 bun e2e/run.ts -- --browser.headless=false"

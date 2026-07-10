@@ -26,7 +26,7 @@ export function podeEnviarMensagem(params: {
 /**
  * Cloud API exige janela de 24h aberta para mensagens livres (fora de template).
  */
-export function janelaCloudAberta(janelaCloudExpiraEm: string | null | undefined): boolean {
-  if (!janelaCloudExpiraEm) return false;
-  return new Date(janelaCloudExpiraEm) > new Date();
+export function janelaCloudAberta(metaCloudJanelaExpiraEm: string | null | undefined): boolean {
+  if (!metaCloudJanelaExpiraEm) return false;
+  return new Date(metaCloudJanelaExpiraEm) > new Date();
 }

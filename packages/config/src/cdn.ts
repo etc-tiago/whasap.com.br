@@ -41,3 +41,26 @@ export function buildMediaR2Key(instanceUuid: string, externalId: string, ext: s
 export function buildOutboundMediaR2Key(instanceUuid: string, ext: string): string {
   return `${mvpDefaults.cdn.mediaPrefix}/${instanceUuid}/outbound/${crypto.randomUUID()}.${ext}`;
 }
+
+/**
+ * Chave R2 não adivinhável para mídia inbound (HMAC-SHA256).
+ * `seed` deve ser estável por mensagem (ex.: id externo ou hash do payload).
+ */
+export async function buildSecureInboundMediaR2Key(
+  secret: string,
+  instanceUuid: string,
+  seed: string,
+  ext: string,
+): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(`${instanceUuid}:${seed}`));
+  const hmacHex = [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `${mvpDefaults.cdn.mediaPrefix}/${instanceUuid}/${hmacHex}.${ext}`;
+}

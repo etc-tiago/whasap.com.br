@@ -82,6 +82,10 @@ export const instanciaContract = {
 
   obter: oc.input(z.object({ instanciaId: z.string().uuid() })).output(instanciaSchema),
 
+  sincronizarHistorico: oc
+    .input(z.object({ instanciaId: z.string().uuid() }))
+    .output(z.object({ ok: z.boolean() })),
+
   adicionarPacoteConversas: oc
     .input(z.object({ instanciaId: z.string().uuid() }))
     .output(z.object({ urlCheckout: z.string().url() })),

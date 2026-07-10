@@ -304,6 +304,32 @@ export function createEvolutionGoClient(
         { message },
       );
     },
+
+    listLabels() {
+      return request<unknown>("label_list", "GET", "/label/list");
+    },
+
+    editLabel(payload: { name: string; color: number; labelId?: string; deleted?: boolean }) {
+      return request<unknown>("label_edit", "POST", "/label/edit", payload);
+    },
+
+    labelChat(payload: { jid: string; labelId: string }) {
+      return request<unknown>("label_chat", "POST", "/label/chat", {
+        jid: payload.jid,
+        labelId: payload.labelId,
+      });
+    },
+
+    unlabelChat(payload: { jid: string; labelId: string }) {
+      return request<unknown>("unlabel_chat", "POST", "/unlabel/chat", {
+        jid: payload.jid,
+        labelId: payload.labelId,
+      });
+    },
+
+    historySync(payload: { count?: number; messageInfo?: unknown } = {}) {
+      return request<unknown>("chat_history_sync", "POST", "/chat/history-sync", payload);
+    },
   };
 }
 

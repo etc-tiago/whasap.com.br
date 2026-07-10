@@ -63,38 +63,43 @@ export const colunasInstanciaPublica = {
   status: true,
   limiteConversas: true,
   asaasIdAssinatura: true,
-  nuvemIdNumeroTelefone: true,
   trialTerminaEm: true,
   conectadoEm: true,
   criadoEm: true,
 } as const;
 
+export const colunasInstanciaEvo = {
+  id: true,
+  instanciaId: true,
+  nomeInstancia: true,
+  instanceId: true,
+  token: true,
+  historicoSincronizadoEm: true,
+  historicoSincronizandoEm: true,
+} as const;
+
+export const colunasInstanciaMetaCloud = {
+  id: true,
+  instanciaId: true,
+  phoneNumberId: true,
+  wabaId: true,
+  accessToken: true,
+} as const;
+
 /**
  * Instância com credenciais e campos de provisionamento — só uso server-side.
- * Nunca retornar estes campos diretamente na API.
  */
 export const colunasInstanciaOperacao = {
   ...colunasInstanciaPublica,
-  evolucaoNomeInstancia: true,
-  evolucaoInstanceId: true,
-  evolucaoToken: true,
-  nuvemIdWaba: true,
-  nuvemTokenAcesso: true,
   tentativasProvisionamento: true,
 } as const;
 
-/** Instância no worker de webhooks (Evolution / Meta / Asaas). */
+/** Instância no worker de webhooks (evo / meta_cloud / Asaas). */
 export const colunasInstanciaWebhook = {
   id: true,
   uuid: true,
   organizacaoId: true,
   provedor: true,
-  evolucaoNomeInstancia: true,
-  evolucaoInstanceId: true,
-  evolucaoToken: true,
-  nuvemIdNumeroTelefone: true,
-  nuvemTokenAcesso: true,
-  nuvemIdWaba: true,
   asaasIdAssinatura: true,
   status: true,
   limiteConversas: true,
@@ -174,18 +179,28 @@ export const colunasContatoTag = {
   nome: true,
   cor: true,
   organizacaoId: true,
+  idExterno: true,
 } as const;
 
 /** Atribuição de etiqueta a contato — só PK interna. */
 export const colunasContatoTagAtribuicao = colunasSomenteId;
 
-/** Contato na caixa de entrada. */
+/** Contato na caixa de entrada (identidade org). */
 export const colunasContatoCaixaEntrada = {
   id: true,
   uuid: true,
+  organizacaoId: true,
   telefone: true,
   nome: true,
+  idExterno: true,
+} as const;
+
+/** Vínculo contato ↔ instância (id externo da linha). */
+export const colunasContatoInstancia = {
+  id: true,
+  contatoId: true,
   instanciaId: true,
+  idExterno: true,
 } as const;
 
 /** Conversa na listagem da caixa de entrada. */
@@ -196,8 +211,10 @@ export const colunasConversaLista = {
   contatoId: true,
   atribuidoUsuarioId: true,
   status: true,
-  nuvemJanelaExpiraEm: true,
+  metaCloudJanelaExpiraEm: true,
   ultimaMensagemEm: true,
+  naoLidas: true,
+  ultimaLeituraEm: true,
 } as const;
 
 /** Conversa com instância e contato — acesso por uuid. */
@@ -208,7 +225,7 @@ export const colunasConversaComRelacoes = {
   contatoId: true,
   atribuidoUsuarioId: true,
   status: true,
-  nuvemJanelaExpiraEm: true,
+  metaCloudJanelaExpiraEm: true,
 } as const;
 
 /** Mensagem na listagem / envio. */
@@ -286,10 +303,24 @@ export const incluirUsuarioRelacao = {
   where: filtroNaoExcluido,
 } as const;
 
-/** Inclui instância ativa com campos de operação. */
+/** Inclui instância ativa com campos de operação + provedor. */
 export const incluirInstanciaOperacao = {
   columns: colunasInstanciaOperacao,
   where: filtroNaoExcluido,
+  with: {
+    evo: { columns: colunasInstanciaEvo },
+    metaCloud: { columns: colunasInstanciaMetaCloud },
+  },
+} as const;
+
+/** Inclui instância webhook com evo/meta_cloud. */
+export const incluirInstanciaWebhook = {
+  columns: colunasInstanciaWebhook,
+  where: filtroNaoExcluido,
+  with: {
+    evo: { columns: colunasInstanciaEvo },
+    metaCloud: { columns: colunasInstanciaMetaCloud },
+  },
 } as const;
 
 /** Inclui contato ativo na conversa. */

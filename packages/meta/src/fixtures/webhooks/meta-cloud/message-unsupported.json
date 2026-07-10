@@ -1,0 +1,42 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "8856996819413533",
+      "changes": [
+        {
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": {
+              "display_phone_number": "16505553333",
+              "phone_number_id": "27681414235104944"
+            },
+            "contacts": [
+              {
+                "profile": { "name": "Kerry Fisher" },
+                "wa_id": "16315551234"
+              }
+            ],
+            "messages": [
+              {
+                "from": "16315551234",
+                "id": "wamid.HBgLMTYzMTU1NTEyMzQVAgARGBI5QTNDQjFDNDY3N0JGMzMxAA==",
+                "timestamp": "1689380540",
+                "type": "unsupported",
+                "errors": [
+                  {
+                    "code": 131051,
+                    "title": "Message type is not currently supported",
+                    "message": "Message type is not currently supported",
+                    "error_data": { "details": "Unsupported message type was received" }
+                  }
+                ]
+              }
+            ]
+          },
+          "field": "messages"
+        }
+      ]
+    }
+  ]
+}

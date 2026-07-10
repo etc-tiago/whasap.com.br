@@ -8,5 +8,6 @@ export type Env = AsaasSecretsEnv &
     CDN_URL: string;
     WORKER_NAME?: string;
     WHATSAPP_CLOUD_WEBHOOK_SECRET: string;
+    CDN_HMAC_SECRET?: string;
     ASAAS_WEBHOOK_TOKEN: string;
   };

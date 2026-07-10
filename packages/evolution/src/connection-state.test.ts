@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseConnectionUpdateWebhook,
   parseGoConnectionState,
+  parseGoDisconnectedEvent,
   parseGoQrResponse,
   type EvolutionGoStatusResponse,
 } from "./connection-state";
@@ -72,6 +73,21 @@ describe("parseConnectionUpdateWebhook", () => {
 
   it("retorna null sem sinal reconhecível", () => {
     expect(parseConnectionUpdateWebhook({ data: {} })).toBeNull();
+  });
+
+  it("mapeia evento Disconnected para close", () => {
+    expect(parseConnectionUpdateWebhook({ event: "Disconnected", data: {} })).toBe("close");
+  });
+});
+
+describe("parseGoDisconnectedEvent", () => {
+  it("reconhece Disconnected", () => {
+    expect(parseGoDisconnectedEvent({ event: "Disconnected" })).toBe("close");
+  });
+
+  it("ignora outros eventos", () => {
+    expect(parseGoDisconnectedEvent({ event: "PairSuccess" })).toBeNull();
+    expect(parseGoDisconnectedEvent({ event: "connection.update" })).toBeNull();
   });
 });
 

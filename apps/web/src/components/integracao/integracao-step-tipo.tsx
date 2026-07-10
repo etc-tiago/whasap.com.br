@@ -2,7 +2,7 @@ import { Button } from "@whasap/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/card";
 import { Smartphone } from "lucide-react";
 
-import { rotuloWhatsApp, type InstanceProvider } from "@whasap/config";
+import { rotuloProvedor, type InstanceProvider } from "@whasap/config";
 
 import { TrocarTipoButton } from "./trocar-tipo-button";
 
@@ -33,21 +33,21 @@ export function IntegracaoStepTipo({
           <button
             type="button"
             disabled={criando}
-            onClick={() => onSelecionarProvider("evolution")}
+            onClick={() => onSelecionarProvider("evo")}
             className="rounded-lg border border-border p-4 text-left transition hover:border-wa-green hover:bg-wa-green/5 disabled:opacity-50"
           >
             <Smartphone className="mb-2 h-5 w-5" />
-            <p className="font-medium">{rotuloWhatsApp("evolution")}</p>
+            <p className="font-medium">{rotuloProvedor("evo")}</p>
             <p className="text-xs text-muted-foreground">Conexão via QR Code</p>
           </button>
           <button
             type="button"
             disabled={criando}
-            onClick={() => onSelecionarProvider("cloud_api")}
+            onClick={() => onSelecionarProvider("meta_cloud")}
             className="rounded-lg border border-border p-4 text-left transition hover:border-wa-green hover:bg-wa-green/5 disabled:opacity-50"
           >
             <Smartphone className="mb-2 h-5 w-5" />
-            <p className="font-medium">{rotuloWhatsApp("cloud_api")}</p>
+            <p className="font-medium">{rotuloProvedor("meta_cloud")}</p>
             <p className="text-xs text-muted-foreground">API oficial da Meta</p>
           </button>
         </div>

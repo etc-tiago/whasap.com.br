@@ -1,5 +1,7 @@
 import type { instancia, organizacao, usuario } from "@whasap/db";
 
+import type { InstanciaComProvedor } from "./instancia-provedor";
+
 export function toUsuarioOutput(
   u: Pick<typeof usuario.$inferSelect, "uuid" | "email" | "nome" | "emailVerificadoEm">,
 ) {
@@ -34,22 +36,7 @@ export function toOrganizacaoOutput(
   };
 }
 
-export function toInstanciaOutput(
-  instance: Pick<
-    typeof instancia.$inferSelect,
-    | "uuid"
-    | "nome"
-    | "provedor"
-    | "status"
-    | "limiteConversas"
-    | "asaasIdAssinatura"
-    | "nuvemIdNumeroTelefone"
-    | "trialTerminaEm"
-    | "conectadoEm"
-    | "criadoEm"
-  >,
-  organizacaoUuid: string,
-) {
+export function toInstanciaOutput(instance: InstanciaComProvedor, organizacaoUuid: string) {
   return {
     id: instance.uuid,
     organizacaoId: organizacaoUuid,
@@ -58,9 +45,11 @@ export function toInstanciaOutput(
     status: instance.status,
     limiteConversas: instance.limiteConversas,
     asaasSubscriptionId: instance.asaasIdAssinatura,
-    cloudPhoneNumberId: instance.nuvemIdNumeroTelefone,
+    cloudPhoneNumberId: instance.metaCloud?.phoneNumberId ?? null,
     trialEndsAt: instance.trialTerminaEm?.toISOString() ?? null,
     connectedAt: instance.conectadoEm?.toISOString() ?? null,
     criadoEm: instance.criadoEm.toISOString(),
+    evoHistoricoSincronizadoEm: instance.evo?.historicoSincronizadoEm?.toISOString() ?? null,
+    evoHistoricoSincronizandoEm: instance.evo?.historicoSincronizandoEm?.toISOString() ?? null,
   };
 }

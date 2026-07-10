@@ -28,8 +28,8 @@ export function WaRail({ organizacaoHash }: WaRailProps) {
       <div className="flex flex-col items-center gap-1">
         {instanciaInbox ? (
           <WaRailLink
-            to="/$organizacaoHash/inbox/$instanceId"
-            params={{ organizacaoHash, instanceId: instanciaInbox.id }}
+            to="/$organizacaoHash/inbox"
+            params={{ organizacaoHash }}
             title="Conversas"
             activeOptions={waRailLinkActiveOptionsExact}
           >

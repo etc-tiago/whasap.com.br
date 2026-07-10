@@ -12,15 +12,19 @@ const etiquetaSchema = z.object({
 const conversaSchema = z.object({
   id: z.string().uuid(),
   instanciaId: z.string().uuid(),
+  instanciaNome: z.string(),
   contatoId: z.string().uuid(),
   contatoNome: z.string().nullable(),
   contatoTelefone: z.string(),
   usuarioAtribuidoId: z.string().uuid().nullable(),
   usuarioAtribuidoNome: z.string().nullable(),
   status: z.string(),
-  janelaCloudExpiraEm: z.string().datetime().nullable(),
+  metaCloudJanelaExpiraEm: z.string().datetime().nullable(),
   ultimaMensagemEm: z.string().datetime().nullable(),
+  ultimaMensagemTipo: z.string().nullable().optional(),
   ultimaMensagemPreview: z.string().nullable(),
+  naoLidas: z.number().int().nonnegative(),
+  etiquetas: z.array(etiquetaSchema),
 });
 
 const mensagemSchema = z.object({
@@ -39,7 +43,14 @@ const mensagemSchema = z.object({
 
 export const caixaEntradaContract = {
   conversas: {
-    lista: oc.input(z.object({ instanciaId: z.string().uuid() })).output(z.array(conversaSchema)),
+    lista: oc
+      .input(
+        z.object({
+          organizacaoHash: organizacaoHashSchema,
+          instanciaId: z.string().uuid().optional(),
+        }),
+      )
+      .output(z.array(conversaSchema)),
 
     iniciar: oc
       .input(
@@ -179,6 +190,7 @@ export const caixaEntradaContract = {
           nome: z.string().trim().min(1).max(100),
           cor: z.string().nullable().optional(),
           contatoId: z.string().uuid().optional(),
+          instanciaId: z.string().uuid().optional(),
         }),
       )
       .output(etiquetaSchema),

@@ -1,9 +1,12 @@
 import { relations } from "drizzle-orm";
 
 import { sessao, usuario } from "./autenticacao";
+import { instanciaEvo } from "./instancia-evo";
+import { instanciaMetaCloud } from "./instancia-meta-cloud";
 import { instancia, instanciaAddon } from "./instancias";
 import {
   contato,
+  contatoInstancia,
   contatoTag,
   contatoTagAtribuicao,
   conversa,
@@ -48,6 +51,7 @@ export const organizacaoRelations = relations(organizacao, ({ many }) => ({
   membros: many(organizacaoMembro),
   convites: many(organizacaoConvite),
   instancias: many(instancia),
+  contatos: many(contato),
 }));
 
 export const organizacaoMembroRelations = relations(organizacaoMembro, ({ one }) => ({
@@ -77,10 +81,32 @@ export const instanciaRelations = relations(instancia, ({ one, many }) => ({
     fields: [instancia.organizacaoId],
     references: [organizacao.id],
   }),
+  evo: one(instanciaEvo, {
+    fields: [instancia.id],
+    references: [instanciaEvo.instanciaId],
+  }),
+  metaCloud: one(instanciaMetaCloud, {
+    fields: [instancia.id],
+    references: [instanciaMetaCloud.instanciaId],
+  }),
   conversas: many(conversa),
-  contatos: many(contato),
+  contatoInstancias: many(contatoInstancia),
   addons: many(instanciaAddon),
   mensagemTemplates: many(mensagemTemplate),
+}));
+
+export const instanciaEvoRelations = relations(instanciaEvo, ({ one }) => ({
+  instancia: one(instancia, {
+    fields: [instanciaEvo.instanciaId],
+    references: [instancia.id],
+  }),
+}));
+
+export const instanciaMetaCloudRelations = relations(instanciaMetaCloud, ({ one }) => ({
+  instancia: one(instancia, {
+    fields: [instanciaMetaCloud.instanciaId],
+    references: [instancia.id],
+  }),
 }));
 
 export const mensagemTemplateRelations = relations(mensagemTemplate, ({ one }) => ({
@@ -98,12 +124,24 @@ export const instanciaAddonRelations = relations(instanciaAddon, ({ one }) => ({
 }));
 
 export const contatoRelations = relations(contato, ({ one, many }) => ({
-  instancia: one(instancia, {
-    fields: [contato.instanciaId],
-    references: [instancia.id],
+  organizacao: one(organizacao, {
+    fields: [contato.organizacaoId],
+    references: [organizacao.id],
   }),
+  instancias: many(contatoInstancia),
   conversas: many(conversa),
   tagAtribuicoes: many(contatoTagAtribuicao),
+}));
+
+export const contatoInstanciaRelations = relations(contatoInstancia, ({ one }) => ({
+  contato: one(contato, {
+    fields: [contatoInstancia.contatoId],
+    references: [contato.id],
+  }),
+  instancia: one(instancia, {
+    fields: [contatoInstancia.instanciaId],
+    references: [instancia.id],
+  }),
 }));
 
 export const contatoTagRelations = relations(contatoTag, ({ one, many }) => ({

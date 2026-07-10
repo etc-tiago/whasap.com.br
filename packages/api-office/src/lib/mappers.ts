@@ -42,10 +42,16 @@ export function mapearInstanciaParaSaida(
       | "deactivated";
     limiteConversas: number;
     asaasIdAssinatura: string | null;
-    nuvemIdNumeroTelefone: string | null;
     trialTerminaEm: Date | null;
     conectadoEm: Date | null;
     criadoEm: Date;
+    evo?: {
+      historicoSincronizadoEm: Date | null;
+      historicoSincronizandoEm: Date | null;
+    } | null;
+    metaCloud?: {
+      phoneNumberId: string | null;
+    } | null;
   },
   organizacaoUuid: string,
 ) {
@@ -57,9 +63,11 @@ export function mapearInstanciaParaSaida(
     status: instance.status,
     limiteConversas: instance.limiteConversas,
     asaasSubscriptionId: instance.asaasIdAssinatura,
-    cloudPhoneNumberId: instance.nuvemIdNumeroTelefone,
+    cloudPhoneNumberId: instance.metaCloud?.phoneNumberId ?? null,
     trialEndsAt: instance.trialTerminaEm?.toISOString() ?? null,
     connectedAt: instance.conectadoEm?.toISOString() ?? null,
     criadoEm: instance.criadoEm.toISOString(),
+    evoHistoricoSincronizadoEm: instance.evo?.historicoSincronizadoEm?.toISOString() ?? null,
+    evoHistoricoSincronizandoEm: instance.evo?.historicoSincronizandoEm?.toISOString() ?? null,
   };
 }

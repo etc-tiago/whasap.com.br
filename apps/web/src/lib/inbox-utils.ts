@@ -112,3 +112,43 @@ export function formatarCountdownJanela(tempo: { horas: number; minutos: number 
   const rotuloMinutos = tempo.minutos === 1 ? "minuto" : "minutos";
   return `${tempo.horas} ${rotuloHoras} e ${tempo.minutos} ${rotuloMinutos}`;
 }
+
+const PREVIEW_POR_CORPO: Record<string, string> = {
+  "[sticker]": "Figurinha",
+  "[reação]": "Reação",
+  "[enquete]": "Enquete",
+  "[contato]": "Contato",
+  "[evento]": "Evento",
+  "[interativo]": "Mensagem interativa",
+  "[resposta interativa]": "Resposta interativa",
+};
+
+/** Preview amigável da última mensagem na lista de conversas. */
+export function formatarPreviewMensagem(
+  corpo: string | null | undefined,
+  tipo?: string | null,
+): string {
+  const texto = corpo?.trim() ?? "";
+  if (!texto && !tipo) return "";
+
+  switch (tipo) {
+    case "sticker":
+      return "Figurinha";
+    case "reaction":
+      return texto ? `Reagiu com ${texto}` : "Reação";
+    case "poll":
+      return texto ? `Enquete: ${texto}` : "Enquete";
+    case "contacts":
+      return texto ? `Contato: ${texto}` : "Contato";
+    case "event":
+      return texto ? `Evento: ${texto}` : "Evento";
+    case "interactive":
+      if (texto && !texto.startsWith("[")) return texto;
+      return "Mensagem interativa";
+    default:
+      break;
+  }
+
+  if (texto && PREVIEW_POR_CORPO[texto]) return PREVIEW_POR_CORPO[texto]!;
+  return texto;
+}

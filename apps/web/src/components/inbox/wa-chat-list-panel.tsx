@@ -1,18 +1,22 @@
 import { Archive, MessageSquarePlus, MoreVertical, Plus, Search } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { cn } from "@whasap/ui/lib/utils";
 
 import { WaIconButton } from "@/components/inbox/wa-icon-button";
 import { WaNovaConversaPopover } from "@/components/inbox/wa-nova-conversa-popover";
 
 const FILTROS = ["Tudo", "Não lidas", "Favoritas", "Grupos"] as const;
+export type FiltroConversa = (typeof FILTROS)[number];
 
 type WaChatListPanelProps = {
   busca: string;
   onBuscaChange: (value: string) => void;
+  filtroAtivo?: FiltroConversa;
+  onFiltroChange?: (filtro: FiltroConversa) => void;
   children: ReactNode;
   mobileHidden?: boolean;
   instanciaId?: string;
+  organizacaoHash?: string;
   provedor?: string;
   podeIniciarConversa?: boolean;
   onConversaIniciada?: (conversaId: string) => void;
@@ -21,14 +25,16 @@ type WaChatListPanelProps = {
 export function WaChatListPanel({
   busca,
   onBuscaChange,
+  filtroAtivo = "Tudo",
+  onFiltroChange,
   children,
   mobileHidden,
   instanciaId,
+  organizacaoHash,
   provedor,
   podeIniciarConversa,
   onConversaIniciada,
 }: WaChatListPanelProps) {
-  const [filtroAtivo, setFiltroAtivo] = useState<string>("Tudo");
 
   return (
     <section
@@ -40,8 +46,9 @@ export function WaChatListPanel({
       <div className="flex items-center justify-between px-5 pb-2 pt-4">
         <h1 className="text-2xl font-semibold text-wa-text">Whasap</h1>
         <div className="flex items-center gap-1">
-          {instanciaId && provedor && onConversaIniciada ? (
+          {instanciaId && organizacaoHash && provedor && onConversaIniciada ? (
             <WaNovaConversaPopover
+              organizacaoHash={organizacaoHash}
               instanciaId={instanciaId}
               provedor={provedor}
               disabled={!podeIniciarConversa}
@@ -72,13 +79,13 @@ export function WaChatListPanel({
 
       <div className="flex items-center gap-2 overflow-x-auto px-3 pb-2">
         {FILTROS.map((f) => {
-          const desabilitado = f !== "Tudo";
+          const desabilitado = f !== "Tudo" && f !== "Não lidas";
           return (
             <button
               key={f}
               type="button"
               disabled={desabilitado}
-              onClick={() => !desabilitado && setFiltroAtivo(f)}
+              onClick={() => !desabilitado && onFiltroChange?.(f)}
               className={cn(
                 "shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
                 filtroAtivo === f

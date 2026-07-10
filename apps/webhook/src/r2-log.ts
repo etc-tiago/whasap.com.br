@@ -49,6 +49,8 @@ export async function putWebhookLog(
 type EvolutionPayload = {
   event?: string;
   instance?: string;
+  instanceName?: string;
+  instanceId?: string;
 };
 
 type CloudPayload = {
@@ -68,7 +70,9 @@ type CloudPayload = {
 export function evolutionLogKeyFromBody(body: string): string {
   try {
     const payload = JSON.parse(body) as EvolutionPayload;
-    return buildEvolutionLogKey(payload.instance ?? "unknown", payload.event ?? "unknown");
+    const instance =
+      payload.instanceName ?? payload.instance ?? payload.instanceId ?? "unknown";
+    return buildEvolutionLogKey(instance, payload.event ?? "unknown");
   } catch {
     return buildEvolutionLogKey("unknown", "parse_error");
   }

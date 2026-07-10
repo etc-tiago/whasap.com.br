@@ -58,10 +58,13 @@ export function parseGoConnectionState(res: EvolutionGoStatusResponse): Evolutio
 
 /**
  * Normaliza `connection.update` do webhook Evolution (Baileys + booleans GO).
+ * Também reconhece o evento dedicado `Disconnected` do Evolution GO (data vazio).
  */
 export function parseConnectionUpdateWebhook(
   payload: EvolutionConnectionUpdatePayload,
 ): EvolutionConnectionState | null {
+  if (payload.event === "Disconnected") return "close";
+
   const state = payload.data?.state;
   if (isBaileysState(state)) return state;
 
@@ -71,6 +74,16 @@ export function parseConnectionUpdateWebhook(
   if (connected === true && loggedIn === false) return "connecting";
 
   return null;
+}
+
+/**
+ * Evento GO `Disconnected` — sessão caiu; `data` costuma vir vazio.
+ * @returns `"close"` quando o evento é Disconnected; senão `null`.
+ */
+export function parseGoDisconnectedEvent(payload: {
+  event?: string;
+}): "close" | null {
+  return payload.event === "Disconnected" ? "close" : null;
 }
 
 /** Normaliza resposta de `/instance/qr` (GO: `qr` pipe, `data.qrcode`, `base64`, `code`). */

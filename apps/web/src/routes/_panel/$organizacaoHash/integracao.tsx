@@ -3,7 +3,7 @@
  */
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { isEvolutionProvider, type InstanceProvider } from "@whasap/config";
+import { isEvoProvider, type InstanceProvider } from "@whasap/config";
 import { useCallback, useEffect, useState } from "react";
 
 import { IntegracaoStepCloudConfig } from "@/components/integracao/integracao-step-cloud-config";
@@ -130,12 +130,12 @@ function IntegracaoPage() {
       provider,
     });
     const step: IntegracaoStep =
-      provider === "evolution" ? "evolution_qr" : "cloud_config";
+      provider === "evo" ? "evolution_qr" : "cloud_config";
     irPara({ instance: created.id, step });
   }
 
   function handleSelecionarInstancia(id: string, itemProvider: string) {
-    const step: IntegracaoStep = isEvolutionProvider(itemProvider)
+    const step: IntegracaoStep = isEvoProvider(itemProvider)
       ? "evolution_qr"
       : "cloud_config";
     irPara({ instance: id, step });
@@ -231,8 +231,8 @@ function IntegracaoPage() {
           <IntegracaoStepConcluido
             onRedirecionar={() =>
               navigate({
-                to: "/$organizacaoHash/inbox/$instanceId",
-                params: { organizacaoHash, instanceId },
+                to: "/$organizacaoHash/inbox",
+                params: { organizacaoHash },
               })
             }
           />

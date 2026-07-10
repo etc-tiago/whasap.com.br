@@ -1,0 +1,7 @@
+{
+  "receivedAt": "2026-07-10T04:29:40.739Z",
+  "meta": {
+    "source": "evo"
+  },
+  "raw": "{\"data\":{\"JID\":\"257376032694407@lid\",\"JIDAlt\":\"554688281922@s.whatsapp.net\",\"Message\":{\"Chat\":\"151187160604818@lid\",\"Sender\":\"257376032694407@lid\",\"IsFromMe\":true,\"IsGroup\":false,\"AddressingMode\":\"\",\"SenderAlt\":\"\",\"RecipientAlt\":\"554688043494@s.whatsapp.net\",\"BroadcastListOwner\":\"\",\"BroadcastRecipients\":null,\"ID\":\"2AC6912E487116D745E4\",\"ServerID\":0,\"Type\":\"reaction\",\"PushName\":\"Sistema ClínicaWork\",\"Timestamp\":\"2026-07-10T01:29:40-03:00\",\"Category\":\"\",\"Multicast\":false,\"MediaType\":\"\",\"Edit\":\"\",\"MsgBotInfo\":{\"EditType\":\"\",\"EditTargetID\":\"\",\"EditSenderTimestampMS\":\"0001-01-01T00:00:00Z\"},\"MsgMetaInfo\":{\"TargetID\":\"\",\"TargetSender\":\"\",\"TargetChat\":\"\",\"DeprecatedLIDSession\":null,\"ThreadMessageID\":\"\",\"ThreadMessageSenderJID\":\"\"},\"VerifiedName\":null,\"DeviceSentMeta\":null},\"OldPushName\":\"\",\"NewPushName\":\"Sistema ClínicaWork\"},\"event\":\"PushName\",\"instanceId\":\"c330073d-6d17-4fa3-a8cb-a7c1f5eaacdf\",\"instanceName\":\"whasap-c330073d\",\"instanceToken\":\"0f94f443db544fcf877d98e141a5ee23\"}"
+}

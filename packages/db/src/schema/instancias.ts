@@ -13,7 +13,7 @@ import {
 
 import { organizacao } from "./organizacoes";
 
-export const instanciaProvedorEnum = pgEnum("instancia_provedor", ["cloud_api", "evolution"]);
+export const instanciaProvedorEnum = pgEnum("instancia_provedor", ["evo", "meta_cloud"]);
 export const instanciaStatusEnum = pgEnum("instancia_status", [
   "pending_connection",
   "pending_payment",
@@ -36,12 +36,6 @@ export const instancia = pgTable(
     status: instanciaStatusEnum().notNull().default("pending_connection"),
     asaasIdAssinatura: text().unique(),
     limiteConversas: integer().notNull().default(1000),
-    evolucaoNomeInstancia: text().unique(),
-    evolucaoInstanceId: text().unique(),
-    evolucaoToken: text(),
-    nuvemIdNumeroTelefone: text().unique(),
-    nuvemIdWaba: text(),
-    nuvemTokenAcesso: text(),
     tentativasProvisionamento: integer().notNull().default(0),
     conectadoEm: timestamp(),
     trialTerminaEm: timestamp(),

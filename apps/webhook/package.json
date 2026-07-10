@@ -6,6 +6,7 @@
     "dev": "wrangler dev --port 8788",
     "build": "wrangler deploy --dry-run",
     "typecheck": "tsc --noEmit",
+    "test": "bun test src",
     "deploy": "bun run build && wrangler deploy",
     "cf-typegen": "wrangler types"
   },

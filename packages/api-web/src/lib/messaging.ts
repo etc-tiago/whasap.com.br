@@ -1,22 +1,15 @@
 import { criarClienteEvolutionGo, preconditionFailed } from "@whasap/api-core";
-import { isEvolutionProvider, type InstanceProvider } from "@whasap/config";
+import { isEvoProvider, isMetaCloudProvider, type InstanceProvider } from "@whasap/config";
 import { extractGoMessageId } from "@whasap/evolution";
 import { createMetaClient, extractMetaMessageId } from "@whasap/meta";
 
 import { obterCredenciaisEvolution, obterCredenciaisMeta } from "../handlers/instancia";
+import type { InstanciaComProvedor } from "./instancia-provedor";
 import type { WebContext } from "../types";
 
 export type SendMessageParams = {
   ctx: WebContext;
-  instance: {
-    provedor: InstanceProvider;
-    evolucaoNomeInstancia: string | null;
-    evolucaoInstanceId: string | null;
-    evolucaoToken: string | null;
-    nuvemTokenAcesso: string | null;
-    nuvemIdNumeroTelefone: string | null;
-    nuvemIdWaba: string | null;
-  };
+  instance: InstanciaComProvedor;
   phone: string;
   type: string;
   body?: string | null;
@@ -41,22 +34,22 @@ export type SendMessageParams = {
 };
 
 const CAPABILITIES: Record<string, InstanceProvider[]> = {
-  text: ["cloud_api", "evolution"],
-  image: ["cloud_api", "evolution"],
-  audio: ["cloud_api", "evolution"],
-  video: ["cloud_api", "evolution"],
-  document: ["cloud_api", "evolution"],
-  sticker: ["cloud_api", "evolution"],
-  location: ["cloud_api", "evolution"],
-  contacts: ["cloud_api", "evolution"],
-  template: ["cloud_api"],
-  interactive: ["cloud_api"],
-  reaction: ["cloud_api", "evolution"],
-  button: ["evolution"],
-  list: ["evolution"],
-  carousel: ["evolution"],
-  poll: ["evolution"],
-  link: ["evolution"],
+  text: ["meta_cloud", "evo"],
+  image: ["meta_cloud", "evo"],
+  audio: ["meta_cloud", "evo"],
+  video: ["meta_cloud", "evo"],
+  document: ["meta_cloud", "evo"],
+  sticker: ["meta_cloud", "evo"],
+  location: ["meta_cloud", "evo"],
+  contacts: ["meta_cloud", "evo"],
+  template: ["meta_cloud"],
+  interactive: ["meta_cloud"],
+  reaction: ["meta_cloud", "evo"],
+  button: ["evo"],
+  list: ["evo"],
+  carousel: ["evo"],
+  poll: ["evo"],
+  link: ["evo"],
 };
 
 export function assertMessageTypeSupported(type: string, provedor: InstanceProvider) {
@@ -79,18 +72,17 @@ export async function sendProviderMessage(params: SendMessageParams): Promise<st
   const normalizedPhone = phone.replace(/\D/g, "");
   assertMessageTypeSupported(type, instance.provedor);
 
-  if (isEvolutionProvider(instance.provedor) && instance.evolucaoToken) {
+  const evoToken = instance.evo?.token;
+  if (isEvoProvider(instance.provedor) && evoToken) {
     const creds = await obterCredenciaisEvolution(ctx.env);
     const client = criarClienteEvolutionGo(
       ctx.env,
       creds,
-      { instanceToken: instance.evolucaoToken },
+      { instanceToken: evoToken },
       {
         origem: "messaging",
         rpc: "messaging.send",
-        ...(instance.evolucaoInstanceId
-          ? { evolutionInstanceId: instance.evolucaoInstanceId }
-          : {}),
+        ...(instance.evo?.instanceId ? { evolutionInstanceId: instance.evo.instanceId } : {}),
       },
     );
     const quoted = quotedFrom(params.contextoMensagemId);
@@ -153,7 +145,7 @@ export async function sendProviderMessage(params: SendMessageParams): Promise<st
     return null;
   }
 
-  if (instance.provedor === "cloud_api") {
+  if (isMetaCloudProvider(instance.provedor)) {
     const creds = obterCredenciaisMeta(instance);
     const client = createMetaClient(creds);
     const opts = metaOptions(params.contextoMensagemId);
@@ -233,47 +225,46 @@ export async function sendProviderMessage(params: SendMessageParams): Promise<st
   return null;
 }
 
-/** Marca mensagem inbound como lida no provedor (Cloud API ou Evolution). */
+/** Marca mensagem inbound como lida no provedor (Meta Cloud ou Evolution). */
 export async function markProviderMessageRead(
   ctx: WebContext,
   instance: SendMessageParams["instance"],
   phone: string,
   externalMessageId: string,
 ): Promise<void> {
-  if (instance.provedor === "cloud_api") {
+  if (isMetaCloudProvider(instance.provedor)) {
     const client = createMetaClient(obterCredenciaisMeta(instance));
     await client.markAsRead(externalMessageId);
     return;
   }
-  if (isEvolutionProvider(instance.provedor) && instance.evolucaoToken) {
+  const evoToken = instance.evo?.token;
+  if (isEvoProvider(instance.provedor) && evoToken) {
     const creds = await obterCredenciaisEvolution(ctx.env);
     const client = criarClienteEvolutionGo(
       ctx.env,
       creds,
-      { instanceToken: instance.evolucaoToken },
+      { instanceToken: evoToken },
       {
         origem: "messaging",
         rpc: "messaging.send",
-        ...(instance.evolucaoInstanceId
-          ? { evolutionInstanceId: instance.evolucaoInstanceId }
-          : {}),
+        ...(instance.evo?.instanceId ? { evolutionInstanceId: instance.evo.instanceId } : {}),
       },
     );
     await client.markRead(phone.replace(/\D/g, ""), [externalMessageId]);
   }
 }
 
-export function isCloudWindowOpen(nuvemJanelaExpiraEm: Date | null): boolean {
-  if (!nuvemJanelaExpiraEm) return false;
-  return nuvemJanelaExpiraEm.getTime() > Date.now();
+export function isMetaCloudWindowOpen(metaCloudJanelaExpiraEm: Date | null): boolean {
+  if (!metaCloudJanelaExpiraEm) return false;
+  return metaCloudJanelaExpiraEm.getTime() > Date.now();
 }
 
 export function cloudRequiresTemplate(
   provider: InstanceProvider,
-  nuvemJanelaExpiraEm: Date | null,
+  metaCloudJanelaExpiraEm: Date | null,
   isNewConversation: boolean,
 ): boolean {
-  if (provider !== "cloud_api") return false;
+  if (!isMetaCloudProvider(provider)) return false;
   if (isNewConversation) return true;
-  return !isCloudWindowOpen(nuvemJanelaExpiraEm);
+  return !isMetaCloudWindowOpen(metaCloudJanelaExpiraEm);
 }

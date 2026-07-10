@@ -2,7 +2,7 @@ import type { WorkerExecutionContext } from "@whasap/evlog/workers";
 import { criarClienteEvolutionGo, getEvolutionCredentials } from "@whasap/api-core";
 import { log } from "@whasap/evlog";
 import { eq } from "drizzle-orm";
-import { buildMediaR2Key, mimeToExtension } from "@whasap/config";
+import { buildSecureInboundMediaR2Key, mimeToExtension } from "@whasap/config";
 import { mensagem, type Db } from "@whasap/db";
 import { createMetaClient } from "@whasap/meta";
 
@@ -10,7 +10,7 @@ import type { Env } from "./env";
 
 export type InboundMediaJob =
   | {
-      provider: "evolution";
+      provider: "evo";
       instanceUuid: string;
       messageId: number;
       externalId: string;
@@ -23,7 +23,7 @@ export type InboundMediaJob =
       fileName?: string;
     }
   | {
-      provider: "meta";
+      provider: "meta_cloud";
       instanceUuid: string;
       messageId: number;
       externalId: string;
@@ -67,7 +67,7 @@ export async function storeInboundMedia(env: Env, db: Db, job: InboundMediaJob):
   let buffer: ArrayBuffer;
   let mimeType: string;
 
-  if (job.provider === "evolution") {
+  if (job.provider === "evo") {
     if (job.base64) {
       mimeType = job.mimeType ?? "application/octet-stream";
       buffer = base64ToArrayBuffer(job.base64);
@@ -115,7 +115,13 @@ export async function storeInboundMedia(env: Env, db: Db, job: InboundMediaJob):
   }
 
   const ext = mimeToExtension(mimeType, job.fileName);
-  const r2Key = buildMediaR2Key(job.instanceUuid, job.externalId, ext);
+  const hmacSecret = env.CDN_HMAC_SECRET ?? env.WHATSAPP_CLOUD_WEBHOOK_SECRET;
+  const r2Key = await buildSecureInboundMediaR2Key(
+    hmacSecret,
+    job.instanceUuid,
+    job.externalId,
+    ext,
+  );
 
   await env.CDN_R2.put(r2Key, buffer, {
     httpMetadata: { contentType: mimeType },

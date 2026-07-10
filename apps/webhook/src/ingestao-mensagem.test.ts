@@ -1,0 +1,274 @@
+import { describe, expect, it } from "bun:test";
+
+type Contato = {
+  id: number;
+  organizacaoId: number;
+  idExterno: string;
+  telefone: string | null;
+  nome: string | null;
+  excluidoEm: null;
+};
+
+type ContatoInstancia = {
+  id: number;
+  contatoId: number;
+  instanciaId: number;
+  idExterno: string;
+};
+
+type Conversa = {
+  id: number;
+  instanciaId: number;
+  contatoId: number;
+  status: string;
+  naoLidas: number;
+  excluidoEm: null;
+  metaCloudJanelaExpiraEm?: Date;
+};
+
+type Mensagem = {
+  id: number;
+  conversaId: number;
+  idExterno: string | null;
+  tipo: string;
+  corpo: string | null;
+  direcao: string;
+  status: string;
+  metadados: Record<string, unknown> | null;
+  excluidoEm: null;
+};
+
+/** Mock de Db focado no fluxo de `ingerirMensagem`. */
+function criarDbMemoria() {
+  let seq = 1;
+  const contatos: Contato[] = [];
+  const contatoInstancias: ContatoInstancia[] = [];
+  const conversas: Conversa[] = [];
+  const mensagens: Mensagem[] = [];
+  const usoMensalContato: Array<{ instanciaId: number; contatoId: number; anoMes: string }> = [];
+  const usoMensal: Array<{
+    id: number;
+    instanciaId: number;
+    anoMes: string;
+    contatosUnicosContagem: number;
+  }> = [];
+
+  function thenableReturning<T>(rows: T[]) {
+    const result = {
+      returning: async () => rows,
+      then: (resolve: (v: unknown) => unknown, reject?: (e: unknown) => unknown) =>
+        Promise.resolve(undefined).then(resolve, reject),
+    };
+    return result;
+  }
+
+  function insertValues(values: Record<string, unknown>) {
+    const id = seq++;
+
+    // mensagem (tem conversaId)
+    if (typeof values.conversaId === "number") {
+      const row: Mensagem = {
+        id,
+        conversaId: values.conversaId,
+        idExterno: (values.idExterno as string) ?? null,
+        tipo: values.tipo as string,
+        corpo: (values.corpo as string) ?? null,
+        direcao: values.direcao as string,
+        status: values.status as string,
+        metadados: (values.metadados as Record<string, unknown>) ?? null,
+        excluidoEm: null,
+      };
+      mensagens.push(row);
+      return thenableReturning([row]);
+    }
+
+    // uso_mensal_contato
+    if (values.contadoEm !== undefined) {
+      usoMensalContato.push({
+        instanciaId: values.instanciaId as number,
+        contatoId: values.contatoId as number,
+        anoMes: values.anoMes as string,
+      });
+      return thenableReturning([{}]);
+    }
+
+    // uso_mensal
+    if (values.contatosUnicosContagem !== undefined) {
+      const row = {
+        id,
+        instanciaId: values.instanciaId as number,
+        anoMes: values.anoMes as string,
+        contatosUnicosContagem: values.contatosUnicosContagem as number,
+      };
+      usoMensal.push(row);
+      return thenableReturning([row]);
+    }
+
+    // contato org (organizacaoId + idExterno, sem instanciaId)
+    if (
+      typeof values.organizacaoId === "number" &&
+      typeof values.idExterno === "string" &&
+      values.instanciaId === undefined
+    ) {
+      const row: Contato = {
+        id,
+        organizacaoId: values.organizacaoId,
+        idExterno: values.idExterno,
+        telefone: (values.telefone as string) ?? null,
+        nome: (values.nome as string) ?? null,
+        excluidoEm: null,
+      };
+      contatos.push(row);
+      return thenableReturning([{ id: row.id }]);
+    }
+
+    // contato_instancia (instanciaId + idExterno + contatoId, sem status de conversa)
+    if (
+      typeof values.contatoId === "number" &&
+      typeof values.instanciaId === "number" &&
+      typeof values.idExterno === "string" &&
+      values.ultimaMensagemEm === undefined &&
+      values.naoLidas === undefined
+    ) {
+      const row: ContatoInstancia = {
+        id,
+        contatoId: values.contatoId,
+        instanciaId: values.instanciaId,
+        idExterno: values.idExterno,
+      };
+      contatoInstancias.push(row);
+      return thenableReturning([row]);
+    }
+
+    // conversa
+    if (typeof values.contatoId === "number" && typeof values.instanciaId === "number") {
+      const row: Conversa = {
+        id,
+        instanciaId: values.instanciaId,
+        contatoId: values.contatoId,
+        status: (values.status as string) ?? "open",
+        naoLidas: (values.naoLidas as number) ?? 0,
+        excluidoEm: null,
+        metaCloudJanelaExpiraEm: values.metaCloudJanelaExpiraEm as Date | undefined,
+      };
+      conversas.push(row);
+      return thenableReturning([{ id: row.id, naoLidas: row.naoLidas }]);
+    }
+
+    throw new Error(`insert não classificado: ${JSON.stringify(Object.keys(values))}`);
+  }
+
+  const db = {
+    query: {
+      contato: {
+        findFirst: async () => null as Contato | null,
+      },
+      contatoInstancia: {
+        findFirst: async () => null as ContatoInstancia | null,
+      },
+      conversa: {
+        findFirst: async () => null as { id: number; naoLidas: number } | null,
+      },
+      mensagem: {
+        findFirst: async () => null as { id: number } | null,
+      },
+      usoMensalContato: {
+        findFirst: async () => null as (typeof usoMensalContato)[number] | null,
+      },
+      usoMensal: {
+        findFirst: async () => null as (typeof usoMensal)[number] | null,
+      },
+    },
+    insert: () => ({
+      values: (values: Record<string, unknown>) => insertValues(values),
+    }),
+    update: () => ({
+      set: () => ({
+        where: async () => undefined,
+      }),
+    }),
+  };
+
+  return {
+    db: db as never,
+    store: { contatos, contatoInstancias, conversas, mensagens, usoMensal, usoMensalContato },
+  };
+}
+
+describe("ingerirMensagem (db memória)", () => {
+  it("cria contato org + contato_instancia + conversa + mensagem", async () => {
+    const { ingerirMensagem } = await import("./ingestao-mensagem");
+    const { db, store } = criarDbMemoria();
+
+    const result = await ingerirMensagem(db, {
+      instanciaId: 10,
+      organizacaoId: 1,
+      phone: "554688043494",
+      contactName: "Paciente",
+      idExternoLinha: "151187160604818@lid",
+      idExternoCanonico: "554688043494@s.whatsapp.net",
+      body: "oi",
+      type: "text",
+      externalId: "MSG-1",
+      provedor: "evo",
+      naoLidasDelta: 1,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result!.created).toBe(true);
+    expect(store.contatos).toHaveLength(1);
+    expect(store.contatos[0]!.idExterno).toBe("554688043494@s.whatsapp.net");
+    expect(store.contatoInstancias).toHaveLength(1);
+    expect(store.contatoInstancias[0]!.idExterno).toBe("151187160604818@lid");
+    expect(store.conversas).toHaveLength(1);
+    expect(store.mensagens).toHaveLength(1);
+    expect(store.mensagens[0]!.metadados).toMatchObject({
+      provedor: "evo",
+      idExternoLinha: "151187160604818@lid",
+    });
+  });
+
+  it("é idempotente por externalId", async () => {
+    const { ingerirMensagem } = await import("./ingestao-mensagem");
+    const { db } = criarDbMemoria();
+
+    (db as { query: { mensagem: { findFirst: () => Promise<{ id: number }> } } }).query.mensagem.findFirst =
+      async () => ({ id: 99 });
+
+    const result = await ingerirMensagem(db, {
+      instanciaId: 10,
+      organizacaoId: 1,
+      phone: "554688043494",
+      contactName: null,
+      idExternoLinha: "554688043494@s.whatsapp.net",
+      idExternoCanonico: "554688043494@s.whatsapp.net",
+      body: "dup",
+      type: "text",
+      externalId: "MSG-DUP",
+      provedor: "evo",
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it("abre janela meta_cloud na conversa", async () => {
+    const { ingerirMensagem } = await import("./ingestao-mensagem");
+    const { db, store } = criarDbMemoria();
+
+    await ingerirMensagem(db, {
+      instanciaId: 10,
+      organizacaoId: 1,
+      phone: "16315551234",
+      contactName: "Kerry",
+      idExternoLinha: "16315551234",
+      idExternoCanonico: "16315551234@s.whatsapp.net",
+      body: "hello",
+      type: "text",
+      externalId: "wamid.1",
+      provedor: "meta_cloud",
+      naoLidasDelta: 1,
+    });
+
+    expect(store.conversas[0]!.metaCloudJanelaExpiraEm).toBeInstanceOf(Date);
+  });
+});

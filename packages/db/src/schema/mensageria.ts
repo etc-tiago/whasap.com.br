@@ -19,17 +19,43 @@ export const contato = pgTable(
   {
     id: serial().primaryKey(),
     uuid: uuid().notNull().unique().defaultRandom(),
-    instanciaId: integer()
+    organizacaoId: integer()
       .notNull()
-      .references(() => instancia.id, { onDelete: "cascade" }),
-    telefone: text().notNull(),
+      .references(() => organizacao.id, { onDelete: "cascade" }),
+    idExterno: text().notNull(),
+    telefone: text(),
     nome: text(),
-    idExterno: text(),
     excluidoEm: timestamp(),
     criadoEm: timestamp().notNull(),
     atualizadoEm: timestamp().notNull(),
   },
-  (t) => [unique().on(t.instanciaId, t.telefone)],
+  (t) => [
+    unique().on(t.organizacaoId, t.idExterno),
+    index("contato_organizacao_id_idx").on(t.organizacaoId),
+  ],
+);
+
+/** Vínculo do contato org com uma linha WhatsApp (instância) e id externo da sessão. */
+export const contatoInstancia = pgTable(
+  "contato_instancia",
+  {
+    id: serial().primaryKey(),
+    contatoId: integer()
+      .notNull()
+      .references(() => contato.id, { onDelete: "cascade" }),
+    instanciaId: integer()
+      .notNull()
+      .references(() => instancia.id, { onDelete: "cascade" }),
+    idExterno: text().notNull(),
+    criadoEm: timestamp().notNull(),
+    atualizadoEm: timestamp().notNull(),
+  },
+  (t) => [
+    unique().on(t.instanciaId, t.idExterno),
+    unique().on(t.contatoId, t.instanciaId),
+    index("contato_instancia_contato_id_idx").on(t.contatoId),
+    index("contato_instancia_instancia_id_idx").on(t.instanciaId),
+  ],
 );
 
 export const contatoTag = pgTable(
@@ -42,9 +68,13 @@ export const contatoTag = pgTable(
       .references(() => organizacao.id, { onDelete: "cascade" }),
     nome: text().notNull(),
     cor: text(),
+    idExterno: text(),
     criadoEm: timestamp().notNull(),
   },
-  (t) => [index("contato_tag_organizacao_id_idx").on(t.organizacaoId)],
+  (t) => [
+    index("contato_tag_organizacao_id_idx").on(t.organizacaoId),
+    unique("contato_tag_org_id_externo_unique").on(t.organizacaoId, t.idExterno),
+  ],
 );
 
 export const contatoTagAtribuicao = pgTable(
@@ -75,8 +105,10 @@ export const conversa = pgTable(
       .references(() => contato.id, { onDelete: "cascade" }),
     atribuidoUsuarioId: integer().references(() => usuario.id),
     status: text().notNull().default("open"),
-    nuvemJanelaExpiraEm: timestamp(),
+    metaCloudJanelaExpiraEm: timestamp(),
     ultimaMensagemEm: timestamp(),
+    naoLidas: integer().notNull().default(0),
+    ultimaLeituraEm: timestamp(),
     fechadoEm: timestamp(),
     excluidoEm: timestamp(),
     criadoEm: timestamp().notNull(),

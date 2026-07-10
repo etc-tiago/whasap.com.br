@@ -39,10 +39,9 @@ function RootPage() {
 
       if (destino) {
         navigate({
-          to: "/$organizacaoHash/inbox/$instanceId",
+          to: "/$organizacaoHash/inbox",
           params: {
             organizacaoHash: destino.organizacaoHash,
-            instanceId: destino.instanceId,
           },
           replace: true,
         });

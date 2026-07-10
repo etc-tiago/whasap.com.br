@@ -1,0 +1,7 @@
+{
+  "receivedAt": "2026-07-10T04:26:13.252Z",
+  "meta": {
+    "source": "evo"
+  },
+  "raw": "{\"data\":{\"BusinessName\":\"Sistema ClínicaWork\",\"ID\":\"554688281922:97@s.whatsapp.net\",\"LID\":\"257376032694407:97@lid\",\"Platform\":\"smbi\",\"jid\":\"554688281922:97@s.whatsapp.net\",\"status\":\"open\"},\"event\":\"PairSuccess\",\"instanceId\":\"c330073d-6d17-4fa3-a8cb-a7c1f5eaacdf\",\"instanceName\":\"whasap-c330073d\",\"instanceToken\":\"0f94f443db544fcf877d98e141a5ee23\"}"
+}

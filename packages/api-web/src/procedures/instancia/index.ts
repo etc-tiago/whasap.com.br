@@ -8,6 +8,7 @@ import lista from "./lista";
 import obter from "./obter";
 import obterQr from "./obter-qr";
 import provisionar from "./provisionar";
+import sincronizarHistorico from "./sincronizar-historico";
 import statusConexao from "./status-conexao";
 
 export default {
@@ -22,4 +23,5 @@ export default {
   criarCheckout,
   obter,
   adicionarPacoteConversas,
+  sincronizarHistorico,
 };

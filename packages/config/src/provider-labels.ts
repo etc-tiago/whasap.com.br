@@ -2,18 +2,18 @@ import type { InstanceProvider } from "./providers";
 
 /** Rótulos de provedor para exibição ao usuário (UI, marketing). */
 export const rotuloProvedorInstancia: Record<InstanceProvider, string> = {
-  evolution: "WhatsApp Comercial (business)",
-  cloud_api: "WhatsApp Cloud API",
+  evo: "WhatsApp Comercial (business)",
+  meta_cloud: "WhatsApp Cloud API",
 };
 
 const rotuloWhatsAppTipo: Record<InstanceProvider, string> = {
-  evolution: "WhatsApp Business",
-  cloud_api: "WhatsApp Cloud",
+  evo: "WhatsApp Business",
+  meta_cloud: "WhatsApp Cloud",
 };
 
 const rotuloSeuWhatsAppTipo: Record<InstanceProvider, string> = {
-  evolution: "seu WhatsApp Business",
-  cloud_api: "seu WhatsApp Cloud",
+  evo: "seu WhatsApp Business",
+  meta_cloud: "seu WhatsApp Cloud",
 };
 
 /** Retorna o rótulo amigável do provedor para interfaces do produto. */

@@ -58,8 +58,8 @@ function HomePage() {
   if (operacionais.length > 0) {
     return (
       <Navigate
-        to="/$organizacaoHash/inbox/$instanceId"
-        params={{ organizacaoHash, instanceId: operacionais[0]!.id }}
+        to="/$organizacaoHash/inbox"
+        params={{ organizacaoHash }}
       />
     );
   }
@@ -124,8 +124,8 @@ function HomePage() {
                       </p>
                       <Button asChild size="sm">
                         <Link
-                          to="/$organizacaoHash/inbox/$instanceId"
-                          params={{ organizacaoHash, instanceId: inst.id }}
+                          to="/$organizacaoHash/inbox"
+                          params={{ organizacaoHash }}
                         >
                           Abrir conversas
                         </Link>

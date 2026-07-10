@@ -44,8 +44,8 @@ export const officeAdministracaoContract = {
           uuid: z.string().uuid(),
           nome: z.string(),
           status: z.string(),
-          evolucaoNomeInstancia: z.string().nullable(),
-          evolucaoInstanceId: z.string().nullable(),
+          evoNomeInstancia: z.string().nullable(),
+          evoInstanceId: z.string().nullable(),
           conectadoEm: z.string().nullable(),
         }),
         evolution: z.object({

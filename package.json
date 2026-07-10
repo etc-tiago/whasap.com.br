@@ -15,6 +15,7 @@
     "cf-typegen": "vp run -r --no-cache cf-typegen",
     "db:generate": "bun run --filter @whasap/db db:generate",
     "db:migrate": "bun run --filter @whasap/db db:migrate",
+    "r2:sync": "bun run --filter @whasap/r2-sync sync",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "validate:env": "bun scripts/validate-wrangler-vars.ts",

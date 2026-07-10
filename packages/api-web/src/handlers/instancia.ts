@@ -1,15 +1,17 @@
 import { criarClienteEvolutionGo, getEvolutionCredentials, notFound, preconditionFailed } from "@whasap/api-core";
-import { isEvolutionProvider } from "@whasap/config";
+import { isEvoProvider, isMetaCloudProvider } from "@whasap/config";
 import {
-  colunasInstanciaOperacao,
   colunasInstanciaPublica,
   colunasInstanciaUso,
   colunasOrganizacaoPublica,
   colunasUsoMensal,
   comTimestampAtualizacao,
   comTimestampsCriacao,
+  incluirInstanciaOperacao,
   incluirOrganizacaoPublica,
   instancia,
+  instanciaEvo,
+  instanciaMetaCloud,
   marcarExclusaoLogica,
   organizacao,
   resolverIdInterno,
@@ -68,8 +70,12 @@ function nivelAlerta(count: number, limit: number): "ok" | "warn80" | "warn90" |
 export async function buscarInstanciaDaOrganizacao(ctx: WebContext, instanciaUuid: string) {
   const row = await ctx.db.query.instancia.findFirst({
     where: and(eq(instancia.uuid, instanciaUuid), isNull(instancia.excluidoEm)),
-    columns: colunasInstanciaOperacao,
-    with: { organizacao: incluirOrganizacaoPublica },
+    columns: incluirInstanciaOperacao.columns,
+    with: {
+      organizacao: incluirOrganizacaoPublica,
+      evo: incluirInstanciaOperacao.with.evo,
+      metaCloud: incluirInstanciaOperacao.with.metaCloud,
+    },
   });
   if (!row?.organizacao) notFound();
   await exigirOrganizacaoPorIdInterno(ctx, row.organizacaoId);
@@ -86,12 +92,12 @@ export async function obterCredenciaisEvolution(env: WebEnv) {
 }
 
 function metaLogEvolution(
-  row: { uuid: string; evolucaoInstanceId?: string | null; status?: string },
+  row: { uuid: string; evo?: { instanceId?: string | null } | null; status?: string },
   ctx: { origem: string; rpc: string },
 ) {
   return {
     instanciaUuid: row.uuid,
-    ...(row.evolucaoInstanceId ? { evolutionInstanceId: row.evolucaoInstanceId } : {}),
+    ...(row.evo?.instanceId ? { evolutionInstanceId: row.evo.instanceId } : {}),
     ...(row.status ? { dbStatus: row.status } : {}),
     origem: ctx.origem,
     rpc: ctx.rpc,
@@ -100,17 +106,20 @@ function metaLogEvolution(
 
 /** Obtém credenciais Meta Cloud API da instância. */
 export function obterCredenciaisMeta(instance: {
-  nuvemTokenAcesso: string | null;
-  nuvemIdNumeroTelefone: string | null;
-  nuvemIdWaba: string | null;
+  metaCloud?: {
+    accessToken: string | null;
+    phoneNumberId: string | null;
+    wabaId: string | null;
+  } | null;
 }) {
-  if (!instance.nuvemTokenAcesso || !instance.nuvemIdNumeroTelefone || !instance.nuvemIdWaba) {
+  const meta = instance.metaCloud;
+  if (!meta?.accessToken || !meta.phoneNumberId || !meta.wabaId) {
     preconditionFailed("Credenciais Meta não configuradas");
   }
   return {
-    accessToken: instance.nuvemTokenAcesso,
-    phoneNumberId: instance.nuvemIdNumeroTelefone,
-    wabaId: instance.nuvemIdWaba,
+    accessToken: meta.accessToken,
+    phoneNumberId: meta.phoneNumberId,
+    wabaId: meta.wabaId,
   };
 }
 
@@ -130,7 +139,11 @@ export const instanciaHandlers = {
 
     const rows = await ctx.db.query.instancia.findMany({
       where: and(eq(instancia.organizacaoId, internalOrgId), isNull(instancia.excluidoEm)),
-      columns: colunasInstanciaPublica,
+      columns: incluirInstanciaOperacao.columns,
+      with: {
+        evo: incluirInstanciaOperacao.with.evo,
+        metaCloud: incluirInstanciaOperacao.with.metaCloud,
+      },
     });
     return rows.map((instance) => toInstanciaOutput(instance, org.uuid));
   },
@@ -141,7 +154,7 @@ export const instanciaHandlers = {
     input: {
       organizacaoHash: string;
       nome: string;
-      provider: "cloud_api" | "evolution";
+      provider: "evo" | "meta_cloud";
     },
   ) => {
     const internalOrgId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
@@ -175,7 +188,7 @@ export const instanciaHandlers = {
     exigirAutenticacao(ctx);
     const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
     await exigirAcessoDemonstracao(ctx, row.organizacaoId);
-    if (!isEvolutionProvider(row.provedor)) preconditionFailed("Instância não é Evolution");
+    if (!isEvoProvider(row.provedor)) preconditionFailed("Instância não é Evolution");
     if (
       row.status !== "pending_connection" &&
       row.status !== "provisioning" &&
@@ -187,16 +200,16 @@ export const instanciaHandlers = {
     const { baseUrl, apiKey } = await obterCredenciaisEvolution(ctx.env);
     const webhookUrl = urlWebhookEvolution(ctx.env);
 
-    const instanceName = row.evolucaoNomeInstancia ?? `whasap-${row.uuid.slice(0, 8)}`;
-    const instanceId = row.evolucaoInstanceId ?? row.uuid;
-    const instanceToken = row.evolucaoToken ?? crypto.randomUUID().replace(/-/g, "");
+    const instanceName = row.evo?.nomeInstancia ?? `whasap-${row.uuid.slice(0, 8)}`;
+    const instanceId = row.evo?.instanceId ?? row.uuid;
+    const instanceToken = row.evo?.token ?? crypto.randomUUID().replace(/-/g, "");
 
-    const rowMeta = { uuid: row.uuid, evolucaoInstanceId: instanceId, status: row.status };
+    const rowMeta = { uuid: row.uuid, evo: { instanceId }, status: row.status };
 
     try {
       const meta = metaLogEvolution(rowMeta, { origem: "provisionar", rpc: "instancia.provisionar" });
       const admin = criarClienteEvolutionGo(ctx.env, { baseUrl, apiKey }, undefined, meta);
-      if (!row.evolucaoInstanceId) {
+      if (!row.evo?.instanceId) {
         await admin.createInstance({ name: instanceName, instanceId, token: instanceToken });
       }
       const client = criarClienteEvolutionGo(
@@ -225,13 +238,29 @@ export const instanciaHandlers = {
       .set(
         comTimestampAtualizacao({
           status: "provisioning",
-          evolucaoNomeInstancia: instanceName,
-          evolucaoInstanceId: instanceId,
-          evolucaoToken: instanceToken,
           tentativasProvisionamento: row.tentativasProvisionamento + 1,
         }),
       )
       .where(eq(instancia.id, row.id));
+
+    await ctx.db
+      .insert(instanciaEvo)
+      .values(
+        comTimestampsCriacao({
+          instanciaId: row.id,
+          nomeInstancia: instanceName,
+          instanceId,
+          token: instanceToken,
+        }),
+      )
+      .onConflictDoUpdate({
+        target: instanciaEvo.instanciaId,
+        set: comTimestampAtualizacao({
+          nomeInstancia: instanceName,
+          instanceId,
+          token: instanceToken,
+        }),
+      });
 
     return { ok: true };
   },
@@ -241,18 +270,18 @@ export const instanciaHandlers = {
     exigirAutenticacao(ctx);
     const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
     await exigirAcessoDemonstracao(ctx, row.organizacaoId);
-    if (!isEvolutionProvider(row.provedor)) preconditionFailed("Instância não é Evolution");
+    if (!isEvoProvider(row.provedor)) preconditionFailed("Instância não é Evolution");
     if (row.status !== "provisioning" && row.status !== "pending_connection") {
       preconditionFailed("Instância não está aguardando conexão");
     }
 
-    if (row.evolucaoToken) {
+    if (row.evo?.token) {
       try {
         const creds = await obterCredenciaisEvolution(ctx.env);
         const client = criarClienteEvolutionGo(
           ctx.env,
           creds,
-          { instanceToken: row.evolucaoToken },
+          { instanceToken: row.evo.token },
           metaLogEvolution(row, { origem: "encerrarPareamento", rpc: "instancia.encerrarPareamento" }),
         );
         await client.disconnect();
@@ -288,14 +317,14 @@ export const instanciaHandlers = {
       preconditionFailed("Instância com assinatura ativa não pode ser descartada");
     }
 
-    if (isEvolutionProvider(row.provedor)) {
+    if (isEvoProvider(row.provedor)) {
       const creds = await obterCredenciaisEvolution(ctx.env);
-      if (row.evolucaoToken) {
+      if (row.evo?.token) {
         try {
           const client = criarClienteEvolutionGo(
             ctx.env,
             creds,
-            { instanceToken: row.evolucaoToken },
+            { instanceToken: row.evo.token },
             metaLogEvolution(row, { origem: "descartar", rpc: "instancia.descartar" }),
           );
           await client.disconnect();
@@ -308,7 +337,7 @@ export const instanciaHandlers = {
           });
         }
       }
-      const evolutionId = row.evolucaoInstanceId ?? row.uuid;
+      const evolutionId = row.evo?.instanceId ?? row.uuid;
       try {
         const admin = criarClienteEvolutionGo(
           ctx.env,
@@ -339,17 +368,17 @@ export const instanciaHandlers = {
     exigirAutenticacao(ctx);
     const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
     await exigirAcessoDemonstracao(ctx, row.organizacaoId);
-    if (!isEvolutionProvider(row.provedor)) {
+    if (!isEvoProvider(row.provedor)) {
       preconditionFailed("Instância não pode ser provisionada");
     }
 
-    if (!row.evolucaoToken) preconditionFailed("Instância não provisionada");
+    if (!row.evo?.token) preconditionFailed("Instância não provisionada");
 
     const creds = await obterCredenciaisEvolution(ctx.env);
     const client = criarClienteEvolutionGo(
       ctx.env,
       creds,
-      { instanceToken: row.evolucaoToken },
+      { instanceToken: row.evo.token },
       metaLogEvolution(row, { origem: "obterQr", rpc: "instancia.obterQr" }),
     );
 
@@ -374,7 +403,7 @@ export const instanciaHandlers = {
       if (row.status !== "connected" && row.status !== "pending_payment") {
         await configurarWebhookInstanciaEvolution(
           ctx.env,
-          row.evolucaoToken,
+          row.evo.token,
           metaLogEvolution(row, { origem: "obterQr", rpc: "instancia.obterQr" }),
         );
         await marcarInstanciaConectada(ctx, row.id, row.organizacaoId, row.asaasIdAssinatura);
@@ -425,9 +454,9 @@ export const instanciaHandlers = {
     const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
     await exigirAcessoDemonstracao(ctx, row.organizacaoId);
 
-    if (row.provedor === "cloud_api") {
+    if (isMetaCloudProvider(row.provedor)) {
       const conectado = Boolean(
-        row.nuvemIdNumeroTelefone && row.nuvemIdWaba && row.nuvemTokenAcesso,
+        row.metaCloud?.phoneNumberId && row.metaCloud?.wabaId && row.metaCloud?.accessToken,
       );
       if (conectado && row.status !== "connected") {
         await marcarInstanciaConectada(ctx, row.id, row.organizacaoId, row.asaasIdAssinatura);
@@ -435,7 +464,7 @@ export const instanciaHandlers = {
       return { estado: conectado ? "open" : "close", conectado };
     }
 
-    if (!row.evolucaoToken) {
+    if (!row.evo?.token) {
       return { estado: "close", conectado: false };
     }
 
@@ -443,7 +472,7 @@ export const instanciaHandlers = {
     const client = criarClienteEvolutionGo(
       ctx.env,
       creds,
-      { instanceToken: row.evolucaoToken },
+      { instanceToken: row.evo.token },
       metaLogEvolution(row, { origem: "statusConexao", rpc: "instancia.statusConexao" }),
     );
     try {
@@ -453,7 +482,7 @@ export const instanciaHandlers = {
       if (conectado && row.status !== "connected" && row.status !== "pending_payment") {
         await configurarWebhookInstanciaEvolution(
           ctx.env,
-          row.evolucaoToken,
+          row.evo.token,
           metaLogEvolution(row, { origem: "statusConexao", rpc: "instancia.statusConexao" }),
         );
         await marcarInstanciaConectada(ctx, row.id, row.organizacaoId, row.asaasIdAssinatura);
@@ -486,7 +515,7 @@ export const instanciaHandlers = {
   ) => {
     exigirAutenticacao(ctx);
     const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
-    if (row.provedor !== "cloud_api") preconditionFailed("Instância não é Cloud API");
+    if (!isMetaCloudProvider(row.provedor)) preconditionFailed("Instância não é Cloud API");
     await exigirAdminPorIdInterno(ctx, row.organizacaoId);
     await exigirAcessoDemonstracao(ctx, row.organizacaoId);
 
@@ -512,15 +541,23 @@ export const instanciaHandlers = {
     }
 
     await ctx.db
-      .update(instancia)
-      .set(
-        comTimestampAtualizacao({
-          nuvemIdNumeroTelefone: input.phoneNumberId,
-          nuvemIdWaba: input.wabaId,
-          nuvemTokenAcesso: input.accessToken,
+      .insert(instanciaMetaCloud)
+      .values(
+        comTimestampsCriacao({
+          instanciaId: row.id,
+          phoneNumberId: input.phoneNumberId,
+          wabaId: input.wabaId,
+          accessToken: input.accessToken,
         }),
       )
-      .where(eq(instancia.id, row.id));
+      .onConflictDoUpdate({
+        target: instanciaMetaCloud.instanciaId,
+        set: comTimestampAtualizacao({
+          phoneNumberId: input.phoneNumberId,
+          wabaId: input.wabaId,
+          accessToken: input.accessToken,
+        }),
+      });
 
     await marcarInstanciaConectada(ctx, row.id, row.organizacaoId, row.asaasIdAssinatura);
 
@@ -627,6 +664,47 @@ export const instanciaHandlers = {
     });
 
     return { urlCheckout };
+  },
+
+  /** Dispara sincronização de histórico via Evolution GO (WhatsApp Comercial). */
+  sincronizarHistorico: async (ctx: WebContext, input: { instanciaId: string }) => {
+    exigirAutenticacao(ctx);
+    const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
+    await exigirAcessoDemonstracao(ctx, row.organizacaoId);
+
+    if (!isEvoProvider(row.provedor)) {
+      preconditionFailed("Sincronização de histórico disponível apenas para WhatsApp Comercial");
+    }
+    if (!row.evo?.token) {
+      preconditionFailed("Instância Evolution sem token de sessão");
+    }
+    if (row.status !== "connected") {
+      preconditionFailed("Instância precisa estar conectada para sincronizar histórico");
+    }
+
+    const lockRecente =
+      row.evo.historicoSincronizandoEm &&
+      Date.now() - row.evo.historicoSincronizandoEm.getTime() < 30 * 60 * 1000;
+    if (lockRecente) {
+      preconditionFailed("Sincronização de histórico já em andamento");
+    }
+
+    const creds = await obterCredenciaisEvolution(ctx.env);
+    const client = criarClienteEvolutionGo(
+      ctx.env,
+      creds,
+      { instanceToken: row.evo.token },
+      { instanciaUuid: row.uuid },
+    );
+
+    await client.historySync({ count: 5000 });
+
+    await ctx.db
+      .update(instanciaEvo)
+      .set(comTimestampAtualizacao({ historicoSincronizandoEm: new Date() }))
+      .where(eq(instanciaEvo.instanciaId, row.id));
+
+    return { ok: true };
   },
 };
 

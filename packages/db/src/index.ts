@@ -10,6 +10,9 @@ export {
   colunasIdUuid,
   colunasInstanciaAddon,
   colunasInstanciaAsaasStatus,
+  colunasContatoInstancia,
+  colunasInstanciaEvo,
+  colunasInstanciaMetaCloud,
   colunasInstanciaOperacao,
   colunasInstanciaPublica,
   colunasInstanciaUso,
@@ -34,6 +37,7 @@ export {
   colunasWebhookEvento,
   incluirContatoCaixaEntrada,
   incluirInstanciaOperacao,
+  incluirInstanciaWebhook,
   incluirOrganizacaoPublica,
   incluirUsuarioRelacao,
 } from "./colunas";

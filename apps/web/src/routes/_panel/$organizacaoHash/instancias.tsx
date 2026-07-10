@@ -117,8 +117,8 @@ function InstancesPage() {
               {instanciaOperacional(inst.status) && (
                 <Button asChild size="sm" variant={inst.asaasSubscriptionId ? "default" : "outline"}>
                   <Link
-                    to="/$organizacaoHash/inbox/$instanceId"
-                    params={{ organizacaoHash, instanceId: inst.id }}
+                    to="/$organizacaoHash/inbox"
+                    params={{ organizacaoHash }}
                   >
                     Abrir conversas
                   </Link>

@@ -24,6 +24,7 @@ import { Route as PanelOrganizacaoHashIntegracaoRouteImport } from './routes/_pa
 import { Route as PanelOrganizacaoHashInstanciasRouteImport } from './routes/_panel/$organizacaoHash/instancias'
 import { Route as PanelOrganizacaoHashEquipeRouteImport } from './routes/_panel/$organizacaoHash/equipe'
 import { Route as PanelOrganizacaoHashAjustesRouteRouteImport } from './routes/_panel/$organizacaoHash/ajustes/route'
+import { Route as PanelOrganizacaoHashInboxIndexRouteImport } from './routes/_panel/$organizacaoHash/inbox/index'
 import { Route as PanelOrganizacaoHashAjustesIndexRouteImport } from './routes/_panel/$organizacaoHash/ajustes/index'
 import { Route as Char126EmailEmailHashBloqueadoRouteImport } from './routes/~/email/$emailHash/bloqueado'
 import { Route as PanelOrganizacaoHashAjustesUsuariosRouteImport } from './routes/_panel/$organizacaoHash/ajustes/usuarios'
@@ -113,6 +114,12 @@ const PanelOrganizacaoHashAjustesRouteRoute =
     path: '/ajustes',
     getParentRoute: () => PanelOrganizacaoHashRouteRoute,
   } as any)
+const PanelOrganizacaoHashInboxIndexRoute =
+  PanelOrganizacaoHashInboxIndexRouteImport.update({
+    id: '/inbox/',
+    path: '/inbox/',
+    getParentRoute: () => PanelOrganizacaoHashRouteRoute,
+  } as any)
 const PanelOrganizacaoHashAjustesIndexRoute =
   PanelOrganizacaoHashAjustesIndexRouteImport.update({
     id: '/',
@@ -176,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/$organizacaoHash/ajustes/usuarios': typeof PanelOrganizacaoHashAjustesUsuariosRoute
   '/~/email/$emailHash/bloqueado': typeof Char126EmailEmailHashBloqueadoRoute
   '/$organizacaoHash/ajustes/': typeof PanelOrganizacaoHashAjustesIndexRoute
+  '/$organizacaoHash/inbox/': typeof PanelOrganizacaoHashInboxIndexRoute
   '/$organizacaoHash/inbox/$instanceId/': typeof PanelOrganizacaoHashInboxInstanceIdIndexRoute
   '/$organizacaoHash/inbox/$instanceId/relatorios/': typeof PanelOrganizacaoHashInboxInstanceIdRelatoriosIndexRoute
 }
@@ -197,6 +205,7 @@ export interface FileRoutesByTo {
   '/$organizacaoHash/ajustes/usuarios': typeof PanelOrganizacaoHashAjustesUsuariosRoute
   '/~/email/$emailHash/bloqueado': typeof Char126EmailEmailHashBloqueadoRoute
   '/$organizacaoHash/ajustes': typeof PanelOrganizacaoHashAjustesIndexRoute
+  '/$organizacaoHash/inbox': typeof PanelOrganizacaoHashInboxIndexRoute
   '/$organizacaoHash/inbox/$instanceId': typeof PanelOrganizacaoHashInboxInstanceIdIndexRoute
   '/$organizacaoHash/inbox/$instanceId/relatorios': typeof PanelOrganizacaoHashInboxInstanceIdRelatoriosIndexRoute
 }
@@ -222,6 +231,7 @@ export interface FileRoutesById {
   '/_panel/$organizacaoHash/ajustes/usuarios': typeof PanelOrganizacaoHashAjustesUsuariosRoute
   '/~/email/$emailHash/bloqueado': typeof Char126EmailEmailHashBloqueadoRoute
   '/_panel/$organizacaoHash/ajustes/': typeof PanelOrganizacaoHashAjustesIndexRoute
+  '/_panel/$organizacaoHash/inbox/': typeof PanelOrganizacaoHashInboxIndexRoute
   '/_panel/$organizacaoHash/inbox/$instanceId/': typeof PanelOrganizacaoHashInboxInstanceIdIndexRoute
   '/_panel/$organizacaoHash/inbox/$instanceId/relatorios/': typeof PanelOrganizacaoHashInboxInstanceIdRelatoriosIndexRoute
 }
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/$organizacaoHash/ajustes/usuarios'
     | '/~/email/$emailHash/bloqueado'
     | '/$organizacaoHash/ajustes/'
+    | '/$organizacaoHash/inbox/'
     | '/$organizacaoHash/inbox/$instanceId/'
     | '/$organizacaoHash/inbox/$instanceId/relatorios/'
   fileRoutesByTo: FileRoutesByTo
@@ -268,6 +279,7 @@ export interface FileRouteTypes {
     | '/$organizacaoHash/ajustes/usuarios'
     | '/~/email/$emailHash/bloqueado'
     | '/$organizacaoHash/ajustes'
+    | '/$organizacaoHash/inbox'
     | '/$organizacaoHash/inbox/$instanceId'
     | '/$organizacaoHash/inbox/$instanceId/relatorios'
   id:
@@ -292,6 +304,7 @@ export interface FileRouteTypes {
     | '/_panel/$organizacaoHash/ajustes/usuarios'
     | '/~/email/$emailHash/bloqueado'
     | '/_panel/$organizacaoHash/ajustes/'
+    | '/_panel/$organizacaoHash/inbox/'
     | '/_panel/$organizacaoHash/inbox/$instanceId/'
     | '/_panel/$organizacaoHash/inbox/$instanceId/relatorios/'
   fileRoutesById: FileRoutesById
@@ -414,6 +427,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelOrganizacaoHashAjustesRouteRouteImport
       parentRoute: typeof PanelOrganizacaoHashRouteRoute
     }
+    '/_panel/$organizacaoHash/inbox/': {
+      id: '/_panel/$organizacaoHash/inbox/'
+      path: '/inbox'
+      fullPath: '/$organizacaoHash/inbox/'
+      preLoaderRoute: typeof PanelOrganizacaoHashInboxIndexRouteImport
+      parentRoute: typeof PanelOrganizacaoHashRouteRoute
+    }
     '/_panel/$organizacaoHash/ajustes/': {
       id: '/_panel/$organizacaoHash/ajustes/'
       path: '/'
@@ -497,6 +517,7 @@ interface PanelOrganizacaoHashRouteRouteChildren {
   PanelOrganizacaoHashIntegracaoRoute: typeof PanelOrganizacaoHashIntegracaoRoute
   PanelOrganizacaoHashRelatoriosRoute: typeof PanelOrganizacaoHashRelatoriosRoute
   PanelOrganizacaoHashIndexRoute: typeof PanelOrganizacaoHashIndexRoute
+  PanelOrganizacaoHashInboxIndexRoute: typeof PanelOrganizacaoHashInboxIndexRoute
   PanelOrganizacaoHashInboxInstanceIdIndexRoute: typeof PanelOrganizacaoHashInboxInstanceIdIndexRoute
   PanelOrganizacaoHashInboxInstanceIdRelatoriosIndexRoute: typeof PanelOrganizacaoHashInboxInstanceIdRelatoriosIndexRoute
 }
@@ -510,6 +531,7 @@ const PanelOrganizacaoHashRouteRouteChildren: PanelOrganizacaoHashRouteRouteChil
     PanelOrganizacaoHashIntegracaoRoute: PanelOrganizacaoHashIntegracaoRoute,
     PanelOrganizacaoHashRelatoriosRoute: PanelOrganizacaoHashRelatoriosRoute,
     PanelOrganizacaoHashIndexRoute: PanelOrganizacaoHashIndexRoute,
+    PanelOrganizacaoHashInboxIndexRoute: PanelOrganizacaoHashInboxIndexRoute,
     PanelOrganizacaoHashInboxInstanceIdIndexRoute:
       PanelOrganizacaoHashInboxInstanceIdIndexRoute,
     PanelOrganizacaoHashInboxInstanceIdRelatoriosIndexRoute:

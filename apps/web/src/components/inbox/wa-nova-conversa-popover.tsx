@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { isEvolutionProvider } from "@whasap/config";
+import { isEvoProvider, isMetaCloudProvider } from "@whasap/config";
 import { Button } from "@whasap/ui/components/button";
 import { Input } from "@whasap/ui/components/input";
 import { Label } from "@whasap/ui/components/label";
@@ -28,6 +28,7 @@ import {
 } from "@/lib/template-variaveis";
 
 type WaNovaConversaPopoverProps = {
+  organizacaoHash: string;
   instanciaId: string;
   provedor: string;
   disabled?: boolean;
@@ -35,6 +36,7 @@ type WaNovaConversaPopoverProps = {
 };
 
 export function WaNovaConversaPopover({
+  organizacaoHash,
   instanciaId,
   provedor,
   disabled,
@@ -48,13 +50,13 @@ export function WaNovaConversaPopover({
   const [templateId, setTemplateId] = useState("");
   const [variaveis, setVariaveis] = useState<Record<string, string>>({});
 
-  const isCloud = provedor === "cloud_api";
-  const isEvolution = isEvolutionProvider(provedor);
+  const isMetaCloud = isMetaCloudProvider(provedor);
+  const isEvo = isEvoProvider(provedor);
 
   const templates = useQuery(
     orpc.caixaEntrada.templates.lista.queryOptions({
       input: { instanciaId },
-      enabled: open && isCloud,
+      enabled: open && isMetaCloud,
     }),
   );
 
@@ -83,7 +85,9 @@ export function WaNovaConversaPopover({
     orpc.caixaEntrada.conversas.iniciar.mutationOptions({
       onSuccess: (data) => {
         queryClient.invalidateQueries({
-          queryKey: orpc.caixaEntrada.conversas.lista.key({ input: { instanciaId } }),
+          queryKey: orpc.caixaEntrada.conversas.lista.key({
+            input: { organizacaoHash },
+          }),
         });
         setOpen(false);
         resetForm();
@@ -102,8 +106,8 @@ export function WaNovaConversaPopover({
 
   function podeEnviar(): boolean {
     if (telefone.replace(/\D/g, "").length < 8) return false;
-    if (isEvolution) return corpo.trim().length > 0;
-    if (isCloud) {
+    if (isEvo) return corpo.trim().length > 0;
+    if (isMetaCloud) {
       if (!templateId) return false;
       return indicesVariaveis.every((indice) => variaveis[indice]?.trim());
     }
@@ -118,10 +122,10 @@ export function WaNovaConversaPopover({
       instanciaId,
       telefone,
       nome: nome.trim() || undefined,
-      corpo: isEvolution ? corpo.trim() : undefined,
-      templateId: isCloud ? templateId : undefined,
+      corpo: isEvo ? corpo.trim() : undefined,
+      templateId: isMetaCloud ? templateId : undefined,
       variaveis:
-        isCloud && indicesVariaveis.length > 0
+        isMetaCloud && indicesVariaveis.length > 0
           ? Object.fromEntries(
               indicesVariaveis.map((indice) => [indice, variaveis[indice]?.trim() ?? ""]),
             )
@@ -169,7 +173,7 @@ export function WaNovaConversaPopover({
             />
           </div>
 
-          {isEvolution ? (
+          {isEvo ? (
             <div className="space-y-1.5">
               <Label htmlFor="nova-conversa-mensagem">Mensagem inicial</Label>
               <Textarea
@@ -183,7 +187,7 @@ export function WaNovaConversaPopover({
             </div>
           ) : null}
 
-          {isCloud ? (
+          {isMetaCloud ? (
             <>
               <div className="space-y-1.5">
                 <Label>Modelo</Label>
@@ -235,7 +239,7 @@ export function WaNovaConversaPopover({
             </>
           ) : null}
 
-          {!isEvolution && !isCloud ? (
+          {!isEvo && !isMetaCloud ? (
             <p className="text-xs text-muted-foreground">
               Provedor não suportado para iniciar conversa pelo painel.
             </p>
@@ -250,7 +254,7 @@ export function WaNovaConversaPopover({
           <Button
             type="submit"
             className="w-full"
-            disabled={!podeEnviar() || iniciar.isPending || (!isEvolution && !isCloud)}
+            disabled={!podeEnviar() || iniciar.isPending || (!isEvo && !isMetaCloud)}
           >
             {iniciar.isPending ? "Iniciando..." : "Iniciar conversa"}
           </Button>

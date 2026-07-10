@@ -5,7 +5,6 @@ type OrganizacaoResumo = { id: string };
 
 export type DestinoInboxOperacional = {
   organizacaoHash: string;
-  instanceId: string;
 };
 
 /** Tenta atualizar status no banco quando Evolution já conectou mas DB ficou em provisioning. */
@@ -36,7 +35,7 @@ export async function buscarDestinoInboxOperacional(
     const instancias = await sincronizarInstanciasOrganizacao(org.id);
     const operacional = instancias.find((i) => instanciaOperacional(i.status));
     if (operacional) {
-      return { organizacaoHash: org.id, instanceId: operacional.id };
+      return { organizacaoHash: org.id };
     }
   }
   return null;

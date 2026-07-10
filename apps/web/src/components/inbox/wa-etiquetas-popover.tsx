@@ -44,6 +44,7 @@ function useEtiquetasContext() {
 type WaEtiquetasPopoverProps = {
   organizacaoHash: string;
   contatoId: string;
+  instanciaId?: string;
   disabled?: boolean;
   children: ReactNode;
 };
@@ -59,6 +60,7 @@ function formatarResumoEtiquetas(etiquetas: Etiqueta[]) {
 function WaEtiquetasPopoverRoot({
   organizacaoHash,
   contatoId,
+  instanciaId,
   disabled,
   children,
 }: WaEtiquetasPopoverProps) {
@@ -85,6 +87,9 @@ function WaEtiquetasPopoverRoot({
         queryClient.invalidateQueries({
           queryKey: orpc.caixaEntrada.etiquetas.porContato.key({ input: { contatoId } }),
         });
+        queryClient.invalidateQueries({
+          queryKey: orpc.caixaEntrada.conversas.lista.key(),
+        });
       },
     }),
   );
@@ -94,6 +99,9 @@ function WaEtiquetasPopoverRoot({
       onSuccess: () => {
         queryClient.invalidateQueries({
           queryKey: orpc.caixaEntrada.etiquetas.porContato.key({ input: { contatoId } }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: orpc.caixaEntrada.conversas.lista.key(),
         });
       },
     }),
@@ -107,6 +115,9 @@ function WaEtiquetasPopoverRoot({
         });
         queryClient.invalidateQueries({
           queryKey: orpc.caixaEntrada.etiquetas.porContato.key({ input: { contatoId } }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: orpc.caixaEntrada.conversas.lista.key(),
         });
         setNovoNome("");
       },
@@ -128,9 +139,10 @@ function WaEtiquetasPopoverRoot({
         organizacaoHash,
         nome,
         contatoId,
+        instanciaId,
       });
     },
-    [contatoId, criar, disabled, novoNome, organizacaoHash, pendente],
+    [contatoId, criar, disabled, instanciaId, novoNome, organizacaoHash, pendente],
   );
 
   const alternar = useCallback(

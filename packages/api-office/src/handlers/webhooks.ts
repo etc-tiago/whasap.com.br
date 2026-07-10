@@ -2,6 +2,7 @@ import { and, count, desc, eq, ilike, isNull, or, type SQL } from "drizzle-orm";
 import { getEvolutionCredentials, notFound, criarClienteEvolutionGo } from "@whasap/api-core";
 import {
   colunasInstanciaOperacao,
+  incluirInstanciaOperacao,
   instancia,
   webhookEvento,
   type Db,
@@ -20,6 +21,7 @@ import { exigirAutenticacaoOffice } from "./auth-session";
 type WebhookPayloadPreview = {
   event?: string;
   instance?: string;
+  instanceName?: string;
   instanceId?: string;
 };
 
@@ -31,7 +33,7 @@ function extrairPreviewWebhook(payload: string): {
     const parsed = JSON.parse(payload) as WebhookPayloadPreview;
     return {
       evento: parsed.event ?? null,
-      instanciaRef: parsed.instance ?? parsed.instanceId ?? null,
+      instanciaRef: parsed.instanceName ?? parsed.instance ?? parsed.instanceId ?? null,
     };
   } catch {
     return { evento: null, instanciaRef: null };
@@ -41,7 +43,8 @@ function extrairPreviewWebhook(payload: string): {
 async function buscarInstanciaOperacao(db: Db, instanciaUuid: string) {
   return db.query.instancia.findFirst({
     where: and(eq(instancia.uuid, instanciaUuid), isNull(instancia.excluidoEm)),
-    columns: colunasInstanciaOperacao,
+    columns: incluirInstanciaOperacao.columns,
+    with: incluirInstanciaOperacao.with,
   });
 }
 
@@ -72,8 +75,8 @@ export const webhooksHandlers = {
       const row = await buscarInstanciaOperacao(ctx.db, input.instanciaId);
       if (!row) notFound();
       const payloadFilter = filtroPayloadInstancia([
-        row.evolucaoNomeInstancia ?? "",
-        row.evolucaoInstanceId ?? "",
+        row.evo?.nomeInstancia ?? "",
+        row.evo?.instanceId ?? "",
         row.uuid,
       ]);
       if (payloadFilter) filtros.push(payloadFilter);
@@ -176,19 +179,19 @@ export const evolutionDebugHandlers = {
       uuid: row.uuid,
       nome: row.nome,
       status: row.status,
-      evolucaoNomeInstancia: row.evolucaoNomeInstancia,
-      evolucaoInstanceId: row.evolucaoInstanceId,
+      evoNomeInstancia: row.evo?.nomeInstancia ?? null,
+      evoInstanceId: row.evo?.instanceId ?? null,
       conectadoEm: row.conectadoEm?.toISOString() ?? null,
     };
 
-    if (!row.evolucaoToken) {
+    if (!row.evo?.token) {
       return {
         instanciaDb,
         evolution: {
           statusBruto: null,
           qrBruto: null,
           estado: null,
-          erro: "Instância sem evolucaoToken (não provisionada)",
+          erro: "Instância sem token evo (não provisionada)",
         },
       };
     }
@@ -198,10 +201,10 @@ export const evolutionDebugHandlers = {
       const client = criarClienteEvolutionGo(
         ctx.env,
         creds,
-        { instanceToken: row.evolucaoToken },
+        { instanceToken: row.evo.token },
         {
           instanciaUuid: row.uuid,
-          ...(row.evolucaoInstanceId ? { evolutionInstanceId: row.evolucaoInstanceId } : {}),
+          ...(row.evo.instanceId ? { evolutionInstanceId: row.evo.instanceId } : {}),
           origem: "office",
           rpc: "administracao.instancias.estadoEvolution",
           dbStatus: row.status,

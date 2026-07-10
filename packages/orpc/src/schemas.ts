@@ -11,7 +11,7 @@ export const officeSessaoSchema = z.object({
 });
 
 export const memberRoleSchema = z.enum(["admin", "usuario", "analista"]);
-export const instanceProviderSchema = z.enum(["cloud_api", "evolution"]);
+export const instanceProviderSchema = z.enum(["meta_cloud", "evo"]);
 export const instanceStatusSchema = z.enum([
   "pending_connection",
   "pending_payment",
@@ -74,6 +74,8 @@ export const instanciaSchema = z.object({
   trialEndsAt: z.string().datetime().nullable(),
   connectedAt: z.string().datetime().nullable(),
   criadoEm: z.string().datetime(),
+  evoHistoricoSincronizadoEm: z.string().datetime().nullable().optional(),
+  evoHistoricoSincronizandoEm: z.string().datetime().nullable().optional(),
 });
 
 export const messageTypeSchema = z.enum([
