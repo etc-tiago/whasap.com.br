@@ -39,7 +39,7 @@ function ReportsPage() {
 
   if (org.data?.meuPapel === "usuario") {
     return (
-      <div className="p-6">
+      <div className="h-full overflow-auto p-6">
         <p className="text-sm text-muted-foreground">Relatórios não disponíveis para seu perfil.</p>
       </div>
     );
@@ -48,7 +48,7 @@ function ReportsPage() {
   const data = report.data;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="h-full space-y-6 overflow-auto p-6">
       <h1 className="text-2xl font-semibold">Relatórios</h1>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard title="Conversas" value={data?.totalConversas ?? 0} />

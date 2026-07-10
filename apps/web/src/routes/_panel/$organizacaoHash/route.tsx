@@ -4,10 +4,11 @@
  * Redireciona para `/integracao` quando a org não tem instância conectada.
  * Paths isentos: `/integracao`, `/ajustes`.
  */
-import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 
+import { WaOrgShell } from "@/components/inbox/wa-org-shell";
 import { PanelShell } from "@/components/panel-shell";
 import { isOrganizacaoConectada } from "@/lib/onboarding";
 import { orgInput } from "@/lib/org-input";
@@ -73,7 +74,7 @@ function OrganizacaoLayout() {
 
   return (
     <PanelShell organizacao={org.data}>
-      <Outlet />
+      <WaOrgShell organizacaoHash={org.data.id} />
     </PanelShell>
   );
 }

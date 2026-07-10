@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, ArrowLeft, RefreshCw } from "lucide-react";
+import { cn } from "@whasap/ui/lib/utils";
 
 import { EntradaOtpDigits } from "@/components/entrada/entrada-otp-digits";
 import { sincronizarSessaoPosAuth } from "@/lib/auth";
@@ -131,7 +132,7 @@ export function EntradaStepOtp({
             disabled={enviarOtp.isPending}
             className="inline-flex items-center gap-1 font-medium text-wa-green-dark hover:underline"
           >
-            <RefreshCw className={`h-3 w-3 ${enviarOtp.isPending ? "animate-spin" : ""}`} />
+            <RefreshCw className={cn("h-3 w-3", enviarOtp.isPending && "animate-spin")} />
             Reenviar código
           </button>
         )}

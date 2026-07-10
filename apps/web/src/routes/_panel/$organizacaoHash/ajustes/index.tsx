@@ -9,11 +9,11 @@ import { orgInput } from "@/lib/org-input";
 import { orpc } from "@/lib/orpc";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
-export const Route = createFileRoute("/_panel/$organizacaoHash/ajustes")({
-  component: AjustesPage,
+export const Route = createFileRoute("/_panel/$organizacaoHash/ajustes/")({
+  component: AjustesIndexPage,
 });
 
-function AjustesPage() {
+function AjustesIndexPage() {
   const queryClient = useQueryClient();
   const organizacaoHash = useOrganizacaoHash();
   const [pagamentoInstancia, setPagamentoInstancia] = useState<{
@@ -60,8 +60,7 @@ function AjustesPage() {
   );
 
   return (
-    <div className="p-6 max-w-lg space-y-6">
-      <h1 className="text-2xl font-semibold">Ajustes</h1>
+    <div className="max-w-lg space-y-6 p-6">
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Organização</CardTitle>

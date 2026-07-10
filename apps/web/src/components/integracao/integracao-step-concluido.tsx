@@ -8,7 +8,7 @@ type Props = {
 
 export function IntegracaoStepConcluido({ onRedirecionar }: Props) {
   useEffect(() => {
-    const t = setTimeout(onRedirecionar, 2000);
+    const t = setTimeout(onRedirecionar, 800);
     return () => clearTimeout(t);
   }, [onRedirecionar]);
 

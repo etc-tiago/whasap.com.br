@@ -1,3 +1,5 @@
+import { cn } from "@whasap/ui/lib/utils";
+
 type Props = { total: number; current: number };
 
 export function EntradaProgressDots({ total, current }: Props) {
@@ -8,9 +10,10 @@ export function EntradaProgressDots({ total, current }: Props) {
         return (
           <span
             key={i}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              active ? "bg-wa-green" : "bg-wa-border"
-            }`}
+            className={cn(
+              "h-1.5 rounded-full transition-all duration-300",
+              active ? "bg-wa-green" : "bg-wa-border",
+            )}
             style={{ width: i === current ? 28 : 10 }}
           />
         );

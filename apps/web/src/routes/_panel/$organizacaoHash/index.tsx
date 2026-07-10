@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { Button } from "@whasap/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/card";
 import { Badge } from "@whasap/ui/components/badge";
@@ -7,8 +8,8 @@ import { Plus } from "lucide-react";
 
 import { rotuloWhatsApp } from "@whasap/config";
 import { instanciaOperacional, instanciaPrecisaConexao, rotulosStatusInstancia } from "@/lib/instancia-status";
-import { orpc, type InstanciaItem } from "@/lib/orpc";
 import { orgInput } from "@/lib/org-input";
+import { orpc, orpcClient, type InstanciaItem } from "@/lib/orpc";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
 export const Route = createFileRoute("/_panel/$organizacaoHash/")({
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/_panel/$organizacaoHash/")({
 
 function HomePage() {
   const organizacaoHash = useOrganizacaoHash();
+  const queryClient = useQueryClient();
 
   const instances = useQuery(
     orpc.instancia.lista.queryOptions({
@@ -28,19 +30,42 @@ function HomePage() {
   const operacionais = lista.filter((i: InstanciaItem) => instanciaOperacional(i.status));
   const desconectadas = lista.filter((i: InstanciaItem) => instanciaPrecisaConexao(i.status));
 
+  useEffect(() => {
+    if (!organizacaoHash || !instances.isSuccess || !instances.data) return;
+    if (instances.data.some((i) => instanciaOperacional(i.status))) return;
+    const pendentes = instances.data.filter((i) => instanciaPrecisaConexao(i.status));
+    if (pendentes.length === 0) return;
+
+    let cancelled = false;
+    void (async () => {
+      await Promise.allSettled(
+        pendentes.map((i) => orpcClient.instancia.statusConexao({ instanciaId: i.id })),
+      );
+      if (!cancelled) {
+        await queryClient.invalidateQueries({
+          queryKey: orpc.instancia.lista.key({ input: { organizacaoHash } }),
+        });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [organizacaoHash, instances.isSuccess, instances.data, queryClient]);
+
   if (!organizacaoHash) return null;
 
-  if (operacionais.length === 1) {
+  if (operacionais.length > 0) {
     return (
       <Navigate
         to="/$organizacaoHash/inbox/$instanceId"
-        params={{ organizacaoHash, instanceId: operacionais[0].id }}
+        params={{ organizacaoHash, instanceId: operacionais[0]!.id }}
       />
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="h-full space-y-6 overflow-auto p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Inbox</h1>

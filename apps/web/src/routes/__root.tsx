@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import { appIcons } from "@whasap/config";
 
+import { scriptTemaInicial, TemaProvider } from "../lib/tema";
 import { reportError } from "../lib/error-reporting";
 import { panelMeta } from "../lib/panel-meta";
 import appCss from "../styles.css?url";
@@ -108,9 +109,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: scriptTemaInicial() }} />
       </head>
       <body>
         {children}
@@ -125,7 +127,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <TemaProvider>
+        <Outlet />
+      </TemaProvider>
     </QueryClientProvider>
   );
 }

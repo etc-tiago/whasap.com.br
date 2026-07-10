@@ -149,7 +149,7 @@ function IntegracaoPage() {
   if (!organizacaoHash) return null;
 
   return (
-    <div className="relative mx-auto max-w-lg p-6">
+    <div className="relative mx-auto h-full max-w-lg overflow-auto p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold">Configurar</h1>
         <p className="text-sm text-muted-foreground">

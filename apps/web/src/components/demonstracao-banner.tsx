@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AlertTriangle, Clock } from "lucide-react";
 import { Button } from "@whasap/ui/components/button";
+import { cn } from "@whasap/ui/lib/utils";
 
 import { ConfigurarPagamentoDialog } from "@/components/configurar-pagamento-dialog";
 import type { orpcClient } from "@/lib/orpc";
@@ -34,11 +35,12 @@ export function DemonstracaoBanner({
   return (
     <>
       <div
-        className={`flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 text-sm ${
+        className={cn(
+          "flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 text-sm",
           isBloqueado
             ? "border-destructive/30 bg-destructive/10 text-destructive"
-            : "border-wa-green/30 bg-wa-green/10 text-wa-green-dark"
-        }`}
+            : "border-wa-green/30 bg-wa-green/10 text-wa-green-dark",
+        )}
       >
         <div className="flex items-start gap-2">
           {isBloqueado ? (
@@ -51,7 +53,10 @@ export function DemonstracaoBanner({
               {isBloqueado ? "Período de demonstração encerrado" : diasLabel}
             </p>
             <p
-              className={`mt-0.5 text-xs ${isBloqueado ? "text-destructive/90" : "text-wa-green-dark/80"}`}
+              className={cn(
+                "mt-0.5 text-xs",
+                isBloqueado ? "text-destructive/90" : "text-wa-green-dark/80",
+              )}
             >
               {isBloqueado
                 ? "Configure o método de pagamento para voltar a usar o painel."
@@ -63,7 +68,7 @@ export function DemonstracaoBanner({
           <Button
             size="sm"
             variant={isBloqueado ? "destructive" : "default"}
-            className={!isBloqueado ? "bg-wa-green hover:bg-wa-green-dark" : undefined}
+            className={cn(!isBloqueado && "bg-wa-green hover:bg-wa-green-dark")}
             onClick={() => setDialogOpen(true)}
           >
             Configurar pagamento

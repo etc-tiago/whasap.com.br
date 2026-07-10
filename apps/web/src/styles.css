@@ -24,6 +24,11 @@
   --color-wa-surface: var(--wa-surface);
   --color-wa-muted: var(--wa-muted);
   --color-wa-border: var(--wa-border);
+  --color-wa-input: var(--wa-input);
+  --color-wa-chip: var(--wa-chip);
+  --color-wa-chip-active: var(--wa-chip-active);
+  --color-wa-hover: var(--wa-hover);
+  --color-wa-tile: var(--wa-tile);
 }
 
 :root {
@@ -47,6 +52,11 @@
   --wa-surface: oklch(1 0 0);
   --wa-muted: oklch(0.5 0.01 155);
   --wa-border: oklch(0.88 0.008 155);
+  --wa-input: oklch(0.96 0.005 155);
+  --wa-chip: oklch(0.96 0.005 155);
+  --wa-chip-active: oklch(0.9 0.08 155);
+  --wa-hover: oklch(0.94 0.005 155);
+  --wa-tile: oklch(0.9 0.005 155);
 }
 
 .dark {
@@ -70,6 +80,11 @@
   --wa-surface: oklch(0.18 0.008 155);
   --wa-muted: oklch(0.65 0.01 155);
   --wa-border: oklch(0.3 0.008 155);
+  --wa-input: oklch(0.22 0.008 155);
+  --wa-chip: oklch(0.22 0.008 155);
+  --wa-chip-active: oklch(0.28 0.06 155);
+  --wa-hover: oklch(0.26 0.008 155);
+  --wa-tile: oklch(0.28 0.008 155);
 }
 
 @utility wa-wallpaper {
@@ -93,4 +108,15 @@
     background: oklch(0.75 0.01 155 / 0.5);
     border-radius: 3px;
   }
+}
+
+.wa-app {
+  font-family:
+    "Segoe UI",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Helvetica Neue",
+    Helvetica,
+    Arial,
+    sans-serif;
 }

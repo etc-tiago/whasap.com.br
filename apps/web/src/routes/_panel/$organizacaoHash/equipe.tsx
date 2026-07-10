@@ -88,7 +88,7 @@ function EquipePage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="h-full space-y-6 overflow-auto p-6">
       <h1 className="text-2xl font-semibold">Equipe</h1>
 
       <Card>
