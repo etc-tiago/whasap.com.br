@@ -810,6 +810,59 @@ export const caixaEntradaHandlers = {
         );
       return { ok: true };
     },
+
+    criar: async (
+      ctx: WebContext,
+      input: {
+        organizacaoHash: string;
+        nome: string;
+        cor?: string | null;
+        contatoId?: string;
+      },
+    ) => {
+      exigirAutenticacao(ctx);
+      const { role } = await resolverMembro(ctx, input.organizacaoHash);
+      verificarPodeEscreverCaixaEntrada(role);
+
+      const organizacaoId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
+      if (organizacaoId === null) notFound();
+
+      const [tag] = await ctx.db
+        .insert(contatoTag)
+        .values(
+          comCriadoEm({
+            organizacaoId,
+            nome: input.nome,
+            cor: input.cor ?? null,
+          }),
+        )
+        .returning({
+          id: contatoTag.id,
+          uuid: contatoTag.uuid,
+          nome: contatoTag.nome,
+          cor: contatoTag.cor,
+        });
+
+      if (input.contatoId) {
+        const { contact, instance } = await exigirAcessoContato(ctx, input.contatoId);
+        if (instance.organizacaoId !== organizacaoId) {
+          notFound("Contato não encontrado");
+        }
+
+        await ctx.db.insert(contatoTagAtribuicao).values(
+          comCriadoEm({
+            contatoId: contact.id,
+            tagId: tag!.id,
+          }),
+        );
+      }
+
+      return {
+        id: tag!.uuid,
+        nome: tag!.nome,
+        cor: tag!.cor,
+      };
+    },
   },
 
   contatos: {

@@ -171,6 +171,17 @@ export const caixaEntradaContract = {
         }),
       )
       .output(z.object({ ok: z.boolean() })),
+
+    criar: oc
+      .input(
+        z.object({
+          organizacaoHash: organizacaoHashSchema,
+          nome: z.string().trim().min(1).max(100),
+          cor: z.string().nullable().optional(),
+          contatoId: z.string().uuid().optional(),
+        }),
+      )
+      .output(etiquetaSchema),
   },
 
   contatos: {

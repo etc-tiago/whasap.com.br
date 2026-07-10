@@ -1,13 +1,14 @@
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@whasap/ui/components/button";
+import { Input } from "@whasap/ui/components/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@whasap/ui/components/popover";
 import { cn } from "@whasap/ui/lib/utils";
-import { Check, Tag } from "lucide-react";
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { Check, Plus, Tag } from "lucide-react";
+import { createContext, useCallback, useContext, useMemo, useState, type FormEvent, type ReactNode } from "react";
 
 import { WaIconButton } from "@/components/inbox/wa-icon-button";
 import { orgInput } from "@/lib/org-input";
@@ -63,6 +64,7 @@ function WaEtiquetasPopoverRoot({
 }: WaEtiquetasPopoverProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [novoNome, setNovoNome] = useState("");
 
   const etiquetasOrg = useQuery(
     orpc.caixaEntrada.etiquetas.lista.queryOptions({
@@ -97,33 +99,67 @@ function WaEtiquetasPopoverRoot({
     }),
   );
 
-  const ativas = etiquetasContato.data ?? [];
+  const criar = useMutation(
+    orpc.caixaEntrada.etiquetas.criar.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: orpc.caixaEntrada.etiquetas.lista.key({ input: { organizacaoHash } }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: orpc.caixaEntrada.etiquetas.porContato.key({ input: { contatoId } }),
+        });
+        setNovoNome("");
+      },
+    }),
+  );
+
+  const ativas = useMemo(() => etiquetasContato.data ?? [], [etiquetasContato.data]);
   const idsAtivos = new Set(ativas.map((e) => e.id));
   const resumo = formatarResumoEtiquetas(ativas);
-  const pendente = atribuir.isPending || remover.isPending;
-  const erro = atribuir.error ?? remover.error;
+  const pendente = atribuir.isPending || remover.isPending || criar.isPending;
+  const erro = atribuir.error ?? remover.error ?? criar.error;
 
-  function alternar(etiquetaId: string, ativa: boolean) {
-    if (pendente || disabled) return;
-    if (ativa) {
-      remover.mutate({ contatoId, etiquetaId });
-    } else {
-      atribuir.mutate({ contatoId, etiquetaId });
-    }
-  }
+  const criarEtiqueta = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const nome = novoNome.trim();
+      if (!nome || pendente || disabled) return;
+      criar.mutate({
+        organizacaoHash,
+        nome,
+        contatoId,
+      });
+    },
+    [contatoId, criar, disabled, novoNome, organizacaoHash, pendente],
+  );
+
+  const alternar = useCallback(
+    (etiquetaId: string, ativa: boolean) => {
+      if (pendente || disabled) return;
+      if (ativa) {
+        remover.mutate({ contatoId, etiquetaId });
+      } else {
+        atribuir.mutate({ contatoId, etiquetaId });
+      }
+    },
+    [atribuir, contatoId, disabled, pendente, remover],
+  );
+
+  const contextValue = useMemo(
+    () => ({
+      disabled,
+      resumo,
+      ativas,
+      open,
+      setOpen,
+      alternar,
+      pendente,
+    }),
+    [alternar, ativas, disabled, open, pendente, resumo],
+  );
 
   return (
-    <EtiquetasContext.Provider
-      value={{
-        disabled,
-        resumo,
-        ativas,
-        open,
-        setOpen,
-        alternar,
-        pendente,
-      }}
-    >
+    <EtiquetasContext.Provider value={contextValue}>
       <Popover open={open} onOpenChange={setOpen}>
         {children}
         <PopoverContent align="end" className="w-72 p-0">
@@ -134,6 +170,26 @@ function WaEtiquetasPopoverRoot({
             ) : (
               <p className="mt-0.5 text-xs text-wa-text-muted">Nenhuma etiqueta no contato</p>
             )}
+            <form onSubmit={criarEtiqueta} className="mt-2 flex gap-1.5">
+              <Input
+                value={novoNome}
+                disabled={disabled || pendente}
+                onChange={(e) => setNovoNome(e.target.value)}
+                placeholder="Nova etiqueta"
+                className="h-8 flex-1 text-sm"
+                maxLength={100}
+              />
+              <Button
+                type="submit"
+                size="sm"
+                variant="secondary"
+                disabled={disabled || pendente || !novoNome.trim()}
+                className="h-8 shrink-0 px-2"
+                aria-label="Criar etiqueta"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </form>
           </div>
           <div className="max-h-64 overflow-y-auto p-1">
             {etiquetasOrg.isLoading ? (
