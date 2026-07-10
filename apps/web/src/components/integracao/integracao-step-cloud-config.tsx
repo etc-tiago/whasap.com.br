@@ -59,9 +59,9 @@ export function IntegracaoStepCloudConfig({
           </TabsList>
           <TabsContent value="embed" className="space-y-2 pt-4">
             <p className="text-muted-foreground">
-              Configure <code>VITE_META_APP_ID</code> e <code>VITE_META_CONFIG_ID</code> no ambiente.
-              O fluxo Embedded Signup da Meta será carregado aqui quando as credenciais estiverem
-              configuradas.
+              Configure <code>VITE_META_APP_ID</code> e <code>VITE_META_CONFIG_ID</code> no
+              ambiente. O fluxo Embedded Signup da Meta será carregado aqui quando as credenciais
+              estiverem configuradas.
             </p>
           </TabsContent>
           <TabsContent value="manual" className="space-y-3 pt-4">
@@ -75,7 +75,11 @@ export function IntegracaoStepCloudConfig({
             </div>
             <div className="space-y-2">
               <Label>Access Token</Label>
-              <Input type="password" value={token} onChange={(e) => onTokenChange(e.target.value)} />
+              <Input
+                type="password"
+                value={token}
+                onChange={(e) => onTokenChange(e.target.value)}
+              />
             </div>
             <Button
               className="w-full"

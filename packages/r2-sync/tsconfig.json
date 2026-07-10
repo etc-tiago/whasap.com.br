@@ -1,6 +1,7 @@
 {
   "extends": "@whasap/typescript-config/base.json",
   "compilerOptions": {
+    "lib": ["ES2023"],
     "outDir": "dist",
     "rootDir": "src",
     "types": ["bun"]

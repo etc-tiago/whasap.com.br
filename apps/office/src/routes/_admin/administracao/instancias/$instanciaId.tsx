@@ -85,7 +85,9 @@ function InstanciaEvolutionPage() {
         </p>
         {acoes.isLoading ? <p className="mt-2 text-sm text-muted-foreground">Carregando…</p> : null}
         {acoes.data?.itens.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">Nenhum log encontrado para esta instância.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Nenhum log encontrado para esta instância.
+          </p>
         ) : (
           <ul className="mt-3 divide-y text-sm">
             {acoes.data?.itens.map((item) => (

@@ -103,9 +103,7 @@ function EntradaWizardPage() {
           />
         )}
 
-        {state.step === "verifying" && (
-          <EntradaStepVerificando onDone={handleVerificandoDone} />
-        )}
+        {state.step === "verifying" && <EntradaStepVerificando onDone={handleVerificandoDone} />}
       </EntradaWizardShell>
     </>
   );

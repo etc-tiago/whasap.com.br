@@ -18,10 +18,8 @@ function rastrearEmail(email: string) {
 }
 
 afterEach(async () => {
-  while (emailsCriados.length > 0) {
-    const email = emailsCriados.pop();
-    if (email) await limparDadosTeste(email);
-  }
+  const emails = emailsCriados.splice(0);
+  await Promise.all(emails.map((email) => limparDadosTeste(email)));
 });
 
 describe("autenticacao — fluxo clássico", () => {
@@ -129,9 +127,7 @@ describe("autenticacao — fluxo wizard", () => {
 
     const inicio = await client.autenticacao.iniciarFluxo({ email });
     expect(inicio.tipo).toBe("cadastrar");
-    expect(inicio.hash).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-    );
+    expect(inicio.hash).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
 
     await client.autenticacao.enviarOtpFluxo({ hash: inicio.hash });
     const otp = await buscarUltimoOtp(email, "signup");

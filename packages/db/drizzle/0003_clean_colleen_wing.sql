@@ -1,1 +1,0 @@
-ALTER TABLE "organizacao" ADD COLUMN "demonstracao_inicia_em" timestamp;

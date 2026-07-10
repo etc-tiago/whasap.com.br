@@ -70,9 +70,7 @@ export function parseMetaWebhook(payload: unknown): MetaWebhookChange[] {
       changes.push({
         phoneNumberId,
         displayPhoneNumber:
-          typeof metadata?.display_phone_number === "string"
-            ? metadata.display_phone_number
-            : null,
+          typeof metadata?.display_phone_number === "string" ? metadata.display_phone_number : null,
         contacts: ((value.contacts as Array<Record<string, unknown>>) ?? []).map((c) => ({
           waId: String(c.wa_id ?? ""),
           name: (c.profile as { name?: string } | undefined)?.name ?? null,
@@ -156,7 +154,9 @@ export function parseMetaMessage(msg: MetaMessageRaw): MetaMensagemNormalizada |
       };
     }
     case "location": {
-      const location = msg.location as { latitude?: number; longitude?: number; name?: string } | undefined;
+      const location = msg.location as
+        | { latitude?: number; longitude?: number; name?: string }
+        | undefined;
       const label =
         location?.name ??
         (location?.latitude !== undefined && location?.longitude !== undefined
@@ -173,7 +173,10 @@ export function parseMetaMessage(msg: MetaMessageRaw): MetaMensagemNormalizada |
     case "contacts": {
       const contacts = msg.contacts as Array<{ name?: { formatted_name?: string } }> | undefined;
       const names =
-        contacts?.map((c) => c.name?.formatted_name).filter(Boolean).join(", ") ?? "";
+        contacts
+          ?.map((c) => c.name?.formatted_name)
+          .filter(Boolean)
+          .join(", ") ?? "";
       return {
         phone,
         externalId,

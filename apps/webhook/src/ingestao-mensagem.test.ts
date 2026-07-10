@@ -38,6 +38,13 @@ type Mensagem = {
   excluidoEm: null;
 };
 
+/** Builder mínimo: side-effect já ocorreu; `.returning()` devolve as rows. */
+function insertResult<T>(rows: T[]) {
+  return {
+    returning: async () => rows,
+  };
+}
+
 /** Mock de Db focado no fluxo de `ingerirMensagem`. */
 function criarDbMemoria() {
   let seq = 1;
@@ -52,15 +59,6 @@ function criarDbMemoria() {
     anoMes: string;
     contatosUnicosContagem: number;
   }> = [];
-
-  function thenableReturning<T>(rows: T[]) {
-    const result = {
-      returning: async () => rows,
-      then: (resolve: (v: unknown) => unknown, reject?: (e: unknown) => unknown) =>
-        Promise.resolve(undefined).then(resolve, reject),
-    };
-    return result;
-  }
 
   function insertValues(values: Record<string, unknown>) {
     const id = seq++;
@@ -79,7 +77,7 @@ function criarDbMemoria() {
         excluidoEm: null,
       };
       mensagens.push(row);
-      return thenableReturning([row]);
+      return insertResult([row]);
     }
 
     // uso_mensal_contato
@@ -89,7 +87,7 @@ function criarDbMemoria() {
         contatoId: values.contatoId as number,
         anoMes: values.anoMes as string,
       });
-      return thenableReturning([{}]);
+      return insertResult([{}]);
     }
 
     // uso_mensal
@@ -101,7 +99,7 @@ function criarDbMemoria() {
         contatosUnicosContagem: values.contatosUnicosContagem as number,
       };
       usoMensal.push(row);
-      return thenableReturning([row]);
+      return insertResult([row]);
     }
 
     // contato org (organizacaoId + idExterno, sem instanciaId)
@@ -119,7 +117,7 @@ function criarDbMemoria() {
         excluidoEm: null,
       };
       contatos.push(row);
-      return thenableReturning([{ id: row.id }]);
+      return insertResult([{ id: row.id }]);
     }
 
     // contato_instancia (instanciaId + idExterno + contatoId, sem status de conversa)
@@ -137,7 +135,7 @@ function criarDbMemoria() {
         idExterno: values.idExterno,
       };
       contatoInstancias.push(row);
-      return thenableReturning([row]);
+      return insertResult([row]);
     }
 
     // conversa
@@ -152,7 +150,7 @@ function criarDbMemoria() {
         metaCloudJanelaExpiraEm: values.metaCloudJanelaExpiraEm as Date | undefined,
       };
       conversas.push(row);
-      return thenableReturning([{ id: row.id, naoLidas: row.naoLidas }]);
+      return insertResult([{ id: row.id, naoLidas: row.naoLidas }]);
     }
 
     throw new Error(`insert não classificado: ${JSON.stringify(Object.keys(values))}`);
@@ -232,8 +230,9 @@ describe("ingerirMensagem (db memória)", () => {
     const { ingerirMensagem } = await import("./ingestao-mensagem");
     const { db } = criarDbMemoria();
 
-    (db as { query: { mensagem: { findFirst: () => Promise<{ id: number }> } } }).query.mensagem.findFirst =
-      async () => ({ id: 99 });
+    (
+      db as { query: { mensagem: { findFirst: () => Promise<{ id: number }> } } }
+    ).query.mensagem.findFirst = async () => ({ id: 99 });
 
     const result = await ingerirMensagem(db, {
       instanciaId: 10,

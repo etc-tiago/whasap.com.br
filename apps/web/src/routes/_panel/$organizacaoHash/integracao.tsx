@@ -129,15 +129,12 @@ function IntegracaoPage() {
       nome: NOME_INSTANCIA_PADRAO,
       provider,
     });
-    const step: IntegracaoStep =
-      provider === "evo" ? "evolution_qr" : "cloud_config";
+    const step: IntegracaoStep = provider === "evo" ? "evolution_qr" : "cloud_config";
     irPara({ instance: created.id, step });
   }
 
   function handleSelecionarInstancia(id: string, itemProvider: string) {
-    const step: IntegracaoStep = isEvoProvider(itemProvider)
-      ? "evolution_qr"
-      : "cloud_config";
+    const step: IntegracaoStep = isEvoProvider(itemProvider) ? "evolution_qr" : "cloud_config";
     irPara({ instance: id, step });
   }
 

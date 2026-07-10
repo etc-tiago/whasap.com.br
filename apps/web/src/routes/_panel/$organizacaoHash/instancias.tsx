@@ -115,11 +115,12 @@ function InstancesPage() {
                 </Button>
               )}
               {instanciaOperacional(inst.status) && (
-                <Button asChild size="sm" variant={inst.asaasSubscriptionId ? "default" : "outline"}>
-                  <Link
-                    to="/$organizacaoHash/inbox"
-                    params={{ organizacaoHash }}
-                  >
+                <Button
+                  asChild
+                  size="sm"
+                  variant={inst.asaasSubscriptionId ? "default" : "outline"}
+                >
+                  <Link to="/$organizacaoHash/inbox" params={{ organizacaoHash }}>
                     Abrir conversas
                   </Link>
                 </Button>

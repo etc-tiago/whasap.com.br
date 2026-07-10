@@ -157,9 +157,7 @@ describe("GET /instance/qr", () => {
     expect(fixture).toBeDefined();
     if (!fixture || !isEvolutionGoApiError(fixture.corpo)) return;
 
-    expect(fixture.corpo.error).toBe(
-      "no QR code available. Please wait a moment and try again",
-    );
+    expect(fixture.corpo.error).toBe("no QR code available. Please wait a moment and try again");
     expect(parseGoQrResponse(fixture.corpo as EvolutionQrResponse)).toEqual({
       base64: null,
       pairingCode: null,
@@ -182,7 +180,9 @@ describe("GET /instance/qr", () => {
 describe("GET /instance/status", () => {
   it.each(fixturesStatus)("$caso — envelope de sucesso", ({ corpo }) => {
     expect(isEvolutionGoApiSuccess(corpo)).toBe(true);
-    if (!isEvolutionGoApiSuccess<{ Connected?: boolean; LoggedIn?: boolean; Name?: string }>(corpo)) {
+    if (
+      !isEvolutionGoApiSuccess<{ Connected?: boolean; LoggedIn?: boolean; Name?: string }>(corpo)
+    ) {
       return;
     }
 

@@ -27,8 +27,7 @@ export function corAvatarContato(id: string): string {
 export function estiloAvatarContato(cor: string): CSSProperties {
   return {
     backgroundColor: cor,
-    backgroundImage:
-      "radial-gradient(circle at 50% 35%, oklch(1 0 0 / 0.35), transparent 60%)",
+    backgroundImage: "radial-gradient(circle at 50% 35%, oklch(1 0 0 / 0.35), transparent 60%)",
   };
 }
 

@@ -41,14 +41,7 @@ export function extrairLabelIdResposta(resposta: unknown): string | null {
   const obj = resposta as Record<string, unknown>;
   const data = obj.data as Record<string, unknown> | undefined;
 
-  const candidates = [
-    obj.labelId,
-    obj.label_id,
-    obj.id,
-    data?.labelId,
-    data?.label_id,
-    data?.id,
-  ];
+  const candidates = [obj.labelId, obj.label_id, obj.id, data?.labelId, data?.label_id, data?.id];
 
   for (const candidate of candidates) {
     if (candidate !== undefined && candidate !== null && String(candidate).length > 0) {

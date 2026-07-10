@@ -132,20 +132,21 @@ async function resolverInstanciaEvoDoContato(
     where: eq(contatoInstancia.contatoId, contactId),
     columns: colunasContatoInstancia,
   });
-  for (const vinculo of vinculos) {
-    const row = await ctx.db.query.instancia.findFirst({
-      where: and(eq(instancia.id, vinculo.instanciaId), isNull(instancia.excluidoEm)),
-      columns: colunasInstanciaOperacao,
-      with: {
-        evo: incluirInstanciaOperacao.with.evo,
-        metaCloud: incluirInstanciaOperacao.with.metaCloud,
-      },
-    });
-    if (row && isEvoProvider(row.provedor) && isInstanceOperational(row)) {
-      return row;
-    }
-  }
-  return null;
+  const rows = await Promise.all(
+    vinculos.map((vinculo) =>
+      ctx.db.query.instancia.findFirst({
+        where: and(eq(instancia.id, vinculo.instanciaId), isNull(instancia.excluidoEm)),
+        columns: colunasInstanciaOperacao,
+        with: {
+          evo: incluirInstanciaOperacao.with.evo,
+          metaCloud: incluirInstanciaOperacao.with.metaCloud,
+        },
+      }),
+    ),
+  );
+  return (
+    rows.find((row) => row && isEvoProvider(row.provedor) && isInstanceOperational(row)) ?? null
+  );
 }
 
 async function resolverIdExternoLinhaContato(
@@ -264,10 +265,7 @@ async function sincronizarTemplateMeta(
  */
 export const caixaEntradaHandlers = {
   conversas: {
-    lista: async (
-      ctx: WebContext,
-      input: { organizacaoHash: string; instanciaId?: string },
-    ) => {
+    lista: async (ctx: WebContext, input: { organizacaoHash: string; instanciaId?: string }) => {
       exigirAutenticacao(ctx);
       await resolverMembro(ctx, input.organizacaoHash);
       const organizacaoId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
@@ -315,7 +313,7 @@ export const caixaEntradaHandlers = {
           const rowTime = row.ultimaMensagemEm?.getTime() ?? 0;
           if (rowTime > existingTime) byContato.set(row.contatoId, row);
         }
-        rowsWithContato = [...byContato.values()].sort(
+        rowsWithContato = [...byContato.values()].toSorted(
           (a, b) => (b.ultimaMensagemEm?.getTime() ?? 0) - (a.ultimaMensagemEm?.getTime() ?? 0),
         );
       }
@@ -958,11 +956,7 @@ export const caixaEntradaHandlers = {
       }
 
       if (labelId && evoInstance && isEvoProvider(evoInstance.provedor)) {
-        const idExternoLinha = await resolverIdExternoLinhaContato(
-          ctx,
-          contact.id,
-          evoInstance.id,
-        );
+        const idExternoLinha = await resolverIdExternoLinhaContato(ctx, contact.id, evoInstance.id);
         await atribuirEtiquetaEvolution(
           ctx,
           evoInstance,
@@ -987,11 +981,7 @@ export const caixaEntradaHandlers = {
 
       const evoInstance = await resolverInstanciaEvoDoContato(ctx, contact.id);
       if (tag.idExterno && evoInstance && isEvoProvider(evoInstance.provedor)) {
-        const idExternoLinha = await resolverIdExternoLinhaContato(
-          ctx,
-          contact.id,
-          evoInstance.id,
-        );
+        const idExternoLinha = await resolverIdExternoLinhaContato(ctx, contact.id, evoInstance.id);
         await removerEtiquetaEvolution(
           ctx,
           evoInstance,
@@ -1049,12 +1039,7 @@ export const caixaEntradaHandlers = {
 
       let idExterno: string | null = null;
       if (instanceForEvolution && isEvoProvider(instanceForEvolution.provedor)) {
-        idExterno = await criarEtiquetaEvolution(
-          ctx,
-          instanceForEvolution,
-          input.nome,
-          input.cor,
-        );
+        idExterno = await criarEtiquetaEvolution(ctx, instanceForEvolution, input.nome, input.cor);
       }
 
       const [tag] = await ctx.db

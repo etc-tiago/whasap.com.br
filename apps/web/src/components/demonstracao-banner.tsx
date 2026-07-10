@@ -15,12 +15,7 @@ type Props = {
   instanciaNome: string | null;
 };
 
-export function DemonstracaoBanner({
-  demonstracao,
-  isAdmin,
-  instanciaId,
-  instanciaNome,
-}: Props) {
+export function DemonstracaoBanner({ demonstracao, isAdmin, instanciaId, instanciaNome }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   if (demonstracao.estado === "livre" || demonstracao.estado === "pago") {

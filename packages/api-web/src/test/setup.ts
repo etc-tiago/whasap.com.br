@@ -18,6 +18,5 @@ if (!process.env.DATABASE_URL && existsSync(rootEnvPath)) {
 }
 
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL =
-    "postgres://postgres:postgres@db.localtest.me:5432/whasap";
+  process.env.DATABASE_URL = "postgres://postgres:postgres@db.localtest.me:5432/whasap";
 }

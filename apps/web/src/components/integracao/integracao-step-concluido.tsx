@@ -17,9 +17,7 @@ export function IntegracaoStepConcluido({ onRedirecionar }: Props) {
       <CardContent className="space-y-4 py-8 text-center">
         <Check className="mx-auto h-12 w-12 text-wa-green" />
         <h2 className="text-xl font-semibold">Tudo pronto!</h2>
-        <p className="text-sm text-muted-foreground">
-          Abrindo sua caixa de entrada...
-        </p>
+        <p className="text-sm text-muted-foreground">Abrindo sua caixa de entrada...</p>
       </CardContent>
     </Card>
   );

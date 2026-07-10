@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "check:pr": "bun run lint:fix && bun run format:fix && bun run typecheck && bun run build",
+    "check:pr": "bun run lint:fix && bun run format:fix && bun run typecheck && bun run test && bun run build",
     "dev": "vp run -r --parallel --no-cache dev",
     "build": "vp run -r --cache build",
     "typecheck": "vp run -r --cache typecheck",
@@ -19,7 +19,7 @@
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "validate:env": "bun scripts/validate-wrangler-vars.ts",
-    "test": "vp run -r --no-cache test test:browser",
+    "test": "vp run -r --no-cache test && vp run -r --no-cache test:browser",
     "format": "oxfmt --check .",
     "format:fix": "oxfmt ."
   },

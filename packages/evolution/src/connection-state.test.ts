@@ -66,9 +66,9 @@ describe("parseConnectionUpdateWebhook", () => {
   });
 
   it("lê booleans GO", () => {
-    expect(
-      parseConnectionUpdateWebhook({ data: { Connected: true, LoggedIn: true } }),
-    ).toBe("open");
+    expect(parseConnectionUpdateWebhook({ data: { Connected: true, LoggedIn: true } })).toBe(
+      "open",
+    );
   });
 
   it("retorna null sem sinal reconhecível", () => {

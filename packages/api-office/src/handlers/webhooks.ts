@@ -1,12 +1,6 @@
 import { and, count, desc, eq, ilike, isNull, or, type SQL } from "drizzle-orm";
 import { getEvolutionCredentials, notFound, criarClienteEvolutionGo } from "@whasap/api-core";
-import {
-  colunasInstanciaOperacao,
-  incluirInstanciaOperacao,
-  instancia,
-  webhookEvento,
-  type Db,
-} from "@whasap/db";
+import { incluirInstanciaOperacao, instancia, webhookEvento, type Db } from "@whasap/db";
 import {
   parseGoConnectionState,
   parseGoQrResponse,

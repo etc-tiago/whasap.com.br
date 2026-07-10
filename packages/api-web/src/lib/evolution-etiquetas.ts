@@ -1,4 +1,8 @@
-import { criarClienteEvolutionGo, getEvolutionCredentials, preconditionFailed } from "@whasap/api-core";
+import {
+  criarClienteEvolutionGo,
+  getEvolutionCredentials,
+  preconditionFailed,
+} from "@whasap/api-core";
 import { isEvoProvider } from "@whasap/config";
 import {
   corPainelParaIndiceWhatsapp,

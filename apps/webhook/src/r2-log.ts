@@ -70,8 +70,7 @@ type CloudPayload = {
 export function evolutionLogKeyFromBody(body: string): string {
   try {
     const payload = JSON.parse(body) as EvolutionPayload;
-    const instance =
-      payload.instanceName ?? payload.instance ?? payload.instanceId ?? "unknown";
+    const instance = payload.instanceName ?? payload.instance ?? payload.instanceId ?? "unknown";
     return buildEvolutionLogKey(instance, payload.event ?? "unknown");
   } catch {
     return buildEvolutionLogKey("unknown", "parse_error");

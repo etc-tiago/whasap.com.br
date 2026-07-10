@@ -3,11 +3,7 @@ import { isEvoProvider, isMetaCloudProvider } from "@whasap/config";
 import { Button } from "@whasap/ui/components/button";
 import { Input } from "@whasap/ui/components/input";
 import { Label } from "@whasap/ui/components/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@whasap/ui/components/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@whasap/ui/components/popover";
 import {
   Select,
   SelectContent,
@@ -22,10 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import { WaIconButton } from "@/components/inbox/wa-icon-button";
 import { orpc } from "@/lib/orpc";
 import { getOrpcErrorMessage } from "@/lib/orpc-error";
-import {
-  extrairIndicesVariaveisTemplate,
-  textoCorpoTemplate,
-} from "@/lib/template-variaveis";
+import { extrairIndicesVariaveisTemplate, textoCorpoTemplate } from "@/lib/template-variaveis";
 
 type WaNovaConversaPopoverProps = {
   organizacaoHash: string;

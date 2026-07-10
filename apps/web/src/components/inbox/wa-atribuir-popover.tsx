@@ -1,10 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@whasap/ui/components/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@whasap/ui/components/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@whasap/ui/components/popover";
 import {
   Select,
   SelectContent,
@@ -67,9 +63,7 @@ export function WaAtribuirPopover({
   );
 
   const rotulo =
-    usuarioAtribuidoNome != null
-      ? `Atribuído: ${usuarioAtribuidoNome}`
-      : "Atribuir atendente";
+    usuarioAtribuidoNome != null ? `Atribuído: ${usuarioAtribuidoNome}` : "Atribuir atendente";
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -102,7 +96,9 @@ export function WaAtribuirPopover({
           </SelectContent>
         </Select>
         {atribuir.error ? (
-          <p className="text-xs text-destructive">{getOrpcErrorMessage(atribuir.error, "Erro ao atribuir")}</p>
+          <p className="text-xs text-destructive">
+            {getOrpcErrorMessage(atribuir.error, "Erro ao atribuir")}
+          </p>
         ) : null}
         <Button
           size="sm"

@@ -2,7 +2,9 @@ import { type ChildProcess, spawn } from "node:child_process";
 import { resolve } from "node:path";
 
 import { E2E_APP_PORT, E2E_APP_URL } from "./constants";
-import "./env";
+import { carregarEnvE2e } from "./env";
+
+carregarEnvE2e();
 
 const STARTUP_TIMEOUT_MS = 90_000;
 const POLL_MS = 250;
@@ -18,11 +20,17 @@ async function serverDisponivel(url: string): Promise<boolean> {
 
 async function waitForServer(url: string): Promise<void> {
   const deadline = Date.now() + STARTUP_TIMEOUT_MS;
-  while (Date.now() < deadline) {
+
+  const poll = async (): Promise<void> => {
     if (await serverDisponivel(url)) return;
+    if (Date.now() >= deadline) {
+      throw new Error(`Dev server não respondeu em ${url} após ${STARTUP_TIMEOUT_MS}ms`);
+    }
     await new Promise((resolveWait) => setTimeout(resolveWait, POLL_MS));
-  }
-  throw new Error(`Dev server não respondeu em ${url} após ${STARTUP_TIMEOUT_MS}ms`);
+    return poll();
+  };
+
+  return poll();
 }
 
 function iniciarDevServer(appDir: string): ChildProcess {
@@ -49,7 +57,7 @@ function iniciarDevServer(appDir: string): ChildProcess {
 
 function executarVitest(appDir: string, extraArgs: string[] = []): Promise<number> {
   return new Promise((resolveExit, reject) => {
-    const proc = spawn("bun", ["vitest", "run", "--config", "vitest.config.ts", ...extraArgs], {
+    const proc = spawn("bun", ["vitest", "run", "--config", "vitest.e2e.config.ts", ...extraArgs], {
       cwd: appDir,
       env: process.env,
       stdio: "inherit",

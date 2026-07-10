@@ -51,8 +51,7 @@ export function montarDebugEvolution(
         partial.statusBruto !== undefined
           ? sanitizarDebugEvolution(partial.statusBruto)
           : undefined,
-      qrBruto:
-        partial.qrBruto !== undefined ? sanitizarDebugEvolution(partial.qrBruto) : undefined,
+      qrBruto: partial.qrBruto !== undefined ? sanitizarDebugEvolution(partial.qrBruto) : undefined,
     },
   };
 }

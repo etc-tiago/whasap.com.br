@@ -33,29 +33,29 @@ function IntegracaoPage() {
     <>
       <WaBackdrop />
       <div className="relative flex min-h-screen items-center justify-center px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Nova organização</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="org-nome">Nome da organização</Label>
-            <Input
-              id="org-nome"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              placeholder="Minha empresa"
-            />
-          </div>
-          <Button
-            className="w-full"
-            disabled={!nome.trim() || criar.isPending}
-            onClick={handleCriar}
-          >
-            Criar organização
-          </Button>
-        </CardContent>
-      </Card>
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Nova organização</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="org-nome">Nome da organização</Label>
+              <Input
+                id="org-nome"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                placeholder="Minha empresa"
+              />
+            </div>
+            <Button
+              className="w-full"
+              disabled={!nome.trim() || criar.isPending}
+              onClick={handleCriar}
+            >
+              Criar organização
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </>
   );

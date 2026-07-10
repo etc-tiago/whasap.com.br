@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["@cloudflare/workers-types", "node"],
+    "rootDir": "src"
+  },
+  "include": ["src/test/**/*.ts", "src/integration/**/*.ts"],
+  "exclude": []
+}

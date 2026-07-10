@@ -7,7 +7,11 @@ import { Badge } from "@whasap/ui/components/badge";
 import { Plus } from "lucide-react";
 
 import { rotuloWhatsApp } from "@whasap/config";
-import { instanciaOperacional, instanciaPrecisaConexao, rotulosStatusInstancia } from "@/lib/instancia-status";
+import {
+  instanciaOperacional,
+  instanciaPrecisaConexao,
+  rotulosStatusInstancia,
+} from "@/lib/instancia-status";
 import { orgInput } from "@/lib/org-input";
 import { orpc, orpcClient, type InstanciaItem } from "@/lib/orpc";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
@@ -56,12 +60,7 @@ function HomePage() {
   if (!organizacaoHash) return null;
 
   if (operacionais.length > 0) {
-    return (
-      <Navigate
-        to="/$organizacaoHash/inbox"
-        params={{ organizacaoHash }}
-      />
-    );
+    return <Navigate to="/$organizacaoHash/inbox" params={{ organizacaoHash }} />;
   }
 
   return (
@@ -123,10 +122,7 @@ function HomePage() {
                         {rotuloWhatsApp(inst.provider)}
                       </p>
                       <Button asChild size="sm">
-                        <Link
-                          to="/$organizacaoHash/inbox"
-                          params={{ organizacaoHash }}
-                        >
+                        <Link to="/$organizacaoHash/inbox" params={{ organizacaoHash }}>
                           Abrir conversas
                         </Link>
                       </Button>

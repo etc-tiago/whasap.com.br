@@ -1,7 +1,6 @@
 import { preconditionFailed, marcarInstanciaConectadaEvolution } from "@whasap/api-core";
 import { mvpDefaults } from "@whasap/config";
 import {
-  colunasInstanciaPublica,
   colunasOrganizacaoPublica,
   comTimestampAtualizacao,
   instancia,

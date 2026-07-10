@@ -61,12 +61,7 @@ function MediaContent({ mensagem }: { mensagem: MensagemItem }) {
       );
     }
     return (
-      <a
-        href={mensagem.mediaUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="text-xs underline"
-      >
+      <a href={mensagem.mediaUrl} target="_blank" rel="noreferrer" className="text-xs underline">
         Ver {mensagem.type}
       </a>
     );
@@ -156,7 +151,6 @@ export function WaDayLabel({ time }: { time: string }) {
     </div>
   );
 }
-
 
 export function WaEmptyChat({ children }: { children?: ReactNode }) {
   return (

@@ -35,7 +35,6 @@ export function WaChatListPanel({
   podeIniciarConversa,
   onConversaIniciada,
 }: WaChatListPanelProps) {
-
   return (
     <section
       className={cn(

@@ -24,10 +24,7 @@ export function EntradaWizardShell({ step, progress, children }: Props) {
         </header>
 
         <div className="relative px-6 py-7">
-          <div
-            key={step}
-            className="animate-in fade-in-0 slide-in-from-right-2 duration-300"
-          >
+          <div key={step} className="animate-in fade-in-0 slide-in-from-right-2 duration-300">
             {children}
           </div>
         </div>

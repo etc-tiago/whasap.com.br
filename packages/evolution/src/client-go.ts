@@ -98,9 +98,7 @@ export function createEvolutionGoClient(
     let errorText: string | undefined;
     const controller = timeoutMs ? new AbortController() : undefined;
     const timer =
-      timeoutMs && controller
-        ? setTimeout(() => controller.abort(), timeoutMs)
-        : undefined;
+      timeoutMs && controller ? setTimeout(() => controller.abort(), timeoutMs) : undefined;
 
     try {
       const res = await fetch(`${base}${path}`, {
@@ -176,7 +174,14 @@ export function createEvolutionGoClient(
     },
 
     getQrCode() {
-      return request<EvolutionQrResponse>("instance_qr", "GET", "/instance/qr", undefined, true, 20_000);
+      return request<EvolutionQrResponse>(
+        "instance_qr",
+        "GET",
+        "/instance/qr",
+        undefined,
+        true,
+        20_000,
+      );
     },
 
     getStatus() {

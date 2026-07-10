@@ -21,6 +21,8 @@ type WaChatRowProps = {
   onClick: () => void;
 };
 
+const ETIQUETAS_VAZIAS: EtiquetaChip[] = [];
+
 export function WaChatRow({
   id,
   nome,
@@ -28,7 +30,7 @@ export function WaChatRow({
   time,
   ativo,
   naoLidas = 0,
-  etiquetas = [],
+  etiquetas = ETIQUETAS_VAZIAS,
   badge,
   onClick,
 }: WaChatRowProps) {

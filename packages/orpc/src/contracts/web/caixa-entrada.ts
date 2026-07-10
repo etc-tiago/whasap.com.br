@@ -1,7 +1,11 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-import { enviarMensagemInputSchema, messageTemplateSchema, organizacaoHashSchema } from "../../schemas";
+import {
+  enviarMensagemInputSchema,
+  messageTemplateSchema,
+  organizacaoHashSchema,
+} from "../../schemas";
 
 const etiquetaSchema = z.object({
   id: z.string().uuid(),

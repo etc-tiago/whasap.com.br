@@ -19,6 +19,7 @@ import {
   incluirInstanciaWebhook,
 } from "@whasap/db";
 import type { WorkerExecutionContext } from "@whasap/evlog/workers";
+import { log } from "@whasap/evlog";
 import {
   deveIgnorarHistorySyncChunk,
   formatInteractiveResponseBody,
@@ -222,41 +223,48 @@ async function processarHistorySyncGo(
   if (deveIgnorarHistorySyncChunk(chunk)) return;
 
   const LOTE = 50;
-  let processadas = 0;
-
-  for (const conv of chunk.conversations) {
+  const tarefas = chunk.conversations.flatMap((conv) => {
     const idExternoLinha = jidParaIdExterno(conv.jid);
     const idExternoCanonico = conv.jid.endsWith("@g.us")
       ? conv.jid
       : `${jidParaTelefone(conv.jid)}@s.whatsapp.net`;
     const phone = jidParaTelefone(conv.jid);
 
-    for (const msg of conv.messages) {
+    return conv.messages.map((msg) => {
       const direcao = msg.fromMe ? "outbound" : "inbound";
-      await ingerirMensagem(db, {
-        instanciaId: instance.id,
-        organizacaoId: instance.organizacaoId,
-        phone,
-        contactName: conv.nome,
-        idExternoLinha,
-        idExternoCanonico,
-        body: msg.body,
-        type: msg.type,
-        externalId: msg.messageId,
-        provedor: "evo",
-        direcao,
-        criadoEm: msg.timestamp ?? undefined,
-        ultimaMensagemEm: msg.timestamp ?? undefined,
-        naoLidasInicial: conv.unreadCount,
-        metadados: { origemHistorico: true, syncType: chunk.syncType },
-        status: msg.status ?? (direcao === "outbound" ? "sent" : "delivered"),
-      });
-      processadas += 1;
-      if (processadas % LOTE === 0) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      }
-    }
+      return () =>
+        ingerirMensagem(db, {
+          instanciaId: instance.id,
+          organizacaoId: instance.organizacaoId,
+          phone,
+          contactName: conv.nome,
+          idExternoLinha,
+          idExternoCanonico,
+          body: msg.body,
+          type: msg.type,
+          externalId: msg.messageId,
+          provedor: "evo",
+          direcao,
+          criadoEm: msg.timestamp ?? undefined,
+          ultimaMensagemEm: msg.timestamp ?? undefined,
+          naoLidasInicial: conv.unreadCount,
+          metadados: { origemHistorico: true, syncType: chunk.syncType },
+          status: msg.status ?? (direcao === "outbound" ? "sent" : "delivered"),
+        });
+    });
+  });
+
+  const lotes = Array.from({ length: Math.ceil(tarefas.length / LOTE) }, (_, i) =>
+    tarefas.slice(i * LOTE, (i + 1) * LOTE),
+  );
+
+  async function processarLote(indice: number): Promise<void> {
+    if (indice >= lotes.length) return;
+    await Promise.all(lotes[indice]!.map((tarefa) => tarefa()));
+    await processarLote(indice + 1);
   }
+
+  await processarLote(0);
 
   if (historySyncConcluido(chunk)) {
     await db
@@ -271,45 +279,49 @@ async function processarHistorySyncGo(
   }
 }
 
-async function processarReceiptGo(db: Db, instance: InstanciaWebhook, payload: EvolutionGoWebhookPayload) {
+async function processarReceiptGo(
+  db: Db,
+  instance: InstanciaWebhook,
+  payload: EvolutionGoWebhookPayload,
+) {
   const receipt = parseGoReceipt(payload.data as Record<string, unknown>, payload.state);
   if (!receipt || !receiptIndicaLeitura(receipt)) return;
 
-  for (const messageId of receipt.messageIds) {
-    const conversaId = await atualizarStatusMensagemPorIdExterno(
-      db,
-      messageId,
-      receipt.type.includes("played") ? "played" : "read",
-    );
+  const status = receipt.type.includes("played") ? "played" : "read";
 
-    if (receipt.fromMe && conversaId) continue;
+  await Promise.all(
+    receipt.messageIds.map(async (messageId) => {
+      const conversaId = await atualizarStatusMensagemPorIdExterno(db, messageId, status);
 
-    if (conversaId) {
-      await decrementarNaoLidas(db, conversaId, 1);
-      continue;
-    }
+      if (receipt.fromMe && conversaId) return;
 
-    const phone = jidParaTelefone(receipt.chatJid);
-    const idExternoCanonico = resolverIdExternoCanonicoGo({ Chat: receipt.chatJid });
-    const contact = await buscarContatoPorIdExterno(
-      db,
-      instance.organizacaoId,
-      idExternoCanonico,
-      phone,
-    );
-    if (!contact) continue;
+      if (conversaId) {
+        await decrementarNaoLidas(db, conversaId, 1);
+        return;
+      }
 
-    const conv = await db.query.conversa.findFirst({
-      where: and(
-        eq(conversa.instanciaId, instance.id),
-        eq(conversa.contatoId, contact.id),
-        eq(conversa.status, "open"),
-        isNull(conversa.excluidoEm),
-      ),
-      columns: colunasSomenteId,
-    });
-    if (conv) await decrementarNaoLidas(db, conv.id, 1);
-  }
+      const phone = jidParaTelefone(receipt.chatJid);
+      const idExternoCanonico = resolverIdExternoCanonicoGo({ Chat: receipt.chatJid });
+      const contact = await buscarContatoPorIdExterno(
+        db,
+        instance.organizacaoId,
+        idExternoCanonico,
+        phone,
+      );
+      if (!contact) return;
+
+      const conv = await db.query.conversa.findFirst({
+        where: and(
+          eq(conversa.instanciaId, instance.id),
+          eq(conversa.contatoId, contact.id),
+          eq(conversa.status, "open"),
+          isNull(conversa.excluidoEm),
+        ),
+        columns: colunasSomenteId,
+      });
+      if (conv) await decrementarNaoLidas(db, conv.id, 1);
+    }),
+  );
 }
 
 async function processarButtonClickGo(
@@ -395,11 +407,7 @@ async function processarPushNameGo(
     .where(eq(contato.id, contact.id));
 }
 
-async function buscarOuCriarTagPorLabelId(
-  db: Db,
-  organizacaoId: number,
-  labelId: string,
-) {
+async function buscarOuCriarTagPorLabelId(db: Db, organizacaoId: number, labelId: string) {
   const existing = await db.query.contatoTag.findFirst({
     where: and(eq(contatoTag.organizacaoId, organizacaoId), eq(contatoTag.idExterno, labelId)),
     columns: colunasContatoTag,
@@ -464,10 +472,7 @@ async function processarLabelAssociationGo(
   await db
     .delete(contatoTagAtribuicao)
     .where(
-      and(
-        eq(contatoTagAtribuicao.contatoId, contact.id),
-        eq(contatoTagAtribuicao.tagId, tag.id),
-      ),
+      and(eq(contatoTagAtribuicao.contatoId, contact.id), eq(contatoTagAtribuicao.tagId, tag.id)),
     );
 }
 
@@ -482,13 +487,20 @@ export async function processEvolutionGoWebhook(
   const event = payload.event ?? "";
 
   const instance = await buscarInstanciaEvolution(db, payload);
-  if (!instance) return;
+  if (!instance) {
+    const resolved = resolverInstanciaWebhookGo(payload);
+    log.warn({
+      contexto: "webhook.evo.instanciaNaoEncontrada",
+      event,
+      instanceName: resolved.instanceName,
+      instanceId: resolved.instanceId,
+    });
+    return;
+  }
 
   if (event === "connection.update" || event === "Disconnected") {
     const estado =
-      event === "Disconnected"
-        ? "close"
-        : parseConnectionUpdateWebhook(payload as never);
+      event === "Disconnected" ? "close" : parseConnectionUpdateWebhook(payload as never);
     if (estado === "open") {
       await marcarInstanciaConectadaEvolution(db, {
         instanciaIdInterno: instance.id,
@@ -514,12 +526,26 @@ export async function processEvolutionGoWebhook(
   }
 
   if (event === "Message") {
-    await processarMensagemGo(db, env, ctx, instance, (payload.data ?? {}) as Record<string, unknown>, "inbound");
+    await processarMensagemGo(
+      db,
+      env,
+      ctx,
+      instance,
+      (payload.data ?? {}) as Record<string, unknown>,
+      "inbound",
+    );
     return;
   }
 
   if (event === "SendMessage") {
-    await processarMensagemGo(db, env, ctx, instance, (payload.data ?? {}) as Record<string, unknown>, "outbound");
+    await processarMensagemGo(
+      db,
+      env,
+      ctx,
+      instance,
+      (payload.data ?? {}) as Record<string, unknown>,
+      "outbound",
+    );
     return;
   }
 
@@ -534,7 +560,11 @@ export async function processEvolutionGoWebhook(
   }
 
   if (event === "LabelAssociationChat") {
-    await processarLabelAssociationGo(db, instance, (payload.data ?? {}) as Record<string, unknown>);
+    await processarLabelAssociationGo(
+      db,
+      instance,
+      (payload.data ?? {}) as Record<string, unknown>,
+    );
     return;
   }
 

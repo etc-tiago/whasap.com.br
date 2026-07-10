@@ -94,7 +94,10 @@ function AjustesIndexPage() {
                 className="flex items-center justify-between gap-2 rounded-lg border p-3"
               >
                 <span className="font-medium">{inst.nome}</span>
-                <Button size="sm" onClick={() => setPagamentoInstancia({ id: inst.id, nome: inst.nome })}>
+                <Button
+                  size="sm"
+                  onClick={() => setPagamentoInstancia({ id: inst.id, nome: inst.nome })}
+                >
                   Configurar
                 </Button>
               </div>

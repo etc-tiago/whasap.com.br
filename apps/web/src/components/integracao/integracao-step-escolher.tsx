@@ -35,9 +35,7 @@ export function IntegracaoStepEscolher({ instancias, onSelecionar, onNova }: Pro
                 <p className="font-medium">{item.nome}</p>
                 <p className="text-xs text-muted-foreground">{rotuloWhatsApp(item.provider)}</p>
               </div>
-              <Badge variant="outline">
-                {rotulosStatusInstancia[item.status] ?? item.status}
-              </Badge>
+              <Badge variant="outline">{rotulosStatusInstancia[item.status] ?? item.status}</Badge>
             </button>
           ))}
         </div>

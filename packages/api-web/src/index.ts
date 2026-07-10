@@ -40,10 +40,7 @@ const handleRpc = createRpcHandler<WebContext>({
     publicPaths: WEB_PUBLIC_PATHS,
     jwt: {
       resolveSecret: (env) =>
-        resolveSessionJwtSecret(
-          (env as WebEnv).WEB_SESSION_JWT_SECRET,
-          "WEB_SESSION_JWT_SECRET",
-        ),
+        resolveSessionJwtSecret((env as WebEnv).WEB_SESSION_JWT_SECRET, "WEB_SESSION_JWT_SECRET"),
       audience: "web",
     },
   },

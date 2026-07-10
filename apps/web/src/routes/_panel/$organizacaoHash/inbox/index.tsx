@@ -14,10 +14,7 @@ import { WaComposer, type MidiaAnexada } from "@/components/inbox/wa-composer";
 import { WaMessageArea } from "@/components/inbox/wa-message-area";
 import { WaShell } from "@/components/inbox/wa-shell";
 import { useSession } from "@/lib/auth";
-import {
-  formatarHorarioConversa,
-  formatarPreviewMensagem,
-} from "@/lib/inbox-utils";
+import { formatarHorarioConversa, formatarPreviewMensagem } from "@/lib/inbox-utils";
 import { janelaCloudAberta, podeEnviarMensagem } from "@/lib/inbox-permissoes";
 import { instanciaOperacional } from "@/lib/instancia-status";
 import { orgInput } from "@/lib/org-input";
@@ -61,8 +58,7 @@ function InboxOrgPage() {
 
   const selected = conversations.data?.find((c: ConversaItem) => c.id === selectedId);
   const instanciaAtivaId =
-    selected?.instanciaId ??
-    instancias.data?.find((i) => instanciaOperacional(i.status))?.id;
+    selected?.instanciaId ?? instancias.data?.find((i) => instanciaOperacional(i.status))?.id;
 
   const instance = useQuery(
     orpc.instancia.obter.queryOptions({
@@ -150,8 +146,7 @@ function InboxOrgPage() {
   const isMetaCloud = isMetaCloudProvider(instance.data?.provider ?? "");
   const cloudWindowOpen = janelaCloudAberta(selected?.metaCloudJanelaExpiraEm);
 
-  const podeEscrever =
-    org.data?.meuPapel === "admin" || org.data?.meuPapel === "usuario";
+  const podeEscrever = org.data?.meuPapel === "admin" || org.data?.meuPapel === "usuario";
 
   const canSend = podeEnviarMensagem({
     papel: org.data?.meuPapel,
@@ -159,8 +154,7 @@ function InboxOrgPage() {
     conversaAtribuidaId: selected?.usuarioAtribuidoId,
   });
 
-  const podeIniciarConversa =
-    org.data?.meuPapel === "admin" || org.data?.meuPapel === "usuario";
+  const podeIniciarConversa = org.data?.meuPapel === "admin" || org.data?.meuPapel === "usuario";
 
   const composerDisabled = isMetaCloud && !cloudWindowOpen;
 

@@ -44,14 +44,20 @@ async function preencherEmailContinuar(email: string) {
 
 async function buscarOtpComRetry(email: string, finalidade: string): Promise<string> {
   const deadline = Date.now() + 10_000;
-  while (Date.now() < deadline) {
+
+  const poll = async (): Promise<string> => {
     try {
       return await buscarUltimoOtp(email, finalidade);
     } catch {
+      if (Date.now() >= deadline) {
+        throw new Error(`OTP não encontrado para ${email} (${finalidade})`);
+      }
       await new Promise((resolve) => setTimeout(resolve, 200));
+      return poll();
     }
-  }
-  throw new Error(`OTP não encontrado para ${email} (${finalidade})`);
+  };
+
+  return poll();
 }
 
 async function aceitarTermosCadastro() {
@@ -69,14 +75,20 @@ async function preencherOtpESubmeter(otp: string) {
 
 async function aguardarCookieSessao() {
   const deadline = Date.now() + 5_000;
-  while (Date.now() < deadline) {
+
+  const poll = async (): Promise<void> => {
     const cookies = await page.context().cookies();
     if (cookies.some((cookie) => cookie.name === SESSION_COOKIE && cookie.value)) {
       return;
     }
+    if (Date.now() >= deadline) {
+      throw new Error(`Cookie ${SESSION_COOKIE} não encontrado após 5s`);
+    }
     await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-  throw new Error(`Cookie ${SESSION_COOKIE} não encontrado após 5s`);
+    return poll();
+  };
+
+  return poll();
 }
 
 beforeAll(async () => {
@@ -89,10 +101,8 @@ afterAll(async () => {
 });
 
 afterEach(async () => {
-  while (emailsCriados.length > 0) {
-    const email = emailsCriados.pop();
-    if (email) await limparDadosTeste(email);
-  }
+  const emails = emailsCriados.splice(0, emailsCriados.length);
+  await Promise.all(emails.map((email) => limparDadosTeste(email)));
 });
 
 describe("entrada wizard — E2E Playwright", () => {

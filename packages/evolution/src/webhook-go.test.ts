@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { buscarFixtureWebhookGo, carregarFixturesWebhookGo } from "./fixtures/carregar-fixtures-webhook-go";
+import {
+  buscarFixtureWebhookGo,
+  carregarFixturesWebhookGo,
+} from "./fixtures/carregar-fixtures-webhook-go";
 import {
   extrairFlowToken,
   parseInteractiveMessage,

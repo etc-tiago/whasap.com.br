@@ -79,7 +79,5 @@ export const autenticacaoContract = {
     )
     .output(loginOkSchema),
 
-  consumirLinkMagico: oc
-    .input(z.object({ token: z.string().uuid() }))
-    .output(loginOkSchema),
+  consumirLinkMagico: oc.input(z.object({ token: z.string().uuid() })).output(loginOkSchema),
 };

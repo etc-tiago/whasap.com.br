@@ -28,7 +28,7 @@ export function carregarFixturesRespostaGo(acao: RecursoInstanceGo): FixtureResp
 
   return readdirSync(pasta)
     .filter((nome) => /^case-\d+\.json$/.test(nome))
-    .sort(ordenarPorNumeroCase)
+    .toSorted(ordenarPorNumeroCase)
     .map((nomeArquivo) => {
       const arquivo = `instance/${acao}/${nomeArquivo}`;
       return {

@@ -1,21 +1,12 @@
 import { defineConfig } from "vitest/config";
 
-/**
- * E2E do wizard `/~/` via Playwright em ambiente Node (Vitest Browser não suporta
- * navegação cross-origin para app TanStack Start + Cloudflare no iframe).
- */
+/** Testes unitários do painel (e2e Playwright fica em `vitest.e2e.config.ts`). */
 export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
   test: {
-    include: ["e2e/**/*.e2e.test.ts"],
+    include: ["src/**/*.test.ts"],
     environment: "node",
-    testTimeout: 60_000,
-    server: {
-      deps: {
-        inline: [/@whasap\/.*/],
-      },
-    },
   },
 });

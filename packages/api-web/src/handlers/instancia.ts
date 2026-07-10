@@ -1,4 +1,10 @@
-import { criarClienteEvolutionGo, getEvolutionCredentials, notFound, preconditionFailed } from "@whasap/api-core";
+import {
+  criarClienteEvolutionGo,
+  getEvolutionCredentials,
+  marcarInstanciaDesconectadaEvolution,
+  notFound,
+  preconditionFailed,
+} from "@whasap/api-core";
 import { isEvoProvider, isMetaCloudProvider } from "@whasap/config";
 import {
   colunasInstanciaPublica,
@@ -39,7 +45,11 @@ import {
   exigirAcessoDemonstracao,
   marcarInstanciaConectada,
 } from "../lib/demonstracao";
-import { configurarWebhookInstanciaEvolution, iniciarSessaoQrSeNecessario, urlWebhookEvolution } from "../lib/evolution-webhook";
+import {
+  configurarWebhookInstanciaEvolution,
+  obterQrComSessao,
+  urlWebhookEvolution,
+} from "../lib/evolution-webhook";
 import {
   mensagemErroEvolution,
   montarDebugEvolution,
@@ -207,17 +217,15 @@ export const instanciaHandlers = {
     const rowMeta = { uuid: row.uuid, evo: { instanceId }, status: row.status };
 
     try {
-      const meta = metaLogEvolution(rowMeta, { origem: "provisionar", rpc: "instancia.provisionar" });
+      const meta = metaLogEvolution(rowMeta, {
+        origem: "provisionar",
+        rpc: "instancia.provisionar",
+      });
       const admin = criarClienteEvolutionGo(ctx.env, { baseUrl, apiKey }, undefined, meta);
       if (!row.evo?.instanceId) {
         await admin.createInstance({ name: instanceName, instanceId, token: instanceToken });
       }
-      const client = criarClienteEvolutionGo(
-        ctx.env,
-        { baseUrl, apiKey },
-        { instanceToken },
-        meta,
-      );
+      const client = criarClienteEvolutionGo(ctx.env, { baseUrl, apiKey }, { instanceToken }, meta);
       await client.connect({
         webhookUrl,
         subscribe: EVOLUTION_WEBHOOK_SUBSCRIBE_ALL,
@@ -271,7 +279,11 @@ export const instanciaHandlers = {
     const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
     await exigirAcessoDemonstracao(ctx, row.organizacaoId);
     if (!isEvoProvider(row.provedor)) preconditionFailed("Instância não é Evolution");
-    if (row.status !== "provisioning" && row.status !== "pending_connection") {
+    if (
+      row.status !== "provisioning" &&
+      row.status !== "pending_connection" &&
+      row.status !== "disconnected"
+    ) {
       preconditionFailed("Instância não está aguardando conexão");
     }
 
@@ -282,7 +294,10 @@ export const instanciaHandlers = {
           ctx.env,
           creds,
           { instanceToken: row.evo.token },
-          metaLogEvolution(row, { origem: "encerrarPareamento", rpc: "instancia.encerrarPareamento" }),
+          metaLogEvolution(row, {
+            origem: "encerrarPareamento",
+            rpc: "instancia.encerrarPareamento",
+          }),
         );
         await client.disconnect();
       } catch (err) {
@@ -356,10 +371,7 @@ export const instanciaHandlers = {
       }
     }
 
-    await ctx.db
-      .update(instancia)
-      .set(marcarExclusaoLogica())
-      .where(eq(instancia.id, row.id));
+    await ctx.db.update(instancia).set(marcarExclusaoLogica()).where(eq(instancia.id, row.id));
 
     return { ok: true };
   },
@@ -417,36 +429,51 @@ export const instanciaHandlers = {
     }
 
     if (estado === "close") {
-      await iniciarSessaoQrSeNecessario(client, ctx.env, estado);
-      return {
-        base64: null,
-        pairingCode: null,
-        estado: "connecting",
-        ...montarDebugEvolution(ctx.env, { statusBruto }),
-      };
-    }
+      if (row.status === "connected" || row.status === "pending_payment") {
+        await marcarInstanciaDesconectadaEvolution(ctx.db, row.id);
+      }
 
-    try {
-      const qrBruto = await client.getQrCode();
-      const { base64, pairingCode } = parseGoQrResponse(qrBruto);
+      const qr = await obterQrComSessao(client, ctx.env);
       return {
-        base64,
-        pairingCode,
-        estado,
-        ...montarDebugEvolution(ctx.env, { statusBruto, qrBruto }),
-      };
-    } catch (err) {
-      return {
-        base64: null,
-        pairingCode: null,
-        estado,
+        base64: qr.base64,
+        pairingCode: qr.pairingCode,
+        estado: "connecting",
         ...montarDebugEvolution(ctx.env, {
           statusBruto,
-          erro: mensagemErroEvolution(err),
-          statusHttp: statusHttpErroEvolution(err),
+          ...(qr.qrBruto ? { qrBruto: qr.qrBruto } : {}),
+          ...(qr.erro ? { erro: qr.erro } : {}),
         }),
       };
     }
+
+    // connecting: tenta QR direto; se vazio/erro, connect + retry (GO às vezes reporta
+    // connecting sem sessão de pareamento real).
+    try {
+      const qrBruto = await client.getQrCode();
+      const { base64, pairingCode } = parseGoQrResponse(qrBruto);
+      if (base64 || pairingCode) {
+        return {
+          base64,
+          pairingCode,
+          estado,
+          ...montarDebugEvolution(ctx.env, { statusBruto, qrBruto }),
+        };
+      }
+    } catch {
+      // cai no obterQrComSessao abaixo
+    }
+
+    const qr = await obterQrComSessao(client, ctx.env);
+    return {
+      base64: qr.base64,
+      pairingCode: qr.pairingCode,
+      estado: "connecting",
+      ...montarDebugEvolution(ctx.env, {
+        statusBruto,
+        ...(qr.qrBruto ? { qrBruto: qr.qrBruto } : {}),
+        ...(qr.erro ? { erro: qr.erro } : {}),
+      }),
+    };
   },
 
   statusConexao: async (ctx: WebContext, input: { instanciaId: string }) => {
@@ -486,6 +513,11 @@ export const instanciaHandlers = {
           metaLogEvolution(row, { origem: "statusConexao", rpc: "instancia.statusConexao" }),
         );
         await marcarInstanciaConectada(ctx, row.id, row.organizacaoId, row.asaasIdAssinatura);
+      } else if (
+        estado === "close" &&
+        (row.status === "connected" || row.status === "pending_payment")
+      ) {
+        await marcarInstanciaDesconectadaEvolution(ctx.db, row.id);
       }
       return {
         estado,

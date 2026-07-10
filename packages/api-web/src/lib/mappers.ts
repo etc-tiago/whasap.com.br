@@ -1,4 +1,4 @@
-import type { instancia, organizacao, usuario } from "@whasap/db";
+import type { organizacao, usuario } from "@whasap/db";
 
 import type { InstanciaComProvedor } from "./instancia-provedor";
 

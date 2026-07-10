@@ -1,11 +1,8 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import {
-  parseGoDisconnectedEvent,
-  parseConnectionUpdateWebhook,
-} from "./connection-state";
+import { parseGoDisconnectedEvent, parseConnectionUpdateWebhook } from "./connection-state";
 import {
   parseGoButtonClick,
   parseGoLabelAssociation,
@@ -16,10 +13,7 @@ import {
   telefoneExibicaoDeInfo,
 } from "./webhook-go";
 
-const PASTA_R2 = join(
-  import.meta.dirname,
-  "../../r2-sync/json/webhook/evo/unknown/2026-07-10",
-);
+const PASTA_R2 = join(import.meta.dirname, "../../r2-sync/json/webhook/evo/unknown/2026-07-10");
 
 type EnvelopeR2 = {
   receivedAt: string;
@@ -33,7 +27,7 @@ function carregarFixturesR2(): Array<{
 }> {
   return readdirSync(PASTA_R2)
     .filter((nome) => nome.endsWith(".json"))
-    .sort()
+    .toSorted()
     .map((arquivo) => {
       const envelope = JSON.parse(readFileSync(join(PASTA_R2, arquivo), "utf8")) as EnvelopeR2;
       return {
@@ -43,7 +37,7 @@ function carregarFixturesR2(): Array<{
     });
 }
 
-describe("matriz R2 evo (42 fixtures)", () => {
+describe.skipIf(!existsSync(PASTA_R2))("matriz R2 evo (42 fixtures)", () => {
   const fixtures = carregarFixturesR2();
 
   it("carrega os 42 arquivos locais", () => {

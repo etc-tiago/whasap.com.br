@@ -113,10 +113,7 @@ export function WaNomeContatoEditor({
     <p
       onDoubleClick={iniciarEdicao}
       title={disabled ? undefined : "Duplo clique para editar o nome"}
-      className={cn(
-        "truncate text-[15px] font-medium text-wa-text",
-        !disabled && "cursor-text",
-      )}
+      className={cn("truncate text-[15px] font-medium text-wa-text", !disabled && "cursor-text")}
     >
       {nomeExibido}
     </p>

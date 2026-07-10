@@ -39,8 +39,7 @@ type ResolverStepParams = {
 
 /** Resolve passo do wizard: URL explícita com fallback seguro. */
 export function resolverIntegracaoStep(params: ResolverStepParams): IntegracaoStep {
-  const { searchStep, instanceId, modoNovo, temInstanciasParaReconectar, instancia: inst } =
-    params;
+  const { searchStep, instanceId, modoNovo, temInstanciasParaReconectar, instancia: inst } = params;
 
   if (searchStep === "concluido" || (inst && instanciaOperacional(inst.status))) return "concluido";
   if (searchStep && isIntegracaoStep(searchStep)) return searchStep;
@@ -68,10 +67,7 @@ export function passoEvolutionQr(step: IntegracaoStep): boolean {
   return step === "evolution_qr";
 }
 
-export function subtituloIntegracao(
-  passo: IntegracaoStep,
-  provedor?: InstanceProvider,
-): string {
+export function subtituloIntegracao(passo: IntegracaoStep, provedor?: InstanceProvider): string {
   switch (passo) {
     case "escolher":
       return "Escolha qual WhatsApp reconectar ou adicione um novo";

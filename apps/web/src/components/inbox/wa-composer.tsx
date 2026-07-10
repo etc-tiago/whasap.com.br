@@ -1,21 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@whasap/ui/components/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@whasap/ui/components/popover";
 import { cn } from "@whasap/ui/lib/utils";
-import {
-  FileText,
-  Film,
-  Image,
-  Loader2,
-  Mic,
-  Plus,
-  Send,
-  Sticker,
-  X,
-} from "lucide-react";
+import { FileText, Film, Image, Loader2, Mic, Plus, Send, Sticker, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { WaIconButton } from "@/components/inbox/wa-icon-button";
@@ -125,11 +111,7 @@ function PreviewMidia({
   return (
     <div className="flex items-center gap-2 border-b border-wa-divider bg-wa-panel-header px-3 py-2 md:px-4">
       {midia.previewUrl ? (
-        <img
-          src={midia.previewUrl}
-          alt=""
-          className="h-10 w-10 shrink-0 rounded-md object-cover"
-        />
+        <img src={midia.previewUrl} alt="" className="h-10 w-10 shrink-0 rounded-md object-cover" />
       ) : (
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-wa-chip text-wa-icon">
           {midia.tipo === "audio" ? (
@@ -242,7 +224,9 @@ export function WaComposer({
 
   return (
     <div className="border-l border-wa-divider">
-      {midia ? <PreviewMidia midia={midia} onRemover={limparMidia} disabled={disabled || pending} /> : null}
+      {midia ? (
+        <PreviewMidia midia={midia} onRemover={limparMidia} disabled={disabled || pending} />
+      ) : null}
 
       <div className="flex items-end gap-2 bg-wa-panel-header px-3 py-2.5 md:px-4">
         <Popover open={plusOpen} onOpenChange={setPlusOpen}>
@@ -286,9 +270,7 @@ export function WaComposer({
                 </div>
               ))}
             </div>
-            {erroUpload ? (
-              <p className="px-2 pt-2 text-xs text-destructive">{erroUpload}</p>
-            ) : null}
+            {erroUpload ? <p className="px-2 pt-2 text-xs text-destructive">{erroUpload}</p> : null}
             {upload.isPending && uploadTipo ? (
               <p className="px-2 pt-2 text-xs text-wa-text-muted">Enviando arquivo...</p>
             ) : null}

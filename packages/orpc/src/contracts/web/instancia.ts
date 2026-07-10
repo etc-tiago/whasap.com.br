@@ -48,15 +48,13 @@ export const instanciaContract = {
     }),
   ),
 
-  statusConexao: oc
-    .input(z.object({ instanciaId: z.string().uuid() }))
-    .output(
-      z.object({
-        estado: z.string(),
-        conectado: z.boolean(),
-        _debug: evolutionDebugSchema,
-      }),
-    ),
+  statusConexao: oc.input(z.object({ instanciaId: z.string().uuid() })).output(
+    z.object({
+      estado: z.string(),
+      conectado: z.boolean(),
+      _debug: evolutionDebugSchema,
+    }),
+  ),
 
   configurarCloud: oc
     .input(

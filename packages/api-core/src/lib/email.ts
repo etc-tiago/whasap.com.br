@@ -54,9 +54,7 @@ export async function sendOtpEmail(
           : "Seu código de acesso — Whasap";
 
   const magicLinkUrl = options?.magicLinkUrl;
-  const linkText = magicLinkUrl
-    ? `\n\nOu acesse diretamente: ${magicLinkUrl}`
-    : "";
+  const linkText = magicLinkUrl ? `\n\nOu acesse diretamente: ${magicLinkUrl}` : "";
   const linkHtml = magicLinkUrl
     ? `<p>Ou <a href="${escapeHtml(magicLinkUrl)}">acesse diretamente</a> sem digitar o código.</p>`
     : "";

@@ -87,7 +87,10 @@ export function EntradaStepOtp({
     } catch (err) {
       const message = getOrpcErrorMessage(err, "Código inválido ou expirado.");
       setError(message);
-      if (message.toLowerCase().includes("bloqueado") || message.toLowerCase().includes("contato")) {
+      if (
+        message.toLowerCase().includes("bloqueado") ||
+        message.toLowerCase().includes("contato")
+      ) {
         onBlocked(hash);
       }
     }

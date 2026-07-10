@@ -1,9 +1,4 @@
-import {
-  comTimestampAtualizacao,
-  instancia,
-  organizacao,
-  type Db,
-} from "@whasap/db";
+import { comTimestampAtualizacao, instancia, organizacao, type Db } from "@whasap/db";
 import { and, eq, isNull } from "drizzle-orm";
 
 export type StatusInstanciaAposConexao = "connected" | "pending_payment";

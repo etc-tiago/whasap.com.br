@@ -10,11 +10,5 @@ export const Route = createFileRoute("/_panel/$organizacaoHash/inbox/$instanceId
 function InboxInstanceRedirect() {
   const { organizacaoHash } = Route.useParams();
 
-  return (
-    <Navigate
-      to="/$organizacaoHash/inbox"
-      params={{ organizacaoHash }}
-      replace
-    />
-  );
+  return <Navigate to="/$organizacaoHash/inbox" params={{ organizacaoHash }} replace />;
 }

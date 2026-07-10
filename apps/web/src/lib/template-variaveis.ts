@@ -23,5 +23,5 @@ export function extrairIndicesVariaveisTemplate(componentes: unknown): string[] 
 
   const matches = texto.match(/\{\{(\d+)\}\}/g) ?? [];
   const indices = matches.map((m) => m.replace(/\{|\}/g, ""));
-  return [...new Set(indices)].sort((a, b) => Number(a) - Number(b));
+  return [...new Set(indices)].toSorted((a, b) => Number(a) - Number(b));
 }

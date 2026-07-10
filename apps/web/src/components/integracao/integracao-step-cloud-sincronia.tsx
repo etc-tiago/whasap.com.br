@@ -32,14 +32,16 @@ export function IntegracaoStepCloudSincronia({
     if (iniciadoRef.current) return;
     iniciadoRef.current = true;
 
-    void configurar.mutateAsync({
-      instanciaId,
-      phoneNumberId: credenciais.phoneNumberId,
-      wabaId: credenciais.wabaId,
-      accessToken: credenciais.accessToken,
-    }).catch(() => {
-      // erro exibido via configurar.isError
-    });
+    void configurar
+      .mutateAsync({
+        instanciaId,
+        phoneNumberId: credenciais.phoneNumberId,
+        wabaId: credenciais.wabaId,
+        accessToken: credenciais.accessToken,
+      })
+      .catch(() => {
+        // erro exibido via configurar.isError
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- dispara uma vez por montagem
   }, [instanciaId]);
 
@@ -47,10 +49,7 @@ export function IntegracaoStepCloudSincronia({
 
   useEffect(() => {
     if (!configurar.isSuccess || !aguardandoMinimo) return;
-    const t = setTimeout(
-      () => onSucesso(configurar.data?.templatesCount ?? 0),
-      1500,
-    );
+    const t = setTimeout(() => onSucesso(configurar.data?.templatesCount ?? 0), 1500);
     return () => clearTimeout(t);
   }, [configurar.isSuccess, configurar.data, aguardandoMinimo, onSucesso]);
 

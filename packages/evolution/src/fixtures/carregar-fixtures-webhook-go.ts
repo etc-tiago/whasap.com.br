@@ -13,7 +13,7 @@ export type FixtureWebhookGo = {
 export function carregarFixturesWebhookGo(): FixtureWebhookGo[] {
   return readdirSync(PASTA_FIXTURES)
     .filter((nome) => nome.endsWith(".json"))
-    .sort()
+    .toSorted()
     .map((nomeArquivo) => {
       const envelope = JSON.parse(readFileSync(join(PASTA_FIXTURES, nomeArquivo), "utf8")) as {
         receivedAt: string;

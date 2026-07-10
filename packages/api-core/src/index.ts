@@ -11,7 +11,14 @@ export {
 } from "./create-rpc-handler";
 export { beginAuthAttempt, failAuthAttemptWithCode } from "./lib/auth-rate-limit";
 export { sendInviteEmail, sendOtpEmail } from "./lib/email";
-export { contarOtpsRecentes, assertOtpSendAllowed, criarOtp, normalizarOtp, slugify, verificarOtp } from "./lib/otp";
+export {
+  contarOtpsRecentes,
+  assertOtpSendAllowed,
+  criarOtp,
+  normalizarOtp,
+  slugify,
+  verificarOtp,
+} from "./lib/otp";
 export { derivarNomeDoEmail, mascararEmail } from "./lib/derivar-nome-email";
 export {
   badRequest,

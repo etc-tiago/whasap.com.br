@@ -12,7 +12,7 @@ export type FixtureWebhookMeta = {
 export function carregarFixturesWebhookMeta(): FixtureWebhookMeta[] {
   return readdirSync(PASTA_FIXTURES)
     .filter((nome) => nome.endsWith(".json"))
-    .sort()
+    .toSorted()
     .map((nomeArquivo) => ({
       arquivo: nomeArquivo,
       payload: JSON.parse(readFileSync(join(PASTA_FIXTURES, nomeArquivo), "utf8")) as Record<

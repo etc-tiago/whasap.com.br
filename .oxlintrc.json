@@ -35,6 +35,12 @@
       }
     },
     {
+      "files": ["packages/r2-sync/**"],
+      "rules": {
+        "eslint/no-await-in-loop": "off"
+      }
+    },
+    {
       "files": ["**/vite.config.ts"],
       "rules": {
         "eslint/no-underscore-dangle": "off"

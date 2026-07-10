@@ -1,5 +1,5 @@
 {
-  "id": "0377b0d9-371e-4194-9061-cd663082c062",
+  "id": "4d285fbf-a7fc-426e-8563-a346f4676d42",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -110,6 +110,131 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.fluxo_autenticacao": {
+      "name": "fluxo_autenticacao",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "hash": {
+          "name": "hash",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "tipo_fluxo_autenticacao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pedidos_otp": {
+          "name": "pedidos_otp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "tentativas_otp_invalidas": {
+          "name": "tentativas_otp_invalidas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "bloqueado_em": {
+          "name": "bloqueado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "link_magico": {
+          "name": "link_magico",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "link_magico_expira_em": {
+          "name": "link_magico_expira_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "link_magico_usado_em": {
+          "name": "link_magico_usado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expira_em": {
+          "name": "expira_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "fluxo_autenticacao_email_idx": {
+          "name": "fluxo_autenticacao_email_idx",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "fluxo_autenticacao_hash_unique": {
+          "name": "fluxo_autenticacao_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "hash"
+          ]
+        },
+        "fluxo_autenticacao_linkMagico_unique": {
+          "name": "fluxo_autenticacao_linkMagico_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "link_magico"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -486,6 +611,12 @@
         "asaas_id_cliente": {
           "name": "asaas_id_cliente",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "demonstracao_inicia_em": {
+          "name": "demonstracao_inicia_em",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false
         },
@@ -877,42 +1008,6 @@
           "notNull": true,
           "default": 1000
         },
-        "evolucao_nome_instancia": {
-          "name": "evolucao_nome_instancia",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "evolucao_instance_id": {
-          "name": "evolucao_instance_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "evolucao_token": {
-          "name": "evolucao_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "nuvem_id_numero_telefone": {
-          "name": "nuvem_id_numero_telefone",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "nuvem_id_waba": {
-          "name": "nuvem_id_waba",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "nuvem_token_acesso": {
-          "name": "nuvem_token_acesso",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "tentativas_provisionamento": {
           "name": "tentativas_provisionamento",
           "type": "integer",
@@ -1003,27 +1098,6 @@
           "nullsNotDistinct": false,
           "columns": [
             "asaas_id_assinatura"
-          ]
-        },
-        "instancia_evolucaoNomeInstancia_unique": {
-          "name": "instancia_evolucaoNomeInstancia_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "evolucao_nome_instancia"
-          ]
-        },
-        "instancia_evolucaoInstanceId_unique": {
-          "name": "instancia_evolucaoInstanceId_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "evolucao_instance_id"
-          ]
-        },
-        "instancia_nuvemIdNumeroTelefone_unique": {
-          "name": "instancia_nuvemIdNumeroTelefone_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "nuvem_id_numero_telefone"
           ]
         }
       },
@@ -1121,6 +1195,255 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.instancia_evo": {
+      "name": "instancia_evo",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "instancia_id": {
+          "name": "instancia_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome_instancia": {
+          "name": "nome_instancia",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "instance_id": {
+          "name": "instance_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "historico_sincronizado_em": {
+          "name": "historico_sincronizado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "historico_sincronizando_em": {
+          "name": "historico_sincronizando_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "instancia_evo_instancia_id_idx": {
+          "name": "instancia_evo_instancia_id_idx",
+          "columns": [
+            {
+              "expression": "instancia_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "instancia_evo_nome_instancia_idx": {
+          "name": "instancia_evo_nome_instancia_idx",
+          "columns": [
+            {
+              "expression": "nome_instancia",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "instancia_evo_instancia_id_instancia_id_fk": {
+          "name": "instancia_evo_instancia_id_instancia_id_fk",
+          "tableFrom": "instancia_evo",
+          "tableTo": "instancia",
+          "columnsFrom": [
+            "instancia_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "instancia_evo_nomeInstancia_unique": {
+          "name": "instancia_evo_nomeInstancia_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nome_instancia"
+          ]
+        },
+        "instancia_evo_instanceId_unique": {
+          "name": "instancia_evo_instanceId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "instance_id"
+          ]
+        },
+        "instancia_evo_instanciaId_unique": {
+          "name": "instancia_evo_instanciaId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "instancia_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.instancia_meta_cloud": {
+      "name": "instancia_meta_cloud",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "instancia_id": {
+          "name": "instancia_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone_number_id": {
+          "name": "phone_number_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "waba_id": {
+          "name": "waba_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "instancia_meta_cloud_instancia_id_idx": {
+          "name": "instancia_meta_cloud_instancia_id_idx",
+          "columns": [
+            {
+              "expression": "instancia_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "instancia_meta_cloud_phone_number_id_idx": {
+          "name": "instancia_meta_cloud_phone_number_id_idx",
+          "columns": [
+            {
+              "expression": "phone_number_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "instancia_meta_cloud_instancia_id_instancia_id_fk": {
+          "name": "instancia_meta_cloud_instancia_id_instancia_id_fk",
+          "tableFrom": "instancia_meta_cloud",
+          "tableTo": "instancia",
+          "columnsFrom": [
+            "instancia_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "instancia_meta_cloud_phoneNumberId_unique": {
+          "name": "instancia_meta_cloud_phoneNumberId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "phone_number_id"
+          ]
+        },
+        "instancia_meta_cloud_instanciaId_unique": {
+          "name": "instancia_meta_cloud_instanciaId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "instancia_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.contato": {
       "name": "contato",
       "schema": "",
@@ -1138,9 +1461,15 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "instancia_id": {
-          "name": "instancia_id",
+        "organizacao_id": {
+          "name": "organizacao_id",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_externo": {
+          "name": "id_externo",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -1148,16 +1477,10 @@
           "name": "telefone",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "nome": {
           "name": "nome",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "id_externo": {
-          "name": "id_externo",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -1181,14 +1504,30 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "contato_organizacao_id_idx": {
+          "name": "contato_organizacao_id_idx",
+          "columns": [
+            {
+              "expression": "organizacao_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
-        "contato_instancia_id_instancia_id_fk": {
-          "name": "contato_instancia_id_instancia_id_fk",
+        "contato_organizacao_id_organizacao_id_fk": {
+          "name": "contato_organizacao_id_organizacao_id_fk",
           "tableFrom": "contato",
-          "tableTo": "instancia",
+          "tableTo": "organizacao",
           "columnsFrom": [
-            "instancia_id"
+            "organizacao_id"
           ],
           "columnsTo": [
             "id"
@@ -1206,12 +1545,136 @@
             "uuid"
           ]
         },
-        "contato_instanciaId_telefone_unique": {
-          "name": "contato_instanciaId_telefone_unique",
+        "contato_organizacaoId_idExterno_unique": {
+          "name": "contato_organizacaoId_idExterno_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organizacao_id",
+            "id_externo"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.contato_instancia": {
+      "name": "contato_instancia",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "contato_id": {
+          "name": "contato_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "instancia_id": {
+          "name": "instancia_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_externo": {
+          "name": "id_externo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "contato_instancia_contato_id_idx": {
+          "name": "contato_instancia_contato_id_idx",
+          "columns": [
+            {
+              "expression": "contato_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "contato_instancia_instancia_id_idx": {
+          "name": "contato_instancia_instancia_id_idx",
+          "columns": [
+            {
+              "expression": "instancia_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "contato_instancia_contato_id_contato_id_fk": {
+          "name": "contato_instancia_contato_id_contato_id_fk",
+          "tableFrom": "contato_instancia",
+          "tableTo": "contato",
+          "columnsFrom": [
+            "contato_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "contato_instancia_instancia_id_instancia_id_fk": {
+          "name": "contato_instancia_instancia_id_instancia_id_fk",
+          "tableFrom": "contato_instancia",
+          "tableTo": "instancia",
+          "columnsFrom": [
+            "instancia_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "contato_instancia_instanciaId_idExterno_unique": {
+          "name": "contato_instancia_instanciaId_idExterno_unique",
           "nullsNotDistinct": false,
           "columns": [
             "instancia_id",
-            "telefone"
+            "id_externo"
+          ]
+        },
+        "contato_instancia_contatoId_instanciaId_unique": {
+          "name": "contato_instancia_contatoId_instanciaId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "contato_id",
+            "instancia_id"
           ]
         }
       },
@@ -1229,6 +1692,13 @@
           "primaryKey": true,
           "notNull": true
         },
+        "uuid": {
+          "name": "uuid",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
         "organizacao_id": {
           "name": "organizacao_id",
           "type": "integer",
@@ -1243,6 +1713,12 @@
         },
         "cor": {
           "name": "cor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_externo": {
+          "name": "id_externo",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -1287,7 +1763,23 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "contato_tag_uuid_unique": {
+          "name": "contato_tag_uuid_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uuid"
+          ]
+        },
+        "contato_tag_org_id_externo_unique": {
+          "name": "contato_tag_org_id_externo_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organizacao_id",
+            "id_externo"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -1407,14 +1899,27 @@
           "notNull": true,
           "default": "'open'"
         },
-        "nuvem_janela_expira_em": {
-          "name": "nuvem_janela_expira_em",
+        "meta_cloud_janela_expira_em": {
+          "name": "meta_cloud_janela_expira_em",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false
         },
         "ultima_mensagem_em": {
           "name": "ultima_mensagem_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nao_lidas": {
+          "name": "nao_lidas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "ultima_leitura_em": {
+          "name": "ultima_leitura_em",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false
@@ -2451,12 +2956,20 @@
         "analista"
       ]
     },
+    "public.tipo_fluxo_autenticacao": {
+      "name": "tipo_fluxo_autenticacao",
+      "schema": "public",
+      "values": [
+        "entrar",
+        "cadastrar"
+      ]
+    },
     "public.instancia_provedor": {
       "name": "instancia_provedor",
       "schema": "public",
       "values": [
-        "cloud_api",
-        "evolution"
+        "evo",
+        "meta_cloud"
       ]
     },
     "public.instancia_status": {

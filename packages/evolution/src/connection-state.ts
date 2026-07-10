@@ -80,9 +80,7 @@ export function parseConnectionUpdateWebhook(
  * Evento GO `Disconnected` — sessão caiu; `data` costuma vir vazio.
  * @returns `"close"` quando o evento é Disconnected; senão `null`.
  */
-export function parseGoDisconnectedEvent(payload: {
-  event?: string;
-}): "close" | null {
+export function parseGoDisconnectedEvent(payload: { event?: string }): "close" | null {
   return payload.event === "Disconnected" ? "close" : null;
 }
 
@@ -105,11 +103,7 @@ export function parseGoQrResponse(res: EvolutionQrResponse) {
     null;
 
   const pairingCode =
-    res.data?.pairingCode ??
-    res.pairingCode ??
-    res.data?.code ??
-    res.code ??
-    null;
+    res.data?.pairingCode ?? res.pairingCode ?? res.data?.code ?? res.code ?? null;
 
   return { base64, pairingCode };
 }

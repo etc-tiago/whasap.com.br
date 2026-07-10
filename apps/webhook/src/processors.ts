@@ -69,9 +69,7 @@ export async function processMetaWebhook(
   );
 
   await Promise.all(
-    changes.map((change) =>
-      processMetaChange(db, env, ctx, change, instanceByPhoneNumberId),
-    ),
+    changes.map((change) => processMetaChange(db, env, ctx, change, instanceByPhoneNumberId)),
   );
 }
 
@@ -151,10 +149,7 @@ async function processMetaInboundMessage(
   }
 }
 
-async function processMetaDeliveryStatus(
-  db: Db,
-  status: Record<string, unknown>,
-): Promise<void> {
+async function processMetaDeliveryStatus(db: Db, status: Record<string, unknown>): Promise<void> {
   const parsed = parseMetaStatus(status);
   if (!parsed) return;
 

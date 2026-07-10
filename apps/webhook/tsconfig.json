@@ -1,5 +1,7 @@
 {
   "extends": "@whasap/typescript-config/worker.json",
-  "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts"]
+  "compilerOptions": {
+    "types": ["@cloudflare/workers-types", "bun"]
+  },
+  "include": ["src/**/*.ts"]
 }

@@ -7,6 +7,8 @@ type Props = {
   autoFocus?: boolean;
 };
 
+const OTP_DIGIT_IDS = ["otp-0", "otp-1", "otp-2", "otp-3", "otp-4", "otp-5"] as const;
+
 export function EntradaOtpDigits({ value, onChange, disabled, autoFocus = true }: Props) {
   const refs = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -46,7 +48,7 @@ export function EntradaOtpDigits({ value, onChange, disabled, autoFocus = true }
     <div className="flex justify-between gap-2" onPaste={onPaste}>
       {digits.map((d, i) => (
         <input
-          key={i}
+          key={OTP_DIGIT_IDS[i]}
           ref={(el) => {
             refs.current[i] = el;
           }}

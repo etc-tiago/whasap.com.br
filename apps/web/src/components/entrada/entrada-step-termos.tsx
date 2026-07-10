@@ -17,9 +17,8 @@ export function EntradaStepTermos({ email, onAccepted, onBack }: Props) {
         </div>
         <h1 className="text-2xl font-semibold text-wa-text">Criar sua conta</h1>
         <p className="text-sm text-wa-muted">
-          Não encontramos uma conta para{" "}
-          <strong className="text-wa-text">{email}</strong>. Aceite os termos para criarmos uma
-          nova.
+          Não encontramos uma conta para <strong className="text-wa-text">{email}</strong>. Aceite
+          os termos para criarmos uma nova.
         </p>
       </div>
 

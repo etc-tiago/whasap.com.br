@@ -28,9 +28,7 @@ export function WaAjustesPanel({ organizacaoHash }: WaAjustesPanelProps) {
           params={{ organizacaoHash }}
           className={cn(
             "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-            !itemAtivo
-              ? "bg-wa-chip-active text-wa-green-dark"
-              : "text-wa-text hover:bg-wa-hover",
+            !itemAtivo ? "bg-wa-chip-active text-wa-green-dark" : "text-wa-text hover:bg-wa-hover",
           )}
         >
           Geral

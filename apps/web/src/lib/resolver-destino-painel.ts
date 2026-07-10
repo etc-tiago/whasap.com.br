@@ -31,12 +31,16 @@ async function sincronizarInstanciasOrganizacao(organizacaoHash: string): Promis
 export async function buscarDestinoInboxOperacional(
   organizacoes: OrganizacaoResumo[],
 ): Promise<DestinoInboxOperacional | null> {
-  for (const org of organizacoes) {
-    const instancias = await sincronizarInstanciasOrganizacao(org.id);
-    const operacional = instancias.find((i) => instanciaOperacional(i.status));
-    if (operacional) {
-      return { organizacaoHash: org.id };
-    }
-  }
-  return null;
+  const resultados = await Promise.all(
+    organizacoes.map(async (org) => {
+      const instancias = await sincronizarInstanciasOrganizacao(org.id);
+      return {
+        organizacaoHash: org.id,
+        operacional: instancias.some((i) => instanciaOperacional(i.status)),
+      };
+    }),
+  );
+
+  const destino = resultados.find((r) => r.operacional);
+  return destino ? { organizacaoHash: destino.organizacaoHash } : null;
 }

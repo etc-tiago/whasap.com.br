@@ -2,10 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChartArea, Circle, MessageCircle, Settings, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
-import {
-  WaRailLink,
-  waRailLinkActiveOptionsExact,
-} from "@/components/inbox/wa-rail-link";
+import { WaRailLink, waRailLinkActiveOptionsExact } from "@/components/inbox/wa-rail-link";
 import { WaRailProfile } from "@/components/inbox/wa-rail-profile";
 import { WaRailTheme } from "@/components/inbox/wa-rail-theme";
 import { instanciaOperacional } from "@/lib/instancia-status";

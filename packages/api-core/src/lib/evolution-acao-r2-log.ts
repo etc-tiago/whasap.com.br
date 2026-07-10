@@ -125,8 +125,7 @@ export function redigirEvolutionLogPayload(value: unknown): unknown {
 export function prepararEvolutionAcaoLogEntry(
   entry: Omit<EvolutionAcaoLogEntry, "at"> & { at?: string },
 ): EvolutionAcaoLogEntry {
-  const derivado =
-    entry.derivado ?? derivarEvolutionAcaoLog(entry.tipo, entry.responseBody);
+  const derivado = entry.derivado ?? derivarEvolutionAcaoLog(entry.tipo, entry.responseBody);
 
   return {
     at: entry.at ?? new Date().toISOString(),

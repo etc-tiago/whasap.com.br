@@ -69,10 +69,7 @@ async function listarObjetos(
   return objects;
 }
 
-async function listarTodos(
-  client: S3Client,
-  config: R2SyncConfig,
-): Promise<ListedObject[]> {
+async function listarTodos(client: S3Client, config: R2SyncConfig): Promise<ListedObject[]> {
   const all: ListedObject[] = [];
 
   for (const prefix of config.prefixes) {
@@ -161,13 +158,10 @@ async function chavesComCopiaLocal(
   config: R2SyncConfig,
   objects: ListedObject[],
 ): Promise<string[]> {
-  const keys: string[] = [];
-  for (const object of objects) {
-    if (await existeLocal(config, object.key)) {
-      keys.push(object.key);
-    }
-  }
-  return keys;
+  const presentes = await Promise.all(
+    objects.map(async (object) => ((await existeLocal(config, object.key)) ? object.key : null)),
+  );
+  return presentes.filter((key): key is string => key !== null);
 }
 
 async function devePular(
@@ -233,7 +227,7 @@ async function gravarManifest(config: R2SyncConfig, keys: string[]): Promise<voi
     bucket: config.bucket,
     prefixes: config.prefixes,
     total: keys.length,
-    keys: keys.sort(),
+    keys: [...keys].toSorted(),
   };
 
   await writeFile(config.manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");

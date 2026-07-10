@@ -43,12 +43,13 @@ class CookieJar {
   private cookies = new Map<string, string>();
 
   ingest(response: Response): void {
-    for (const header of response.headers.getSetCookie()) {
+    const setCookies = (response.headers as Headers & { getSetCookie(): string[] }).getSetCookie();
+    for (const header of setCookies) {
       const [pair] = header.split(";");
-      const eq = pair?.indexOf("=");
-      if (eq === undefined || eq < 0) continue;
-      const name = pair.slice(0, eq).trim();
-      const value = pair.slice(eq + 1).trim();
+      const eqIndex = pair?.indexOf("=");
+      if (eqIndex === undefined || eqIndex < 0) continue;
+      const name = pair.slice(0, eqIndex).trim();
+      const value = pair.slice(eqIndex + 1).trim();
       if (!value) {
         this.cookies.delete(name);
       } else {
@@ -77,15 +78,15 @@ export function createTestOrpcClient(env: WebEnv): TestRpcHarness {
 
   const link = new RPCLink({
     url: () => RPC_BASE,
-    fetch: async (input, init) => {
-      const headers = new Headers(init?.headers);
+    fetch: async (request, init) => {
+      const headers = new Headers(request.headers);
       const cookie = cookieJar.header();
       if (cookie) {
         headers.set("cookie", cookie);
       }
 
       const response = await handleRpc(
-        new Request(input, {
+        new Request(request, {
           ...init,
           headers,
         }),
@@ -103,10 +104,7 @@ export function createTestOrpcClient(env: WebEnv): TestRpcHarness {
   };
 }
 
-export async function buscarUltimoOtp(
-  email: string,
-  finalidade: string,
-): Promise<string> {
+export async function buscarUltimoOtp(email: string, finalidade: string): Promise<string> {
   const { db, sql } = criarDb(process.env.DATABASE_URL!);
   try {
     const [row] = await db
@@ -153,11 +151,9 @@ export async function limparDadosTeste(email: string): Promise<void> {
   }
 }
 
-export async function rpcRaw(
-  env: WebEnv,
-  path: string,
-  init?: RequestInit,
-): Promise<Response> {
-  const url = path.startsWith("http") ? path : `${RPC_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+export async function rpcRaw(env: WebEnv, path: string, init?: RequestInit): Promise<Response> {
+  const url = path.startsWith("http")
+    ? path
+    : `${RPC_BASE}${path.startsWith("/") ? path : `/${path}`}`;
   return handleRpc(new Request(url, init), env);
 }

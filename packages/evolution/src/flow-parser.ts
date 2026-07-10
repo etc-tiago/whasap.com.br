@@ -156,11 +156,14 @@ export function parseInteractiveMessage(messageObj: Record<string, unknown>): Go
 export function parseInteractiveResponseMessage(
   messageObj: Record<string, unknown>,
 ): GoFlowResponse | null {
-  const interactive = messageObj.interactiveResponseMessage as InteractiveResponseWrapper | undefined;
+  const interactive = messageObj.interactiveResponseMessage as
+    | InteractiveResponseWrapper
+    | undefined;
   if (!interactive) return null;
 
   const nativeResponse = interactive.InteractiveResponseMessage?.NativeFlowResponseMessage;
-  const rawParamsJSON = typeof nativeResponse?.paramsJSON === "string" ? nativeResponse.paramsJSON : null;
+  const rawParamsJSON =
+    typeof nativeResponse?.paramsJSON === "string" ? nativeResponse.paramsJSON : null;
   const params = parseParamsJSON(rawParamsJSON);
 
   return {

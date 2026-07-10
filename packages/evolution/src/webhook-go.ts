@@ -149,7 +149,9 @@ export function telefoneExibicaoDeInfo(info: Record<string, unknown>): string | 
   return null;
 }
 
-function parseGoMessageBody(messageObj: Record<string, unknown>): { body: string; type: string } | null {
+function parseGoMessageBody(
+  messageObj: Record<string, unknown>,
+): { body: string; type: string } | null {
   if (messageObj.conversation) {
     return { body: String(messageObj.conversation), type: "text" };
   }
@@ -188,7 +190,10 @@ function parseGoMessageBody(messageObj: Record<string, unknown>): { body: string
       options?: Array<{ optionName?: string }>;
     };
     const options = part.options?.map((option) => option.optionName).filter(Boolean) ?? [];
-    const body = options.length > 0 ? `${part.name ?? "[enquete]"}: ${options.join(", ")}` : (part.name ?? "[enquete]");
+    const body =
+      options.length > 0
+        ? `${part.name ?? "[enquete]"}: ${options.join(", ")}`
+        : (part.name ?? "[enquete]");
     return { body, type: "poll" };
   }
   if (messageObj.contactMessage) {

@@ -45,7 +45,11 @@ export function createSessionCookieHelpers(cookieName: string) {
 function rpcProcedurePath(request: Request, prefix: string): string {
   const pathname = new URL(request.url).pathname;
   const normalizedPrefix = prefix.replace(/\/$/, "");
-  if (normalizedPrefix && pathname !== normalizedPrefix && !pathname.startsWith(`${normalizedPrefix}/`)) {
+  if (
+    normalizedPrefix &&
+    pathname !== normalizedPrefix &&
+    !pathname.startsWith(`${normalizedPrefix}/`)
+  ) {
     return "";
   }
   if (pathname === normalizedPrefix) return "";
@@ -57,21 +61,13 @@ function matchesRpcProcedurePath(procedurePath: string, configuredPath: string):
   return procedurePath === normalized || procedurePath.endsWith(normalized);
 }
 
-function isLoginRpcProcedure(
-  request: Request,
-  prefix: string,
-  loginPaths: string[],
-): boolean {
+function isLoginRpcProcedure(request: Request, prefix: string, loginPaths: string[]): boolean {
   const procedurePath = rpcProcedurePath(request, prefix);
   if (!procedurePath) return false;
   return loginPaths.some((loginPath) => matchesRpcProcedurePath(procedurePath, loginPath));
 }
 
-function isPublicRpcProcedure(
-  request: Request,
-  prefix: string,
-  publicPaths: string[],
-): boolean {
+function isPublicRpcProcedure(request: Request, prefix: string, publicPaths: string[]): boolean {
   const procedurePath = rpcProcedurePath(request, prefix);
   if (!procedurePath) return false;
   return publicPaths.some((publicPath) => matchesRpcProcedurePath(procedurePath, publicPath));
@@ -102,7 +98,11 @@ function estadoSessaoDoContexto(ctx: { estadoSessao?: EstadoSessaoRpc }): Estado
 
 /** Atribui token opaco e expiração após login/cadastro (sobrevive ao clone do ORPC). */
 export function atribuirSessaoRpc(
-  ctx: { estadoSessao?: EstadoSessaoRpc; sessionToken?: string | null; sessionExpiraEm?: Date | null },
+  ctx: {
+    estadoSessao?: EstadoSessaoRpc;
+    sessionToken?: string | null;
+    sessionExpiraEm?: Date | null;
+  },
   token: string,
   expiraEm: Date,
 ): void {
@@ -114,9 +114,11 @@ export function atribuirSessaoRpc(
 }
 
 /** Limpa sessão após logout (sobrevive ao clone do ORPC). */
-export function limparSessaoRpc(
-  ctx: { estadoSessao?: EstadoSessaoRpc; sessionToken?: string | null; sessionExpiraEm?: Date | null },
-): void {
+export function limparSessaoRpc(ctx: {
+  estadoSessao?: EstadoSessaoRpc;
+  sessionToken?: string | null;
+  sessionExpiraEm?: Date | null;
+}): void {
   const estado = estadoSessaoDoContexto(ctx);
   estado.token = null;
   estado.expiraEm = null;
@@ -131,10 +133,7 @@ function appendSessionCookie(
   maxAgeSeconds: number,
   secure: boolean,
 ): void {
-  headers.append(
-    "Set-Cookie",
-    cookieHelpers.sessionCookieHeader(token, maxAgeSeconds, secure),
-  );
+  headers.append("Set-Cookie", cookieHelpers.sessionCookieHeader(token, maxAgeSeconds, secure));
 }
 
 const rpcSerializer = new StandardRPCJsonSerializer();
@@ -190,8 +189,7 @@ export function createRpcHandler<
 
     const procedurePath = rpcProcedurePath(request, rpcPrefix);
     const isPublic =
-      procedurePath !== "" &&
-      isPublicRpcProcedure(request, rpcPrefix, options.session.publicPaths);
+      procedurePath !== "" && isPublicRpcProcedure(request, rpcPrefix, options.session.publicPaths);
     const incomingCookie = cookieHelpers.getSessionTokenFromRequest(request);
 
     let opaqueSessionToken: string | null = null;
@@ -236,8 +234,7 @@ export function createRpcHandler<
 
       const headers = new Headers(response.headers);
       const finalOpaqueToken = estadoSessao.token;
-      const sessionRotated =
-        finalOpaqueToken != null && finalOpaqueToken !== opaqueSessionToken;
+      const sessionRotated = finalOpaqueToken != null && finalOpaqueToken !== opaqueSessionToken;
       const loginProcedure =
         response.ok &&
         finalOpaqueToken != null &&
@@ -246,8 +243,7 @@ export function createRpcHandler<
 
       if ((sessionRotated || loginProcedure) && finalOpaqueToken) {
         const expiraEm =
-          estadoSessao.expiraEm ??
-          new Date(Date.now() + options.session.maxAgeSeconds * 1000);
+          estadoSessao.expiraEm ?? new Date(Date.now() + options.session.maxAgeSeconds * 1000);
         const jwt = await emitirJwtSessao({
           token: finalOpaqueToken,
           expiraEm,
