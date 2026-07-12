@@ -1,0 +1,40 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "whasap-evolution-cleanup",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-05",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "triggers": {
+    "crons": [
+      "*/15 * * * *"
+    ]
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "c8f9852b6dc748489154722036fb4e48",
+      "localConnectionString": "postgres://postgres:postgres@db.localtest.me:5432/whasap"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "whasap"
+    }
+  ],
+  "vars": {
+    "WORKER_NAME": "whasap-evolution-cleanup"
+  },
+  "secrets_store_secrets": [
+    {
+      "binding": "EVOLUTION_SECRETS_STORE",
+      "store_id": "76b096bc6b03460dabd7744ba277a1ee",
+      "secret_name": "EVOLUTION_SECRETS_STORE"
+    }
+  ]
+}

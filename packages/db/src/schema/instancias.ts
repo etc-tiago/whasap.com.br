@@ -38,13 +38,17 @@ export const instancia = pgTable(
     limiteConversas: integer().notNull().default(1000),
     tentativasProvisionamento: integer().notNull().default(0),
     conectadoEm: timestamp(),
+    desconectadoEm: timestamp(),
     trialTerminaEm: timestamp(),
     desativadoEm: timestamp(),
     excluidoEm: timestamp(),
     criadoEm: timestamp().notNull(),
     atualizadoEm: timestamp().notNull(),
   },
-  (t) => [index("instancia_organizacao_id_idx").on(t.organizacaoId)],
+  (t) => [
+    index("instancia_organizacao_id_idx").on(t.organizacaoId),
+    index("instancia_provedor_status_idx").on(t.provedor, t.status),
+  ],
 );
 
 export const instanciaAddon = pgTable(

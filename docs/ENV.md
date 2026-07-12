@@ -75,12 +75,20 @@ Não usamos `wrangler deploy --env production` — isso criaria workers com sufi
 - Secrets: ver [SECRETS-WEBHOOK.md](./SECRETS-WEBHOOK.md)
 - Dev: `apps/webhook/.dev.vars`
 
+### `apps/evolution-cleanup`
+
+- Worker vars: `WORKER_NAME`
+- Secrets Store: `EVOLUTION_SECRETS_STORE`
+- Sem domínio (só Cron Trigger `*/15`) — remoção de instâncias Evolution abandonadas
+- Dev: `apps/evolution-cleanup/.dev.vars`
+
 ## Setup local rápido
 
 ```bash
 cp apps/web/.dev.vars.example apps/web/.dev.vars
 cp apps/office/.dev.vars.example apps/office/.dev.vars
 cp apps/webhook/.dev.vars.example apps/webhook/.dev.vars
+cp apps/evolution-cleanup/.dev.vars.example apps/evolution-cleanup/.dev.vars
 ```
 
 ## Deploy

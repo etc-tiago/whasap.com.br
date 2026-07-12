@@ -6,10 +6,12 @@ Monorepo Cloudflare Workers com TanStack Start, ORPC, Neon Postgres e UI shadcn 
 
 ```
 apps/
-  site/      # Marketing whasap.com.br (TanStack Start + Cloudflare)
-  web/       # Painel cliente web.whasap.com.br (SPA + ORPC em /rpc)
-  office/    # Painel admin interno (SSR + ORPC em /rpc)
-  webhook/   # Worker de webhooks (Asaas, Evolution, Meta)
+  site/                 # Marketing whasap.com.br (TanStack Start + Cloudflare)
+  web/                  # Painel cliente web.whasap.com.br (SPA + ORPC em /rpc)
+  office/               # Painel admin interno (SSR + ORPC em /rpc)
+  webhook/              # Worker de webhooks (Asaas, Evolution, Meta)
+  cdn/                  # Worker de mídia (R2 whasap-cdn)
+  evolution-cleanup/    # Cron: remove sessões Evolution abandonadas
 packages/
   ui/          # shadcn compartilhado (@whasap/ui)
   orpc/        # Contratos ORPC (@whasap/orpc — exports /web e /office)
@@ -41,7 +43,7 @@ Chaves de teste e secrets de exemplo vêm nos arquivos `.example`. Em produção
    ```bash
    wrangler hyperdrive create whasap-db --connection-string "$DATABASE_URL"
    ```
-4. Os workers `web`, `office` e `webhook` já usam o mesmo binding Hyperdrive em `wrangler.jsonc` (`id: c8f9852b6dc748489154722036fb4e48`)
+4. Os workers `web`, `office`, `webhook` e `evolution-cleanup` já usam o mesmo binding Hyperdrive em `wrangler.jsonc` (`id: c8f9852b6dc748489154722036fb4e48`)
 5. Defina `DATABASE_URL` no `.env` da raiz — o `bun run dev` do web/office repassa para o Hyperdrive local automaticamente
 6. **Desenvolvedor:** gere e aplique migrations manualmente:
    ```bash
@@ -55,6 +57,7 @@ Chaves de teste e secrets de exemplo vêm nos arquivos `.example`. Em produção
 cp apps/web/.dev.vars.example apps/web/.dev.vars
 cp apps/office/.dev.vars.example apps/office/.dev.vars
 cp apps/webhook/.dev.vars.example apps/webhook/.dev.vars
+cp apps/evolution-cleanup/.dev.vars.example apps/evolution-cleanup/.dev.vars
 ```
 
 ## Desenvolvimento
@@ -63,12 +66,14 @@ cp apps/webhook/.dev.vars.example apps/webhook/.dev.vars
 bun run dev
 ```
 
-| App     | URL                   | Domínio produção        |
-|---------|-----------------------|-------------------------|
-| site    | http://localhost:3002 | whasap.com.br           |
-| web     | http://localhost:3000 | web.whasap.com.br       |
-| office  | http://localhost:3001 | office.whasap.com.br    |
-| webhook | http://localhost:8788 | webhook.whasap.com.br   |
+| App                | URL                   | Domínio produção        |
+|--------------------|-----------------------|-------------------------|
+| site               | http://localhost:3002 | whasap.com.br           |
+| web                | http://localhost:3000 | web.whasap.com.br       |
+| office             | http://localhost:3001 | office.whasap.com.br    |
+| webhook            | http://localhost:8788 | webhook.whasap.com.br   |
+| cdn                | http://localhost:8789 | cdn.whasap.com.br       |
+| evolution-cleanup  | http://localhost:8790 | — (Cron Trigger)        |
 
 `web` expõe ORPC em `/rpc` via `@whasap/api-web` (cookie `whasap_web`, 15 dias). `office` expõe ORPC em `/rpc` via `@whasap/api-office` (cookie `whasap_office`, 3 dias). Webhooks Asaas em `webhook.whasap.com.br/asaas`.
 

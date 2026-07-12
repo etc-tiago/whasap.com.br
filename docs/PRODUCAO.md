@@ -15,6 +15,7 @@ Para integrações (Asaas, Evolution, Meta), veja também [SETUP.md](./SETUP.md)
 | `office` | `whasap-office` | `office.whasap.com.br` | Hyperdrive | `whasap` | — |
 | `webhook` | `whasap-webhook` | `webhook.whasap.com.br` | Hyperdrive | `whasap` + `whasap-cdn` | Asaas |
 | `cdn` | `whasap-cdn` | `cdn.whasap.com.br` | — | `whasap-cdn` | — |
+| `evolution-cleanup` | `whasap-evolution-cleanup` | — (Cron Trigger `*/15`) | Hyperdrive | `whasap` | Evolution |
 
 Rotas do worker **webhook**:
 
@@ -51,7 +52,7 @@ Registre os domínios na Cloudflare (ou aponte NS). Cada worker declara `custom_
 
 ### 1.3 Hyperdrive
 
-Todos os workers com banco (`web`, `office`, `webhook`) usam o **mesmo** binding:
+Todos os workers com banco (`web`, `office`, `webhook`, `evolution-cleanup`) usam o **mesmo** binding:
 
 | Campo | Valor |
 |-------|-------|
@@ -63,7 +64,7 @@ Se o Hyperdrive ainda não existir na conta:
 
 ```bash
 wrangler hyperdrive create whasap-db --connection-string "$DATABASE_URL_PRODUCAO"
-# Copie o id retornado para wrangler.jsonc dos três workers (se diferente do atual)
+# Copie o id retornado para wrangler.jsonc dos workers com Hyperdrive (se diferente do atual)
 ```
 
 ### 1.4 Buckets R2
@@ -72,7 +73,7 @@ Crie na Cloudflare Dashboard → R2:
 
 | Bucket | Uso | Workers |
 |--------|-----|---------|
-| `whasap` | Logs de webhooks (`webhook/evo/...`, `webhook/cloud/...`) e ações Evolution outbound (`acao/...`) | `web`, `webhook`, `office` (binding `R2`) |
+| `whasap` | Logs de webhooks (`webhook/evo/...`, `webhook/cloud/...`) e ações Evolution outbound (`acao/...`) | `web`, `webhook`, `office`, `evolution-cleanup` (binding `R2`) |
 | `whasap-cdn` | Anexos de mensagens (`media/{instanciaUuid}/...`) | `webhook` (binding `CDN_R2`, escrita), `cdn` (binding `R2`, leitura) |
 
 ### 1.5 Secrets Store
@@ -89,7 +90,7 @@ wrangler secrets-store store list
 | Store (nome) | Secret no store | Binding no worker | Workers |
 |--------------|-----------------|-------------------|---------|
 | `ASSAS_API_KEY_ETC` | `ASSAS_API_KEY_ETC` | `ASSAS_API_KEY` | `web`, `webhook` |
-| `ASSAS_API_KEY_ETC` | `EVOLUTION_SECRETS_STORE` | `EVOLUTION_SECRETS_STORE` | `web`, `webhook` |
+| `ASSAS_API_KEY_ETC` | `EVOLUTION_SECRETS_STORE` | `EVOLUTION_SECRETS_STORE` | `web`, `webhook`, `evolution-cleanup` |
 
 Inserir valor:
 
@@ -303,6 +304,34 @@ URLs públicas: `https://cdn.whasap.com.br/media/{instanciaUuid}/{id}.{ext}`
 
 ---
 
+### 2.6 `apps/evolution-cleanup` — limpeza de instâncias Evolution
+
+**Deploy:** `cd apps/evolution-cleanup && bun run deploy`
+
+Worker **sem domínio** — só Cron Trigger `*/15 * * * *`. Dedicado à remoção de sessões Evolution abandonadas.
+
+#### Bindings
+
+| Tipo | Binding | Recurso |
+|------|---------|---------|
+| Hyperdrive | `HYPERDRIVE` | mesmo ID |
+| R2 | `R2` | bucket `whasap` (logs `acao/...` Evolution) |
+| Secrets Store | `EVOLUTION_SECRETS_STORE` | store `ASSAS_API_KEY_ETC` → secret `EVOLUTION_SECRETS_STORE` |
+
+#### Vars — produção no `wrangler.jsonc`
+
+| Var | Valor produção |
+|-----|----------------|
+| `WORKER_NAME` | `whasap-evolution-cleanup` |
+
+Local: `apps/evolution-cleanup/.dev.vars` (ver `.dev.vars.example`).
+
+#### Job principal
+
+A cada 15 minutos, varre instâncias Evolution (`evo`) em `pending_connection` / `provisioning` / `disconnected` abandonadas há mais de 30 minutos (`mvpDefaults.evolution.abandonedAfterMinutes`): soft-delete + `disconnect`/`deleteInstance` no provedor. Com assinatura Asaas, recria uma `pending_connection` com o mesmo slot pago.
+
+---
+
 ## 3. Serviços externos (callbacks)
 
 Configure **depois** que `webhook` estiver no ar.
@@ -327,9 +356,10 @@ Detalhes em [SETUP.md](./SETUP.md).
 # 1. Banco
 bun run db:migrate
 
-# 2. Infra de mídia e webhooks
+# 2. Infra de mídia, webhooks e limpeza Evolution
 cd apps/cdn && bun run deploy
 cd apps/webhook && bun run deploy
+cd apps/evolution-cleanup && bun run deploy
 
 # 3. Painéis e site (.env.production já define VITE_*)
 bun run validate:env
@@ -393,7 +423,7 @@ Rodar `bun run validate:env` antes do deploy.
 | Verify token Meta | `wrangler secret` → `WHATSAPP_CLOUD_WEBHOOK_SECRET` no webhook |
 | Connection string DB | Hyperdrive (nunca em var plain) |
 | Credenciais WhatsApp por instância | Meta: `nuvem_*`; Evolution: `evolucao_instance_id` + `evolucao_token` + `evolucao_nome_instancia` |
-| Servidor Evolution | Secrets Store → binding `EVOLUTION_SECRETS_STORE` (JSON `{ baseUrl, apiKey }`) nos workers `web` e `webhook` |
+| Servidor Evolution | Secrets Store → binding `EVOLUTION_SECRETS_STORE` (JSON `{ baseUrl, apiKey }`) nos workers `web`, `webhook` e `evolution-cleanup` |
 | Anexos de mensagem | R2 `whasap-cdn` (escrita webhook, leitura cdn) |
 | Logs de webhook | R2 `whasap` |
 

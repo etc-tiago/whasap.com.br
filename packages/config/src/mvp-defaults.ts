@@ -33,6 +33,8 @@ export const mvpDefaults = {
     redisPerContainer: true,
     provisionMaxRetries: 3,
     webhookPath: "/evo",
+    /** Instância não operacional há mais que isto entra no sweep do evolution-cleanup. */
+    abandonedAfterMinutes: 30,
   },
   inbox: {
     autoCloseInactivityHours: 72,

@@ -47,6 +47,7 @@ export async function marcarInstanciaConectadaEvolution(
       comTimestampAtualizacao({
         status,
         conectadoEm: new Date(),
+        desconectadoEm: null,
       }),
     )
     .where(eq(instancia.id, params.instanciaIdInterno));
@@ -61,6 +62,11 @@ export async function marcarInstanciaDesconectadaEvolution(
 ): Promise<void> {
   await db
     .update(instancia)
-    .set(comTimestampAtualizacao({ status: "disconnected" }))
+    .set(
+      comTimestampAtualizacao({
+        status: "disconnected",
+        desconectadoEm: new Date(),
+      }),
+    )
     .where(eq(instancia.id, instanciaIdInterno));
 }

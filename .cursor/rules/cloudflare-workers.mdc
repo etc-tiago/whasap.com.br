@@ -20,7 +20,7 @@ alwaysApply: false
 | Binding | Store (nome) | Secret no store | Uso |
 |---------|--------------|-----------------|-----|
 | `ASSAS_API_KEY` | `ASSAS_API_KEY_ETC` | `ASSAS_API_KEY_ETC` | API key Asaas (`web`, `webhook`) |
-| `EVOLUTION_SECRETS_STORE` | `ASSAS_API_KEY_ETC` | `EVOLUTION_SECRETS_STORE` | JSON `{ baseUrl, apiKey }` Evolution (`web`, `webhook`) |
+| `EVOLUTION_SECRETS_STORE` | `ASSAS_API_KEY_ETC` | `EVOLUTION_SECRETS_STORE` | JSON `{ baseUrl, apiKey }` Evolution (`web`, `webhook`, `evolution-cleanup`) |
 
 ```jsonc
 "secrets_store_secrets": [
@@ -43,7 +43,7 @@ Local: `.dev.vars` com secrets **e** overrides de URL (`WEB_URL`, etc.) em `web`
 
 ## Hyperdrive (sempre igual)
 
-Em todo worker com Postgres (`web`, `office`, `webhook`), use **exatamente** este bloco — não invente outro `id` nem connection string local:
+Em todo worker com Postgres (`web`, `office`, `webhook`, `evolution-cleanup`), use **exatamente** este bloco — não invente outro `id` nem connection string local:
 
 ```jsonc
 "hyperdrive": [
@@ -79,7 +79,7 @@ Para mídia no webhook:
 
 ## Domínios (produção)
 
-Cada app tem **um** custom domain em `routes`:
+Cada app HTTP tem **um** custom domain em `routes` (`evolution-cleanup` não tem domínio — só Cron Trigger):
 
 | App | `pattern` |
 |-----|-----------|

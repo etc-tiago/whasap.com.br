@@ -60,5 +60,19 @@ export {
   resolverStatusAposConexaoEvolution,
   type StatusInstanciaAposConexao,
 } from "./lib/instancia-evolution";
+export {
+  STATUS_SWEEP_EVOLUTION,
+  descartarInstanciaEvolutionAbandonada,
+  instanciaEvolutionEstaAbandonada,
+  listarInstanciasEvolutionParaSweep,
+  resolverReferenciaAbandonoEvolution,
+  varrerInstanciasEvolutionAbandonadas,
+  type EnvDescarteEvolution,
+  type InstanciaEvolutionAbandonadaRow,
+  type InstanciaParaCriterioAbandono,
+  type ResultadoDescarteEvolution,
+  type ResultadoVarreduraEvolution,
+  type StatusSweepEvolution,
+} from "./lib/instancia-evolution-abandonada";
 export { resolveSessionJwtSecret } from "./lib/session-jwt-secret";
 export type { BaseEnv, DbContext } from "./types";

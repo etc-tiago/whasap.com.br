@@ -1,0 +1,6 @@
+# Copie para .dev.vars (nunca commite .dev.vars):
+#   cp .dev.vars.example .dev.vars
+#
+# Evolution — JSON { baseUrl, apiKey } (mesmo valor do apps/web / webhook).
+# Produção: Secrets Store (EVOLUTION_SECRETS_STORE).
+EVOLUTION_SECRETS_STORE={"baseUrl":"http://localhost:8080","apiKey":"dev-key"}

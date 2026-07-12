@@ -8,6 +8,13 @@
       "when": 1783683319949,
       "tag": "0000_exotic_lilandra",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783819524885,
+      "tag": "0001_wandering_hobgoblin",
+      "breakpoints": true
     }
   ]
 }
