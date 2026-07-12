@@ -105,12 +105,7 @@ async function limparSessaoEvolutionRemota(
 
   if (row.evo?.token) {
     try {
-      const client = criarClienteEvolutionGo(
-        env,
-        creds,
-        { instanceToken: row.evo.token },
-        meta,
-      );
+      const client = criarClienteEvolutionGo(env, creds, { instanceToken: row.evo.token }, meta);
       await client.disconnect();
     } catch {
       // best-effort
