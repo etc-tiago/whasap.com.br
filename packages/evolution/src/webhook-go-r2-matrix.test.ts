@@ -14,6 +14,7 @@ import {
 } from "./webhook-go";
 
 const PASTA_R2 = join(import.meta.dirname, "../../r2-sync/json/webhook/evo/unknown/2026-07-10");
+const pastaR2Existe = existsSync(PASTA_R2);
 
 type EnvelopeR2 = {
   receivedAt: string;
@@ -37,8 +38,8 @@ function carregarFixturesR2(): Array<{
     });
 }
 
-describe.skipIf(!existsSync(PASTA_R2))("matriz R2 evo (42 fixtures)", () => {
-  const fixtures = carregarFixturesR2();
+describe.skipIf(!pastaR2Existe)("matriz R2 evo (42 fixtures)", () => {
+  const fixtures = pastaR2Existe ? carregarFixturesR2() : [];
 
   it("carrega os 42 arquivos locais", () => {
     expect(fixtures).toHaveLength(42);

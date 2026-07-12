@@ -7,8 +7,7 @@
     "build": "wrangler deploy --dry-run",
     "typecheck": "tsc --noEmit",
     "deploy": "bun run build && wrangler deploy",
-    "cf-typegen": "wrangler types",
-    "test": "bun test src"
+    "cf-typegen": "wrangler types"
   },
   "dependencies": {
     "@whasap/api-core": "workspace:*",
