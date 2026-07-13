@@ -14,6 +14,7 @@ import {
 import { useState } from "react";
 
 import { ConexaoIdentidadeFields } from "@/components/conexao-identidade-fields";
+import { DesconectarInstanciaButton } from "@/components/instancia/desconectar-instancia-button";
 import { IconeConexaoLucide } from "@/lib/icones-conexao";
 import {
   instanciaOperacional,
@@ -176,6 +177,9 @@ function InstancesPage() {
                   </Link>
                 </Button>
               )}
+              {isAdmin ? (
+                <DesconectarInstanciaButton inst={inst} organizacaoHash={organizacaoHash} />
+              ) : null}
             </CardContent>
           </Card>
         ))}

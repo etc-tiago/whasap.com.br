@@ -1,5 +1,16 @@
 import { useMutation } from "@tanstack/react-query";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@whasap/ui/components/alert-dialog";
 import { Button } from "@whasap/ui/components/button";
+import { useState } from "react";
 
 import { getOrpcErrorMessage } from "@/lib/orpc-error";
 import { orpc } from "@/lib/orpc";
@@ -12,9 +23,13 @@ type Props = {
 
 /** Descarta instância em onboarding e volta ao passo de escolha de tipo. */
 export function TrocarTipoButton({ instanciaId, onSucesso, variant = "ghost" }: Props) {
+  const [open, setOpen] = useState(false);
   const descartar = useMutation(
     orpc.instancia.descartar.mutationOptions({
-      onSuccess: () => onSucesso(),
+      onSuccess: () => {
+        setOpen(false);
+        onSucesso();
+      },
     }),
   );
 
@@ -25,15 +40,46 @@ export function TrocarTipoButton({ instanciaId, onSucesso, variant = "ghost" }: 
         variant={variant}
         className="w-full"
         disabled={descartar.isPending}
-        onClick={() => descartar.mutate({ instanciaId })}
+        onClick={() => setOpen(true)}
       >
-        {descartar.isPending ? "Removendo..." : "Trocar tipo de conexão"}
+        Trocar tipo de conexão
       </Button>
-      {descartar.isError ? (
-        <p className="text-center text-xs text-destructive">
-          {getOrpcErrorMessage(descartar.error, "Não foi possível remover a instância.")}
-        </p>
-      ) : null}
+
+      <AlertDialog
+        open={open}
+        onOpenChange={(next) => {
+          if (descartar.isPending) return;
+          setOpen(next);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Trocar tipo de conexão?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta conexão em configuração será removida. Você poderá escolher outro tipo e começar
+              de novo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {descartar.isError ? (
+            <p className="text-sm text-destructive">
+              {getOrpcErrorMessage(descartar.error, "Não foi possível remover a instância.")}
+            </p>
+          ) : null}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={descartar.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={descartar.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault();
+                descartar.mutate({ instanciaId });
+              }}
+            >
+              {descartar.isPending ? "Removendo…" : "Remover e trocar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

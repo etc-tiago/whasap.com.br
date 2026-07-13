@@ -59,6 +59,16 @@ export const instanciaContract = {
     .input(z.object({ instanciaId: z.string().uuid() }))
     .output(z.object({ ok: z.boolean() })),
 
+  /** Desconecta o WhatsApp; opcionalmente soft-delete conversas/mensagens e remove a conexão do painel. */
+  desconectar: oc
+    .input(
+      z.object({
+        instanciaId: z.string().uuid(),
+        excluirDados: z.boolean().default(false),
+      }),
+    )
+    .output(z.object({ ok: z.boolean() })),
+
   obterQr: oc.input(z.object({ instanciaId: z.string().uuid() })).output(
     z.object({
       base64: z.string().nullable(),

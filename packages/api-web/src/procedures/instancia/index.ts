@@ -4,6 +4,7 @@ import configurarCloud from "./configurar-cloud";
 import criar from "./criar";
 import criarCheckout from "./criar-checkout";
 import descartar from "./descartar";
+import desconectar from "./desconectar";
 import encerrarPareamento from "./encerrar-pareamento";
 import lista from "./lista";
 import obter from "./obter";
@@ -19,6 +20,7 @@ export default {
   provisionar,
   encerrarPareamento,
   descartar,
+  desconectar,
   obterQr,
   statusConexao,
   configurarCloud,

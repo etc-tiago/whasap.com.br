@@ -17,15 +17,20 @@ import {
   colunasInstanciaPublica,
   colunasInstanciaUso,
   colunasOrganizacaoPublica,
+  colunasSomenteId,
   colunasUsoMensal,
   comTimestampAtualizacao,
   comTimestampsCriacao,
+  conversa,
+  conversaAnotacao,
   incluirInstanciaOperacao,
   incluirOrganizacaoPublica,
   instancia,
   instanciaEvo,
   instanciaMetaCloud,
   marcarExclusaoLogica,
+  mensagem,
+  mensagemTemplate,
   organizacao,
   resolverIdInterno,
   usoMensal,
@@ -118,6 +123,88 @@ function metaLogEvolution(
     origem: ctx.origem,
     rpc: ctx.rpc,
   };
+}
+
+/** Soft-delete conversas, mensagens, anotações e templates da instância. */
+async function softDeleteDadosRelacionadosInstancia(
+  db: WebContext["db"],
+  instanciaIdInterno: number,
+) {
+  const conversas = await db.query.conversa.findMany({
+    where: and(eq(conversa.instanciaId, instanciaIdInterno), isNull(conversa.excluidoEm)),
+    columns: colunasSomenteId,
+  });
+  const conversaIds = conversas.map((c) => c.id);
+
+  if (conversaIds.length > 0) {
+    await db
+      .update(mensagem)
+      .set(marcarExclusaoLogica())
+      .where(and(inArray(mensagem.conversaId, conversaIds), isNull(mensagem.excluidoEm)));
+    await db
+      .update(conversaAnotacao)
+      .set(marcarExclusaoLogica())
+      .where(
+        and(inArray(conversaAnotacao.conversaId, conversaIds), isNull(conversaAnotacao.excluidoEm)),
+      );
+    await db
+      .update(conversa)
+      .set(comTimestampAtualizacao(marcarExclusaoLogica()))
+      .where(inArray(conversa.id, conversaIds));
+  }
+
+  await db
+    .update(mensagemTemplate)
+    .set(comTimestampAtualizacao(marcarExclusaoLogica()))
+    .where(
+      and(eq(mensagemTemplate.instanciaId, instanciaIdInterno), isNull(mensagemTemplate.excluidoEm)),
+    );
+}
+
+/** Disconnect + opcional delete remoto Evolution (best-effort). */
+async function encerrarSessaoEvolutionRemota(
+  ctx: WebContext,
+  row: Awaited<ReturnType<typeof buscarInstanciaDaOrganizacao>>,
+  opts: { origem: string; rpc: string; excluirInstanciaRemota: boolean },
+) {
+  if (!isEvoProvider(row.provedor)) return;
+  const creds = await obterCredenciaisEvolution(ctx.env);
+  if (row.evo?.token) {
+    try {
+      const client = criarClienteEvolutionGo(
+        ctx.env,
+        creds,
+        { instanceToken: row.evo.token },
+        metaLogEvolution(row, { origem: opts.origem, rpc: opts.rpc }),
+      );
+      await client.disconnect();
+    } catch (err) {
+      log.warn({
+        evolution: {
+          desconectarDisconnectFalhou: true,
+          erro: err instanceof Error ? err.message : String(err),
+        },
+      });
+    }
+  }
+  if (!opts.excluirInstanciaRemota) return;
+  const evolutionId = row.evo?.instanceId ?? row.uuid;
+  try {
+    const admin = criarClienteEvolutionGo(
+      ctx.env,
+      creds,
+      undefined,
+      metaLogEvolution(row, { origem: opts.origem, rpc: opts.rpc }),
+    );
+    await admin.deleteInstance(evolutionId);
+  } catch (err) {
+    log.warn({
+      evolution: {
+        desconectarDeleteFalhou: true,
+        erro: err instanceof Error ? err.message : String(err),
+      },
+    });
+  }
 }
 
 /** Obtém credenciais Meta Cloud API da instância. */
@@ -411,6 +498,55 @@ export const instanciaHandlers = {
     }
 
     await ctx.db.update(instancia).set(marcarExclusaoLogica()).where(eq(instancia.id, row.id));
+
+    return { ok: true };
+  },
+
+  /**
+   * Desconecta o WhatsApp da instância.
+   * Com `excluirDados`, soft-delete conversas/mensagens; sem assinatura, também remove a conexão do painel.
+   */
+  desconectar: async (
+    ctx: WebContext,
+    input: { instanciaId: string; excluirDados?: boolean },
+  ) => {
+    exigirAutenticacao(ctx);
+    const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
+    await exigirAdminPorIdInterno(ctx, row.organizacaoId);
+    await exigirAcessoDemonstracao(ctx, row.organizacaoId);
+
+    if (row.status === "deactivated") {
+      preconditionFailed("Instância desativada não pode ser desconectada");
+    }
+
+    const excluirDados = Boolean(input.excluirDados);
+    const operacional = row.status === "connected" || row.status === "pending_payment";
+    const removerDoPainel = excluirDados && !row.asaasIdAssinatura;
+
+    if (!operacional && !excluirDados) {
+      preconditionFailed("Instância já está desconectada");
+    }
+
+    if (operacional || removerDoPainel) {
+      await encerrarSessaoEvolutionRemota(ctx, row, {
+        origem: "desconectar",
+        rpc: "instancia.desconectar",
+        excluirInstanciaRemota: removerDoPainel,
+      });
+    }
+
+    if (excluirDados) {
+      await softDeleteDadosRelacionadosInstancia(ctx.db, row.id);
+    }
+
+    if (removerDoPainel) {
+      await ctx.db.update(instancia).set(marcarExclusaoLogica()).where(eq(instancia.id, row.id));
+      return { ok: true };
+    }
+
+    if (operacional) {
+      await marcarInstanciaDesconectadaEvolution(ctx.db, row.id);
+    }
 
     return { ok: true };
   },
