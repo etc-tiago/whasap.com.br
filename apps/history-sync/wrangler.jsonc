@@ -54,5 +54,12 @@
         "max_retries": 5
       }
     ]
-  }
+  },
+  "workflows": [
+    {
+      "name": "whasap-history-sync-chunk",
+      "binding": "HISTORY_SYNC_CHUNK_WORKFLOW",
+      "class_name": "HistorySyncChunkWorkflow"
+    }
+  ]
 }

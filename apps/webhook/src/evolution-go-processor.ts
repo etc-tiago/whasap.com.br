@@ -3,6 +3,8 @@
  */
 import {
   atualizarProgressoHistoricoSync,
+  decidirAcaoHistorySyncEnqueue,
+  montarChaveR2HistoricoSync,
   marcarInstanciaConectadaEvolution,
   marcarInstanciaDesconectadaEvolution,
   solicitarHistoricoSyncSePrimeiraConexao,
@@ -23,7 +25,6 @@ import {
 import type { WorkerExecutionContext } from "@whasap/evlog/workers";
 import { log } from "@whasap/evlog";
 import {
-  deveIgnorarHistorySyncChunk,
   formatInteractiveResponseBody,
   HISTORY_SYNC_TYPE,
   indiceWhatsappParaCorPainel,
@@ -233,9 +234,10 @@ async function enfileirarHistorySyncGo(
 ): Promise<void> {
   const chunk = parseGoHistorySyncChunk(data);
   const onDemand = chunk.syncType === HISTORY_SYNC_TYPE.ON_DEMAND;
+  const acao = decidirAcaoHistorySyncEnqueue(chunk, Boolean(env.HISTORY_SYNC_QUEUE));
 
-  if (deveIgnorarHistorySyncChunk(chunk)) {
-    if (!onDemand) {
+  if (acao.tipo === "ignorar") {
+    if (acao.atualizarProgresso) {
       await atualizarProgressoHistoricoSync(db, instance.id, {
         status: "running",
         progress: chunk.progress,
@@ -244,28 +246,26 @@ async function enfileirarHistorySyncGo(
     return;
   }
 
-  if (!env.HISTORY_SYNC_QUEUE) {
+  if (acao.tipo === "falha_sem_fila") {
     log.error({
       contexto: "webhook.history_sync",
       erro: "Fila HISTORY_SYNC_QUEUE não configurada",
       instanciaUuid: instance.uuid,
     });
-    if (!onDemand) {
-      await atualizarProgressoHistoricoSync(db, instance.id, {
-        status: "failed",
-        erro: "Fila HISTORY_SYNC_QUEUE não configurada",
-      });
-    }
+    await atualizarProgressoHistoricoSync(db, instance.id, {
+      status: "failed",
+      erro: "Fila HISTORY_SYNC_QUEUE não configurada",
+    });
     return;
   }
 
   const date = new Date().toISOString().slice(0, 10);
-  const r2Key = `historico-sync/${instance.uuid}/${date}/${crypto.randomUUID()}.json`;
+  const r2Key = montarChaveR2HistoricoSync(instance.uuid, date);
   await env.R2.put(r2Key, JSON.stringify(data), {
     httpMetadata: { contentType: "application/json" },
   });
 
-  await env.HISTORY_SYNC_QUEUE.send({
+  await env.HISTORY_SYNC_QUEUE!.send({
     instanciaUuid: instance.uuid,
     r2Key,
     receivedAt: new Date().toISOString(),

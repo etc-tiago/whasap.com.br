@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     environment: "node",
     setupFiles: ["./src/test/setup.ts"],
-    include: ["src/integration/**/*.test.ts"],
+    include: ["src/integration/**/*.test.ts", "src/lib/instancia-historico-sync-mapper.test.ts"],
     testTimeout: 30_000,
     pool: "forks",
   },

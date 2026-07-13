@@ -91,14 +91,23 @@ export {
   buscarContatoPorIdExterno,
   decrementarNaoLidas,
   ingerirMensagem,
+  isoTimestampParaSql,
   marcarConversaLidaLocal,
   type IngerirMensagemParams,
 } from "./lib/ingestao-mensagem";
 export {
   atualizarProgressoHistoricoSync,
   concluirHistoricosSyncOciosos,
+  decidirAcaoHistorySyncEnqueue,
+  deveMarcarFalhaAposTentativasFila,
   HISTORICO_SYNC_IDLE_MS,
+  HISTORY_SYNC_FILA_MAX_TENTATIVAS,
+  HISTORY_SYNC_MIDIA_CONCORRENCIA,
+  montarChaveR2HistoricoSync,
+  montarPatchProgressoHistoricoSync,
+  particionarEmLotes,
   processarHistorySyncChunk,
+  type AcaoHistorySyncEnqueue,
   type InstanciaParaHistorySync,
 } from "./lib/history-sync";
 export {
@@ -109,6 +118,7 @@ export {
 } from "./lib/midia-inbound";
 export {
   historicoSyncEmAndamento,
+  motivoFalhaHistorySync,
   solicitarHistoricoSyncConversaEvolution,
   solicitarHistoricoSyncEvolution,
   solicitarHistoricoSyncSePrimeiraConexao,

@@ -30,6 +30,90 @@ const TIPOS_MIDIA = new Set(["image", "audio", "document", "video", "sticker"]);
 /** Sem novos chunks úteis por este intervalo → marcar completed (conta grande / RECENT incompleto). */
 export const HISTORICO_SYNC_IDLE_MS = 5 * 60 * 1000;
 
+/** Concorrência padrão ao baixar mídias de um chunk no worker. */
+export const HISTORY_SYNC_MIDIA_CONCORRENCIA = 4;
+
+/** Particiona jobs de mídia em lotes de tamanho fixo. */
+export function particionarEmLotes<T>(items: readonly T[], tamanho: number): T[][] {
+  if (tamanho <= 0) return items.length ? [[...items]] : [];
+  const lotes: T[][] = [];
+  for (let i = 0; i < items.length; i += tamanho) {
+    lotes.push(items.slice(i, i + tamanho));
+  }
+  return lotes;
+}
+
+export type AcaoHistorySyncEnqueue =
+  | { tipo: "ignorar"; atualizarProgresso: boolean }
+  | { tipo: "enfileirar" }
+  | { tipo: "falha_sem_fila" };
+
+/** Tentativas da fila Cloudflare antes de marcar sync failed. */
+export const HISTORY_SYNC_FILA_MAX_TENTATIVAS = 5;
+
+/** Chave R2 do chunk enfileirado para o worker history-sync. */
+export function montarChaveR2HistoricoSync(
+  instanciaUuid: string,
+  diaIso: string,
+  id: string = crypto.randomUUID(),
+): string {
+  return `historico-sync/${instanciaUuid}/${diaIso}/${id}.json`;
+}
+
+/** Apos N tentativas da queue, ack + marcar failed (em vez de retry infinito). */
+export function deveMarcarFalhaAposTentativasFila(attempts: number): boolean {
+  return attempts >= HISTORY_SYNC_FILA_MAX_TENTATIVAS;
+}
+
+/**
+ * Patch aplicado em `instancia_evo` por {@link atualizarProgressoHistoricoSync}.
+ * Exportado para testes do contrato de status.
+ */
+export function montarPatchProgressoHistoricoSync(params: {
+  status?: "idle" | "requested" | "running" | "completed" | "failed";
+  progress?: number | null;
+  erro?: string | null;
+  marcarConcluido?: boolean;
+  heartbeat?: boolean;
+  agora?: Date;
+}): Record<string, unknown> | null {
+  const agora = params.agora ?? new Date();
+  const patch: Record<string, unknown> = {};
+  if (params.status !== undefined) patch.historicoSyncStatus = params.status;
+  if (params.progress !== undefined) patch.historicoSyncProgress = params.progress;
+  if (params.erro !== undefined) patch.historicoSyncErro = params.erro;
+  if (params.heartbeat) patch.historicoSincronizandoEm = agora;
+  if (params.marcarConcluido) {
+    patch.historicoSyncStatus = "completed";
+    patch.historicoSincronizadoEm = agora;
+    patch.historicoSincronizandoEm = null;
+    patch.historicoSyncErro = null;
+  }
+  return Object.keys(patch).length === 0 ? null : patch;
+}
+
+/**
+ * Decide o que o webhook faz com um chunk HistorySync parseado.
+ * On-demand nao marca failed/running na instancia (sync completo da conta).
+ */
+export function decidirAcaoHistorySyncEnqueue(
+  chunk: {
+    syncType: number;
+    temMensagens: boolean;
+  },
+  temFila: boolean,
+): AcaoHistorySyncEnqueue {
+  const onDemand = chunk.syncType === HISTORY_SYNC_TYPE.ON_DEMAND;
+  const ignorar = chunk.syncType === HISTORY_SYNC_TYPE.NON_BLOCKING_DATA || !chunk.temMensagens;
+  if (ignorar) {
+    return { tipo: "ignorar", atualizarProgresso: !onDemand };
+  }
+  if (!temFila) {
+    return onDemand ? { tipo: "ignorar", atualizarProgresso: false } : { tipo: "falha_sem_fila" };
+  }
+  return { tipo: "enfileirar" };
+}
+
 /** Atualiza progresso/status leve sem ingerir mensagens. */
 export async function atualizarProgressoHistoricoSync(
   db: Db,
@@ -43,18 +127,8 @@ export async function atualizarProgressoHistoricoSync(
     heartbeat?: boolean;
   },
 ): Promise<void> {
-  const patch: Record<string, unknown> = {};
-  if (params.status !== undefined) patch.historicoSyncStatus = params.status;
-  if (params.progress !== undefined) patch.historicoSyncProgress = params.progress;
-  if (params.erro !== undefined) patch.historicoSyncErro = params.erro;
-  if (params.heartbeat) patch.historicoSincronizandoEm = new Date();
-  if (params.marcarConcluido) {
-    patch.historicoSyncStatus = "completed";
-    patch.historicoSincronizadoEm = new Date();
-    patch.historicoSincronizandoEm = null;
-    patch.historicoSyncErro = null;
-  }
-  if (Object.keys(patch).length === 0) return;
+  const patch = montarPatchProgressoHistoricoSync(params);
+  if (!patch) return;
 
   await db
     .update(instanciaEvo)

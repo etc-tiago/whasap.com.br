@@ -43,11 +43,17 @@ export type IngerirMensagemParams = {
   ultimaMensagemEm?: Date;
 };
 
+/**
+ * Serializa Date para parametro SQL (ISO-8601).
+ * Date cru no template sql vira Date.toString() ("Wed Sep 18 ...") e o Postgres rejeita.
+ */
+export function isoTimestampParaSql(nova: Date): string {
+  return Number.isNaN(nova.getTime()) ? new Date().toISOString() : nova.toISOString();
+}
+
 /** Atualiza `ultima_mensagem_em` só se o novo valor for mais recente (race-safe). */
 function sqlUltimaMensagemMonotonica(nova: Date) {
-  // `Date` cru no `sql` template vira `Date.toString()` no driver ("Wed Sep 18…")
-  // e o Postgres rejeita. Parametrizar ISO + cast evita isso.
-  const iso = Number.isNaN(nova.getTime()) ? new Date().toISOString() : nova.toISOString();
+  const iso = isoTimestampParaSql(nova);
   const ts = sql`${sql.param(iso)}::timestamp`;
   return sql`CASE
     WHEN ${conversa.ultimaMensagemEm} IS NULL OR ${conversa.ultimaMensagemEm} < ${ts}

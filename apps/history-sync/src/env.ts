@@ -13,4 +13,6 @@ export type Env = EvolutionSecretsEnv & {
   CDN_HMAC_SECRET?: string;
   WHATSAPP_CLOUD_WEBHOOK_SECRET?: string;
   WORKER_NAME?: string;
+  /** Workflow com passos: carregar R2 → resolver instância → ingerir → mídias. */
+  HISTORY_SYNC_CHUNK_WORKFLOW: Workflow<HistorySyncQueueMessage>;
 };

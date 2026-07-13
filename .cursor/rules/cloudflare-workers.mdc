@@ -118,12 +118,23 @@ Toda chamada via `criarClienteEvolutionGo` / `criarClienteMeta` grava no bucket 
 
 Workers com binding `R2` → `whasap`: `web`, `webhook`, `office`, `evolution-cleanup`, `history-sync`.
 
-## Queues
+## Queues + Workflows
 
 | Fila | Producer | Consumer |
 |------|----------|----------|
-| `whasap-history-sync` | `webhook` (`HISTORY_SYNC_QUEUE`) | `history-sync` |
+| `whasap-history-sync` | `webhook` (`HISTORY_SYNC_QUEUE`) | `history-sync` → cria Workflow |
 
 Chunks HistorySync: R2 `historico-sync/{instanciaUuid}/…` + mensagem de fila `{ instanciaUuid, r2Key, receivedAt }`.
-O consumer `history-sync` também tem Cron `*/2` para marcar sync ocioso (5 min sem chunk) como `completed` — não concluir no `progress=100` do bootstrap (`syncType` 0).
+
+O consumer **não processa inline**: cria instância do Workflow `whasap-history-sync-chunk` (`HISTORY_SYNC_CHUNK_WORKFLOW` / `HistorySyncChunkWorkflow`) com ID estável `hs-{uuid-do-chunk}` para idempotência em redelivery.
+
+Passos no dashboard (Workers → Workflows):
+
+1. `carregar-chunk-r2`
+2. `resolver-instancia`
+3. `ingerir-mensagens` (jobs de mídia em `{r2Key}.midia-jobs.json` se houver)
+4. `persistir-midias` (opcional)
+5. `marcar-falha` (só se o Workflow falhar após retries do step)
+
+Cron `*/2` no mesmo worker marca sync ocioso (5 min sem chunk) como `completed` — não concluir no `progress=100` do bootstrap (`syncType` 0).
 

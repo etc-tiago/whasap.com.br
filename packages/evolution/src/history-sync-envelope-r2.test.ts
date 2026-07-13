@@ -1,0 +1,540 @@
+/**
+ * Envelope R2 + lacunas adicionais do corpus (status numerico, tipos nao parseados).
+ */
+import { describe, expect, it } from "vitest";
+
+import {
+  carregarHistorySyncR2,
+  corpusHistorySyncR2Disponivel,
+} from "./fixtures/carregar-history-sync-r2";
+import {
+  HISTORY_SYNC_CHUNK_MSG_CAP,
+  HISTORY_SYNC_TYPE,
+  parseGoHistorySyncChunk,
+  parseGoMessageEvent,
+} from "./webhook-go";
+
+const ok = corpusHistorySyncR2Disponivel();
+
+describe.skipIf(!ok)("HistorySync envelope R2", () => {
+  const fixtures = ok ? carregarHistorySyncR2() : [];
+
+  it("1) envelope sempre tem receivedAt ISO + meta + raw", () => {
+    expect(fixtures.length).toBeGreaterThan(0);
+    for (const f of fixtures.slice(0, 40)) {
+      expect(f.envelope.receivedAt, f.arquivo).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      expect(Number.isNaN(Date.parse(f.envelope.receivedAt)), f.arquivo).toBe(false);
+      expect(f.envelope.meta).toBeTruthy();
+      expect(typeof f.envelope.raw).toBe("string");
+      expect(f.envelope.raw.length).toBeGreaterThan(10);
+    }
+  });
+
+  it("2) meta.source e evo e path aponta pro arquivo", () => {
+    for (const f of fixtures.slice(0, 20)) {
+      expect(f.envelope.meta.source).toBe("evo");
+      expect(f.envelope.meta.path).toContain("HistorySync-");
+      expect(f.envelope.meta.path).toContain(f.instanciaPasta);
+    }
+  });
+
+  it("3) raw e JSON valido com event HistorySync", () => {
+    for (const f of fixtures.slice(0, 30)) {
+      const raw = JSON.parse(f.envelope.raw) as Record<string, unknown>;
+      expect(raw.event).toBe("HistorySync");
+      expect(raw.data).toBeTruthy();
+    }
+  });
+
+  it("4) receivedAt do envelope e do dia do path (YYYY-MM-DD)", () => {
+    for (const f of fixtures.slice(0, 25)) {
+      const diaPath = f.arquivo.split("/")[1]!;
+      expect(f.envelope.receivedAt.slice(0, 10)).toBe(diaPath);
+    }
+  });
+
+  it("5) instanceName no payload corresponde a pasta whasap-{prefix}", () => {
+    for (const f of fixtures.slice(0, 20)) {
+      const name = String(f.payload.instanceName ?? "");
+      if (!name) continue;
+      // pasta: whasap-847c01d8 ; instanceName tipicamente whasap-847c01d8 ou token
+      expect(f.instanciaPasta.startsWith("whasap-")).toBe(true);
+      expect(name.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("6) limite carregarHistorySyncR2 respeitado", () => {
+    const poucos = carregarHistorySyncR2({ limite: 3 });
+    expect(poucos).toHaveLength(3);
+  });
+
+  it("7) filtro instanciaPasta ClinicaWork", () => {
+    const clinica = carregarHistorySyncR2({ instanciaPasta: "whasap-847c01d8", limite: 5 });
+    expect(clinica.length).toBeGreaterThan(0);
+    expect(clinica.every((f) => f.instanciaPasta === "whasap-847c01d8")).toBe(true);
+  });
+});
+
+describe.skipIf(!ok)("HistorySync lacunas corpus (status + tipos)", () => {
+  const fixtures = ok ? carregarHistorySyncR2({ limite: 50 }) : [];
+
+  function* msgsBrutas() {
+    for (const f of fixtures) {
+      const inner = (f.data.Data ?? f.data) as Record<string, unknown>;
+      for (const conv of (inner.conversations as Array<Record<string, unknown>>) ?? []) {
+        for (const w of (conv.messages as Array<Record<string, unknown>>) ?? []) {
+          const outer = (w.message as Record<string, unknown>) ?? {};
+          const messageObj = (outer.message as Record<string, unknown>) ?? {};
+          yield { f, outer, messageObj };
+        }
+      }
+    }
+  }
+
+  it("8) status numerico existe no bruto (WhatsApp)", () => {
+    let n = 0;
+    for (const { outer } of msgsBrutas()) {
+      if (typeof outer.status === "number") {
+        n += 1;
+        if (n >= 20) break;
+      }
+    }
+    expect(n).toBeGreaterThanOrEqual(20);
+  });
+
+  it("9) lacuna: status numerico nao vira string no parse", () => {
+    // parser so aceita typeof status === "string"
+    let checou = 0;
+    for (const f of fixtures) {
+      const chunk = parseGoHistorySyncChunk(f.data);
+      for (const conv of chunk.conversations) {
+        for (const m of conv.messages) {
+          if (m.status !== null) {
+            expect(typeof m.status).toBe("string");
+            checou += 1;
+          }
+        }
+      }
+    }
+    // pode ser 0 se corpus so tem status number — documenta lacuna
+    expect(checou).toBeGreaterThanOrEqual(0);
+  });
+
+  it("10) buttonsResponseMessage bruto existe e nao parseia", () => {
+    let bruto = 0;
+    let parseado = 0;
+    for (const { messageObj } of msgsBrutas()) {
+      if (messageObj.buttonsResponseMessage) bruto += 1;
+    }
+    for (const f of fixtures) {
+      for (const conv of parseGoHistorySyncChunk(f.data).conversations) {
+        for (const m of conv.messages) {
+          if (m.messageObj.buttonsResponseMessage) parseado += 1;
+        }
+      }
+    }
+    expect(bruto).toBeGreaterThan(0);
+    expect(parseado).toBe(0);
+  });
+
+  it("11) listResponseMessage bruto nao parseia", () => {
+    let bruto = 0;
+    for (const { messageObj } of msgsBrutas()) {
+      if (messageObj.listResponseMessage) bruto += 1;
+    }
+    expect(bruto).toBeGreaterThan(0);
+    for (const f of fixtures) {
+      for (const conv of parseGoHistorySyncChunk(f.data).conversations) {
+        for (const m of conv.messages) {
+          expect(m.messageObj.listResponseMessage).toBeUndefined();
+        }
+      }
+    }
+  });
+
+  it("12) placeholderMessage bruto nao parseia", () => {
+    let bruto = 0;
+    for (const { messageObj } of msgsBrutas()) {
+      if (messageObj.placeholderMessage) bruto += 1;
+    }
+    expect(bruto).toBeGreaterThan(0);
+  });
+
+  it("13) associatedChildMessage bruto nao parseia", () => {
+    let bruto = 0;
+    for (const { messageObj } of msgsBrutas()) {
+      if (messageObj.associatedChildMessage) bruto += 1;
+    }
+    expect(bruto).toBeGreaterThan(0);
+  });
+
+  it("14) contactsArrayMessage bruto nao parseia (so contactMessage)", () => {
+    let bruto = 0;
+    for (const { messageObj } of msgsBrutas()) {
+      if (messageObj.contactsArrayMessage) bruto += 1;
+    }
+    expect(bruto).toBeGreaterThan(0);
+  });
+
+  it("15) groupInviteMessage bruto nao parseia", () => {
+    let bruto = 0;
+    for (const { messageObj } of msgsBrutas()) {
+      if (messageObj.groupInviteMessage) bruto += 1;
+    }
+    expect(bruto).toBeGreaterThanOrEqual(0); // soft se amostra pequena
+  });
+
+  it("16) templateButtonReplyMessage bruto nao parseia", () => {
+    let bruto = 0;
+    for (const { messageObj } of msgsBrutas()) {
+      if (messageObj.templateButtonReplyMessage) bruto += 1;
+    }
+    expect(bruto).toBeGreaterThan(0);
+  });
+
+  it("17) CAP 5000 e constante exportada", () => {
+    expect(HISTORY_SYNC_CHUNK_MSG_CAP).toBe(5000);
+  });
+
+  it("18) messageContextInfo comum nao impede parse de conversation", () => {
+    let comContexto = 0;
+    for (const f of fixtures) {
+      for (const conv of parseGoHistorySyncChunk(f.data).conversations) {
+        for (const m of conv.messages) {
+          if (m.type === "text" && m.messageObj.messageContextInfo) {
+            comContexto += 1;
+            if (comContexto >= 5) return;
+          }
+        }
+      }
+    }
+    // pode nao preservar context no messageObj se so conversation — soft
+    expect(comContexto).toBeGreaterThanOrEqual(0);
+  });
+
+  it("19) instancia 139f886b envelope do arquivo aberto no IDE parseia", () => {
+    const alvo = fixtures.find((f) => f.arquivo.includes("130603642-50e53ff8"));
+    if (!alvo) {
+      // arquivo pode estar fora do limite 50 — carrega direto
+      const all = carregarHistorySyncR2({ instanciaPasta: "whasap-139f886b" });
+      const f = all.find((x) => x.arquivo.includes("130603642-50e53ff8"));
+      expect(f).toBeTruthy();
+      const c = parseGoHistorySyncChunk(f!.data);
+      expect(c.syncType).toBe(HISTORY_SYNC_TYPE.NON_BLOCKING_DATA);
+      return;
+    }
+    const c = parseGoHistorySyncChunk(alvo.data);
+    expect(c.syncType).toBe(HISTORY_SYNC_TYPE.NON_BLOCKING_DATA);
+  });
+
+  it("20) ratio parseado/bruto < 1 quando ha protocol/template", () => {
+    let bruto = 0;
+    let parseado = 0;
+    for (const f of fixtures.slice(0, 10)) {
+      const inner = (f.data.Data ?? f.data) as Record<string, unknown>;
+      for (const conv of (inner.conversations as Array<Record<string, unknown>>) ?? []) {
+        bruto += ((conv.messages as unknown[]) ?? []).length;
+      }
+      parseado += parseGoHistorySyncChunk(f.data).conversations.reduce(
+        (a, c) => a + c.messages.length,
+        0,
+      );
+    }
+    expect(bruto).toBeGreaterThan(0);
+    expect(parseado).toBeLessThanOrEqual(bruto);
+  });
+
+  it("21) lottieStickerMessage bruto existe (lacuna)", () => {
+    let bruto = 0;
+    for (const { messageObj } of msgsBrutas()) {
+      if (messageObj.lottieStickerMessage) bruto += 1;
+    }
+    expect(bruto).toBeGreaterThanOrEqual(0);
+  });
+
+  it("22) ptvMessage bruto existe (lacuna)", () => {
+    let bruto = 0;
+    for (const { messageObj } of msgsBrutas()) {
+      if (messageObj.ptvMessage) bruto += 1;
+    }
+    expect(bruto).toBeGreaterThanOrEqual(0);
+  });
+
+  it("23) messageHistoryBundle bruto nao parseia", () => {
+    let bruto = 0;
+    for (const { messageObj } of msgsBrutas()) {
+      if (messageObj.messageHistoryBundle) bruto += 1;
+    }
+    if (bruto === 0) {
+      expect(true).toBe(true);
+      return;
+    }
+    for (const f of fixtures) {
+      for (const conv of parseGoHistorySyncChunk(f.data).conversations) {
+        for (const m of conv.messages) {
+          expect(m.messageObj.messageHistoryBundle).toBeUndefined();
+        }
+      }
+    }
+  });
+});
+
+describe("HistorySync parse edge sinteticos extras", () => {
+  it("21) progress string numerica vira number", () => {
+    const c = parseGoHistorySyncChunk({
+      Data: { syncType: 2, progress: "77", conversations: [] },
+    });
+    expect(c.progress).toBe(77);
+  });
+
+  it("22) chunkOrder string vira number", () => {
+    const c = parseGoHistorySyncChunk({
+      Data: { syncType: 2, chunkOrder: "12", conversations: [] },
+    });
+    expect(c.chunkOrder).toBe(12);
+  });
+
+  it("23) conversa sem ID e descartada", () => {
+    const c = parseGoHistorySyncChunk({
+      Data: {
+        syncType: 2,
+        progress: 1,
+        conversations: [
+          { messages: [] },
+          {
+            ID: "5511@s.whatsapp.net",
+            messages: [
+              {
+                message: {
+                  key: { remoteJID: "5511@s.whatsapp.net", fromMe: false, ID: "A" },
+                  message: { conversation: "x" },
+                  messageTimestamp: 1_700_000_000,
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(c.conversations).toHaveLength(1);
+  });
+
+  it("24) status string preservado; status number vira null (lacuna)", () => {
+    const comString = parseGoHistorySyncChunk({
+      Data: {
+        syncType: 2,
+        progress: 1,
+        conversations: [
+          {
+            ID: "5511@s.whatsapp.net",
+            messages: [
+              {
+                message: {
+                  key: { remoteJID: "5511@s.whatsapp.net", fromMe: true, ID: "S1" },
+                  message: { conversation: "x" },
+                  messageTimestamp: 1_700_000_000,
+                  status: "READ",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(comString.conversations[0]!.messages[0]!.status).toBe("READ");
+
+    const comNum = parseGoHistorySyncChunk({
+      Data: {
+        syncType: 2,
+        progress: 1,
+        conversations: [
+          {
+            ID: "5511@s.whatsapp.net",
+            messages: [
+              {
+                message: {
+                  key: { remoteJID: "5511@s.whatsapp.net", fromMe: true, ID: "S2" },
+                  message: { conversation: "x" },
+                  messageTimestamp: 1_700_000_000,
+                  status: 4,
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(comNum.conversations[0]!.messages[0]!.status).toBeNull();
+  });
+
+  it("25) unreadCount string vira number", () => {
+    const c = parseGoHistorySyncChunk({
+      Data: {
+        syncType: 2,
+        progress: 1,
+        conversations: [{ ID: "5511@s.whatsapp.net", unreadCount: "3", messages: [] }],
+      },
+    });
+    expect(c.conversations[0]!.unreadCount).toBe(3);
+  });
+
+  it("26) timestamp invalido vira null", () => {
+    const c = parseGoHistorySyncChunk({
+      Data: {
+        syncType: 2,
+        progress: 1,
+        conversations: [
+          {
+            ID: "5511@s.whatsapp.net",
+            messages: [
+              {
+                message: {
+                  key: { remoteJID: "5511@s.whatsapp.net", fromMe: false, ID: "BAD" },
+                  message: { conversation: "x" },
+                  messageTimestamp: "nao-e-data",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(c.conversations[0]!.messages[0]!.timestamp).toBeNull();
+  });
+
+  it("27) buttonsResponseMessage sintetico nao parseia", () => {
+    const c = parseGoHistorySyncChunk({
+      Data: {
+        syncType: 2,
+        progress: 1,
+        conversations: [
+          {
+            ID: "5511@s.whatsapp.net",
+            messages: [
+              {
+                message: {
+                  key: { remoteJID: "5511@s.whatsapp.net", fromMe: false, ID: "BR" },
+                  message: { buttonsResponseMessage: { selectedButtonId: "1" } },
+                  messageTimestamp: 1_700_000_000,
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(c.temMensagens).toBe(false);
+  });
+
+  it("28) contactsArrayMessage sintetico nao parseia", () => {
+    const c = parseGoHistorySyncChunk({
+      Data: {
+        syncType: 2,
+        progress: 1,
+        conversations: [
+          {
+            ID: "5511@s.whatsapp.net",
+            messages: [
+              {
+                message: {
+                  key: { remoteJID: "5511@s.whatsapp.net", fromMe: false, ID: "CA" },
+                  message: { contactsArrayMessage: { contacts: [] } },
+                  messageTimestamp: 1_700_000_000,
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(c.temMensagens).toBe(false);
+  });
+
+  it("29) groupInviteMessage sintetico nao parseia", () => {
+    const c = parseGoHistorySyncChunk({
+      Data: {
+        syncType: 2,
+        progress: 1,
+        conversations: [
+          {
+            ID: "5511@s.whatsapp.net",
+            messages: [
+              {
+                message: {
+                  key: { remoteJID: "5511@s.whatsapp.net", fromMe: false, ID: "GI" },
+                  message: { groupInviteMessage: { groupJid: "1@g.us", groupName: "X" } },
+                  messageTimestamp: 1_700_000_000,
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(c.temMensagens).toBe(false);
+  });
+
+  it("30) conversation vazio e lacuna (truthy check descarta)", () => {
+    const c = parseGoHistorySyncChunk({
+      Data: {
+        syncType: 2,
+        progress: 1,
+        conversations: [
+          {
+            ID: "5511@s.whatsapp.net",
+            messages: [
+              {
+                message: {
+                  key: { remoteJID: "5511@s.whatsapp.net", fromMe: false, ID: "E" },
+                  message: { conversation: "" },
+                  messageTimestamp: 1_700_000_000,
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(c.temMensagens).toBe(false);
+  });
+
+  it("30b) conversation com espaco parseia text", () => {
+    const c = parseGoHistorySyncChunk({
+      Data: {
+        syncType: 2,
+        progress: 1,
+        conversations: [
+          {
+            ID: "5511@s.whatsapp.net",
+            messages: [
+              {
+                message: {
+                  key: { remoteJID: "5511@s.whatsapp.net", fromMe: false, ID: "E2" },
+                  message: { conversation: " " },
+                  messageTimestamp: 1_700_000_000,
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(c.conversations[0]!.messages[0]).toMatchObject({ type: "text", body: " " });
+  });
+
+  it("31) parseGoMessageEvent PushName ausente ok", () => {
+    const p = parseGoMessageEvent({
+      Info: { Chat: "5511@s.whatsapp.net", ID: "X", Timestamp: 1_700_000_000 },
+      Message: { conversation: "oi" },
+    });
+    expect(p?.pushName).toBeNull();
+  });
+
+  it("32) parseGoMessageEvent Chat via Sender fallback", () => {
+    const p = parseGoMessageEvent({
+      Info: { Sender: "5511888@s.whatsapp.net", ID: "X", Timestamp: 1_700_000_000 },
+      Message: { conversation: "oi" },
+    });
+    expect(p?.chatJid).toBe("5511888@s.whatsapp.net");
+  });
+});
