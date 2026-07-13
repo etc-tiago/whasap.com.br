@@ -59,8 +59,31 @@ function InboxOrgPage() {
   );
 
   const selected = conversations.data?.find((c: ConversaItem) => c.id === selectedId);
+  const instanciasOperacionais = useMemo(
+    () => (instancias.data ?? []).filter((i) => instanciaOperacional(i.status)),
+    [instancias.data],
+  );
   const instanciaAtivaId =
-    selected?.instanciaId ?? instancias.data?.find((i) => instanciaOperacional(i.status))?.id;
+    selected?.instanciaId ?? instanciasOperacionais[0]?.id;
+  const instanciaPadraoNovaConversa = useMemo(() => {
+    if (
+      selected?.instanciaId &&
+      instanciasOperacionais.some((i) => i.id === selected.instanciaId)
+    ) {
+      return selected.instanciaId;
+    }
+    return instanciasOperacionais[0]?.id;
+  }, [selected?.instanciaId, instanciasOperacionais]);
+  const instanciasParaNovaConversa = useMemo(
+    () =>
+      instanciasOperacionais.map((i) => ({
+        id: i.id,
+        nome: i.nome,
+        icone: i.icone,
+        provider: i.provider,
+      })),
+    [instanciasOperacionais],
+  );
 
   const instance = useQuery(
     orpc.instancia.obter.queryOptions({
@@ -260,12 +283,14 @@ function InboxOrgPage() {
       filtroAtivo={filtroAtivo}
       onFiltroChange={setFiltroAtivo}
       conversaAberta={Boolean(selected)}
-      instanciaId={instanciaAtivaId}
+      instancias={instanciasParaNovaConversa}
+      instanciaPadraoId={instanciaPadraoNovaConversa}
       organizacaoHash={organizacaoHash}
-      provedor={instance.data?.provider}
-      podeIniciarConversa={podeIniciarConversa && Boolean(instanciaAtivaId)}
+      podeIniciarConversa={podeIniciarConversa && instanciasParaNovaConversa.length > 0}
       onConversaIniciada={setSelectedId}
-      telefoneIniciarBusca={podeIniciarConversa && instanciaAtivaId ? telefoneIniciarBusca : null}
+      telefoneIniciarBusca={
+        podeIniciarConversa && instanciasParaNovaConversa.length > 0 ? telefoneIniciarBusca : null
+      }
       listaConversas={listaConversas}
       chatHeader={
         selected && instanciaAtivaId ? (

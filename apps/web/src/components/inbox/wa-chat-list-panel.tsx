@@ -3,7 +3,10 @@ import { useState, type ReactNode } from "react";
 import { cn } from "@whasap/ui/lib/utils";
 
 import { WaIconButton } from "@/components/inbox/wa-icon-button";
-import { WaNovaConversaPopover } from "@/components/inbox/wa-nova-conversa-popover";
+import {
+  WaNovaConversaPopover,
+  type InstanciaNovaConversa,
+} from "@/components/inbox/wa-nova-conversa-popover";
 
 const FILTROS = ["Tudo", "Não lidas", "Favoritas", "Grupos"] as const;
 export type FiltroConversa = (typeof FILTROS)[number];
@@ -15,9 +18,9 @@ type WaChatListPanelProps = {
   onFiltroChange?: (filtro: FiltroConversa) => void;
   children: ReactNode;
   mobileHidden?: boolean;
-  instanciaId?: string;
+  instancias?: InstanciaNovaConversa[];
+  instanciaPadraoId?: string;
   organizacaoHash?: string;
-  provedor?: string;
   podeIniciarConversa?: boolean;
   onConversaIniciada?: (conversaId: string) => void;
   /** Telefone normalizado da busca sem match exato — exibe chip "Iniciar conversa". */
@@ -31,9 +34,9 @@ export function WaChatListPanel({
   onFiltroChange,
   children,
   mobileHidden,
-  instanciaId,
+  instancias = [],
+  instanciaPadraoId,
   organizacaoHash,
-  provedor,
   podeIniciarConversa,
   onConversaIniciada,
   telefoneIniciarBusca,
@@ -42,7 +45,8 @@ export function WaChatListPanel({
   const [telefoneInicial, setTelefoneInicial] = useState<string | undefined>();
 
   const podeAbrirNovaConversa =
-    Boolean(instanciaId && organizacaoHash && provedor && onConversaIniciada) &&
+    instancias.length > 0 &&
+    Boolean(organizacaoHash && onConversaIniciada) &&
     Boolean(podeIniciarConversa);
 
   function abrirNovaConversa(telefone?: string) {
@@ -71,11 +75,11 @@ export function WaChatListPanel({
       <div className="flex items-center justify-between px-5 pb-2 pt-4">
         <h1 className="text-2xl font-semibold text-wa-text">Whasap</h1>
         <div className="flex items-center gap-1">
-          {instanciaId && organizacaoHash && provedor && onConversaIniciada ? (
+          {organizacaoHash && onConversaIniciada && instancias.length > 0 ? (
             <WaNovaConversaPopover
               organizacaoHash={organizacaoHash}
-              instanciaId={instanciaId}
-              provedor={provedor}
+              instancias={instancias}
+              instanciaPadraoId={instanciaPadraoId}
               disabled={!podeIniciarConversa}
               onConversaIniciada={onConversaIniciada}
               open={novaConversaOpen}

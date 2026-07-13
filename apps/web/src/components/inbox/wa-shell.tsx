@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { cn } from "@whasap/ui/lib/utils";
 
 import { WaChatListPanel, type FiltroConversa } from "@/components/inbox/wa-chat-list-panel";
+import type { InstanciaNovaConversa } from "@/components/inbox/wa-nova-conversa-popover";
 import { WaEmptyChat } from "@/components/inbox/wa-message-bubble";
 
 type WaShellProps = {
@@ -12,9 +13,9 @@ type WaShellProps = {
   onFiltroChange?: (filtro: FiltroConversa) => void;
   listaConversas: ReactNode;
   conversaAberta: boolean;
-  instanciaId?: string;
+  instancias?: InstanciaNovaConversa[];
+  instanciaPadraoId?: string;
   organizacaoHash?: string;
-  provedor?: string;
   podeIniciarConversa?: boolean;
   onConversaIniciada?: (conversaId: string) => void;
   telefoneIniciarBusca?: string | null;
@@ -30,9 +31,9 @@ export function WaShell({
   onFiltroChange,
   listaConversas,
   conversaAberta,
-  instanciaId,
+  instancias,
+  instanciaPadraoId,
   organizacaoHash,
-  provedor,
   podeIniciarConversa,
   onConversaIniciada,
   telefoneIniciarBusca,
@@ -48,9 +49,9 @@ export function WaShell({
         filtroAtivo={filtroAtivo}
         onFiltroChange={onFiltroChange}
         mobileHidden={conversaAberta}
-        instanciaId={instanciaId}
+        instancias={instancias}
+        instanciaPadraoId={instanciaPadraoId}
         organizacaoHash={organizacaoHash}
-        provedor={provedor}
         podeIniciarConversa={podeIniciarConversa}
         onConversaIniciada={onConversaIniciada}
         telefoneIniciarBusca={telefoneIniciarBusca}

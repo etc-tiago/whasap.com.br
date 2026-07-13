@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isEvoProvider, isMetaCloudProvider } from "@whasap/config";
 import { Button } from "@whasap/ui/components/button";
 import { Input } from "@whasap/ui/components/input";
@@ -13,17 +13,26 @@ import {
 } from "@whasap/ui/components/select";
 import { Textarea } from "@whasap/ui/components/textarea";
 import { MessageSquarePlus } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { WaIconButton } from "@/components/inbox/wa-icon-button";
+import { IconeConexaoLucide } from "@/lib/icones-conexao";
 import { orpc } from "@/lib/orpc";
 import { getOrpcErrorMessage } from "@/lib/orpc-error";
 import { extrairIndicesVariaveisTemplate, textoCorpoTemplate } from "@/lib/template-variaveis";
 
+export type InstanciaNovaConversa = {
+  id: string;
+  nome: string;
+  icone: string;
+  provider: string;
+};
+
 type WaNovaConversaPopoverProps = {
   organizacaoHash: string;
-  instanciaId: string;
-  provedor: string;
+  instancias: InstanciaNovaConversa[];
+  /** Instância pré-selecionada ao abrir (ex.: da conversa ativa). */
+  instanciaPadraoId?: string;
   disabled?: boolean;
   onConversaIniciada: (conversaId: string) => void;
   /** Controle externo do popover (compartilhado com o chip da busca). */
@@ -35,8 +44,8 @@ type WaNovaConversaPopoverProps = {
 
 export function WaNovaConversaPopover({
   organizacaoHash,
-  instanciaId,
-  provedor,
+  instancias,
+  instanciaPadraoId,
   disabled,
   onConversaIniciada,
   open: openControlado,
@@ -47,25 +56,48 @@ export function WaNovaConversaPopover({
   const [openInterno, setOpenInterno] = useState(false);
   const open = openControlado ?? openInterno;
   const setOpen = onOpenChangeControlado ?? setOpenInterno;
+  const [instanciaId, setInstanciaId] = useState("");
   const [telefone, setTelefone] = useState("");
   const [nome, setNome] = useState("");
   const [corpo, setCorpo] = useState("");
   const [templateId, setTemplateId] = useState("");
   const [variaveis, setVariaveis] = useState<Record<string, string>>({});
+  const estavaAberto = useRef(false);
 
+  const instanciaSelecionada =
+    instancias.find((i) => i.id === instanciaId) ?? instancias[0] ?? null;
+  const provedor = instanciaSelecionada?.provider ?? "";
   const isMetaCloud = isMetaCloudProvider(provedor);
   const isEvo = isEvoProvider(provedor);
+  const mostrarSeletorInstancia = instancias.length > 1;
 
   useEffect(() => {
-    if (open && telefoneInicial) {
-      setTelefone(telefoneInicial);
+    const acabouDeAbrir = open && !estavaAberto.current;
+    estavaAberto.current = open;
+    if (!open) return;
+
+    if (acabouDeAbrir) {
+      const padrao =
+        (instanciaPadraoId && instancias.some((i) => i.id === instanciaPadraoId)
+          ? instanciaPadraoId
+          : null) ??
+        instancias[0]?.id ??
+        "";
+      setInstanciaId(padrao);
+      if (telefoneInicial) {
+        setTelefone(telefoneInicial);
+      }
+      return;
     }
-  }, [open, telefoneInicial]);
+
+    setInstanciaId((atual) =>
+      atual && instancias.some((i) => i.id === atual) ? atual : (instancias[0]?.id ?? ""),
+    );
+  }, [open, telefoneInicial, instanciaPadraoId, instancias]);
 
   const templates = useQuery(
     orpc.caixaEntrada.templates.lista.queryOptions({
-      input: { instanciaId },
-      enabled: open && isMetaCloud,
+      input: open && isMetaCloud && instanciaId ? { instanciaId } : skipToken,
     }),
   );
 
@@ -113,7 +145,23 @@ export function WaNovaConversaPopover({
     setVariaveis({});
   }
 
+  function trocarInstancia(proximaId: string) {
+    if (proximaId === instanciaId) return;
+    const anterior = instancias.find((i) => i.id === instanciaId);
+    const proxima = instancias.find((i) => i.id === proximaId);
+    setInstanciaId(proximaId);
+    if (anterior?.provider !== proxima?.provider) {
+      setCorpo("");
+      setTemplateId("");
+      setVariaveis({});
+    } else if (isMetaCloudProvider(proxima?.provider ?? "")) {
+      setTemplateId("");
+      setVariaveis({});
+    }
+  }
+
   function podeEnviar(): boolean {
+    if (!instanciaId) return false;
     if (telefone.replace(/\D/g, "").length < 8) return false;
     if (isEvo) return corpo.trim().length > 0;
     if (isMetaCloud) {
@@ -125,7 +173,7 @@ export function WaNovaConversaPopover({
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!podeEnviar() || iniciar.isPending) return;
+    if (!podeEnviar() || iniciar.isPending || !instanciaId) return;
 
     iniciar.mutate({
       instanciaId,
@@ -159,6 +207,31 @@ export function WaNovaConversaPopover({
         <p className="text-sm font-medium text-wa-text">Nova conversa</p>
 
         <form onSubmit={handleSubmit} className="space-y-3">
+          {mostrarSeletorInstancia ? (
+            <div className="space-y-1.5">
+              <Label>Enviar de</Label>
+              <Select
+                value={instanciaId}
+                onValueChange={trocarInstancia}
+                disabled={iniciar.isPending}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o número" />
+                </SelectTrigger>
+                <SelectContent>
+                  {instancias.map((inst) => (
+                    <SelectItem key={inst.id} value={inst.id}>
+                      <span className="inline-flex items-center gap-2">
+                        <IconeConexaoLucide nome={inst.icone} className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{inst.nome}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+
           <div className="space-y-1.5">
             <Label htmlFor="nova-conversa-telefone">Telefone</Label>
             <Input
