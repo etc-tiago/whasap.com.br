@@ -190,12 +190,21 @@ async function processarMensagemGo(
     criadoEm: parsed.timestamp ?? undefined,
     ultimaMensagemEm: parsed.timestamp ?? undefined,
     naoLidasDelta: direcao === "inbound" ? 1 : 0,
-    metadados: { origemGo: true, isGroup: parsed.isGroup },
+    metadados: {
+      origemGo: true,
+      isGroup: parsed.isGroup,
+      ...(mediaInfo ? { waMessage: parsed.messageObj } : {}),
+    },
     status: direcao === "outbound" ? "sent" : "delivered",
   });
 
+  if (!result || !mediaInfo) return;
+  // Duplicata já com mídia: nada a fazer (e não reincrementa uso — early return da ingestão).
+  if (!result.created && result.midiaR2Chave) return;
+
   const evoToken = instance.evo?.token;
-  if (!result || !mediaInfo || !evoToken) return;
+  // base64 inline não precisa de token; download via API precisa.
+  if (!mediaInfo.base64 && !evoToken) return;
 
   scheduleInboundMedia(ctx, env, db, {
     provider: "evo",
@@ -203,7 +212,7 @@ async function processarMensagemGo(
     messageId: result.messageId,
     externalId: parsed.messageId,
     type: parsed.type,
-    instanceToken: evoToken,
+    instanceToken: evoToken ?? "",
     messageKey: {
       remoteJid: parsed.chatJid,
       fromMe: parsed.fromMe,

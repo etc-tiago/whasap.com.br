@@ -1,9 +1,12 @@
 import {
   atualizarProgressoHistoricoSync,
   concluirHistoricosSyncOciosos,
+  persistirMidiaInbound,
   processarHistorySyncChunk,
+  type JobMidiaInbound,
 } from "@whasap/api-core";
 import {
+  colunasInstanciaEvo,
   colunasInstanciaWebhook,
   colunasSomenteId,
   criarDb,
@@ -14,6 +17,26 @@ import { garantirWorkersLogger } from "@whasap/evlog/workers";
 import { and, eq, isNull } from "drizzle-orm";
 
 import type { Env, HistorySyncQueueMessage } from "./env";
+
+const CONCORRENCIA_MIDIA = 4;
+
+async function persistirMidiasEmLotes(env: Env, db: ReturnType<typeof criarDb>["db"], jobs: JobMidiaInbound[]) {
+  for (let i = 0; i < jobs.length; i += CONCORRENCIA_MIDIA) {
+    const lote = jobs.slice(i, i + CONCORRENCIA_MIDIA);
+    const resultados = await Promise.allSettled(
+      lote.map((job) => persistirMidiaInbound(env, db, job)),
+    );
+    for (let j = 0; j < resultados.length; j++) {
+      const r = resultados[j]!;
+      if (r.status === "rejected") {
+        console.error("[whasap-history-sync] falha mídia", {
+          externalId: lote[j]!.externalId,
+          erro: r.reason instanceof Error ? r.reason.message : String(r.reason),
+        });
+      }
+    }
+  }
+}
 
 async function processarMensagem(env: Env, msg: HistorySyncQueueMessage): Promise<void> {
   const object = await env.R2.get(msg.r2Key);
@@ -28,17 +51,27 @@ async function processarMensagem(env: Env, msg: HistorySyncQueueMessage): Promis
     const row = await db.query.instancia.findFirst({
       where: and(eq(instancia.uuid, msg.instanciaUuid), isNull(instancia.excluidoEm)),
       columns: colunasInstanciaWebhook,
+      with: { evo: { columns: colunasInstanciaEvo } },
     });
     if (!row) {
       console.warn("[whasap-history-sync] instância não encontrada", msg.instanciaUuid);
       return;
     }
 
-    await processarHistorySyncChunk(
+    const { midiaJobs } = await processarHistorySyncChunk(
       db,
-      { id: row.id, organizacaoId: row.organizacaoId, uuid: row.uuid },
+      {
+        id: row.id,
+        organizacaoId: row.organizacaoId,
+        uuid: row.uuid,
+        evoToken: row.evo?.token ?? null,
+      },
       data,
     );
+
+    if (midiaJobs.length > 0) {
+      await persistirMidiasEmLotes(env, db, midiaJobs);
+    }
   } finally {
     await sql.end({ timeout: 5 });
   }

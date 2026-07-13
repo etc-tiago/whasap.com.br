@@ -31,6 +31,10 @@ export type WebEnv = BaseEnv & {
   WEBHOOK_URL: string;
   CDN_URL: string;
   R2?: R2Bucket;
+  /** Bucket de mídia servida pelo CDN (`whasap-cdn`). */
+  CDN_R2?: R2Bucket;
+  CDN_HMAC_SECRET?: string;
+  WHATSAPP_CLOUD_WEBHOOK_SECRET?: string;
   WORKER_NAME?: string;
   ASSAS_API_KEY?: SecretsStoreSecretBinding | string;
   ASAAS_SANDBOX?: string;

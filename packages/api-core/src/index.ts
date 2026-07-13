@@ -99,6 +99,12 @@ export {
   type InstanciaParaHistorySync,
 } from "./lib/history-sync";
 export {
+  base64ParaArrayBuffer,
+  persistirMidiaInbound,
+  type JobMidiaInbound,
+  type MidiaInboundEnv,
+} from "./lib/midia-inbound";
+export {
   historicoSyncEmAndamento,
   solicitarHistoricoSyncConversaEvolution,
   solicitarHistoricoSyncEvolution,

@@ -123,6 +123,7 @@ async function processMetaInboundMessage(
     metadados: parsed.metadados,
   });
   if (!result) return;
+  if (!result.created && result.midiaR2Chave) return;
 
   const mediaInfo = metaMidiaDeMetadados(parsed.metadados);
   if (

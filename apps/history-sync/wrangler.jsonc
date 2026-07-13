@@ -25,11 +25,27 @@
     {
       "binding": "R2",
       "bucket_name": "whasap"
+    },
+    {
+      "binding": "CDN_R2",
+      "bucket_name": "whasap-cdn"
     }
   ],
   "vars": {
     "WORKER_NAME": "whasap-history-sync"
   },
+  "secrets": {
+    "required": [
+      "WHATSAPP_CLOUD_WEBHOOK_SECRET"
+    ]
+  },
+  "secrets_store_secrets": [
+    {
+      "binding": "EVOLUTION_SECRETS_STORE",
+      "store_id": "76b096bc6b03460dabd7744ba277a1ee",
+      "secret_name": "EVOLUTION_SECRETS_STORE"
+    }
+  ],
   "queues": {
     "consumers": [
       {

@@ -13,9 +13,20 @@ describe("formatarPreviewMensagem", () => {
     expect(formatarPreviewMensagem("[interativo]", "interactive")).toBe("Mensagem interativa");
   });
 
+  it("mapeia mídia por tipo e placeholder", () => {
+    expect(formatarPreviewMensagem("[imagem]", "image")).toBe("Imagem");
+    expect(formatarPreviewMensagem("foto da loja", "image")).toBe("foto da loja");
+    expect(formatarPreviewMensagem("[vídeo]", "video")).toBe("Vídeo");
+    expect(formatarPreviewMensagem("[áudio]", "audio")).toBe("Áudio");
+    expect(formatarPreviewMensagem("contrato.pdf", "document")).toBe("contrato.pdf");
+    expect(formatarPreviewMensagem("[documento]", "document")).toBe("Documento");
+  });
+
   it("usa fallback de corpo placeholder", () => {
     expect(formatarPreviewMensagem("[enquete]")).toBe("Enquete");
     expect(formatarPreviewMensagem("[reação]")).toBe("Reação");
+    expect(formatarPreviewMensagem("[imagem]")).toBe("Imagem");
+    expect(formatarPreviewMensagem("[vídeo]")).toBe("Vídeo");
   });
 
   it("mantém texto comum", () => {

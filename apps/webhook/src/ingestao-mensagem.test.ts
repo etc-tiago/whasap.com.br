@@ -226,13 +226,23 @@ describe("ingerirMensagem (db memória)", () => {
     });
   });
 
-  it("é idempotente por externalId", async () => {
+  it("é idempotente por externalId e devolve a existente", async () => {
     const { ingerirMensagem } = await import("./ingestao-mensagem");
     const { db } = criarDbMemoria();
 
     (
-      db as { query: { mensagem: { findFirst: () => Promise<{ id: number }> } } }
-    ).query.mensagem.findFirst = async () => ({ id: 99 });
+      db as {
+        query: {
+          mensagem: {
+            findFirst: () => Promise<{ id: number; conversaId: number; midiaR2Chave: null }>;
+          };
+        };
+      }
+    ).query.mensagem.findFirst = async () => ({
+      id: 99,
+      conversaId: 7,
+      midiaR2Chave: null,
+    });
 
     const result = await ingerirMensagem(db, {
       instanciaId: 10,
@@ -247,7 +257,12 @@ describe("ingerirMensagem (db memória)", () => {
       provedor: "evo",
     });
 
-    expect(result).toBeNull();
+    expect(result).toEqual({
+      messageId: 99,
+      conversaId: 7,
+      created: false,
+      midiaR2Chave: null,
+    });
   });
 
   it("abre janela meta_cloud na conversa", async () => {

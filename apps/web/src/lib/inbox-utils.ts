@@ -113,7 +113,14 @@ export function formatarCountdownJanela(tempo: { horas: number; minutos: number 
 }
 
 const PREVIEW_POR_CORPO: Record<string, string> = {
+  "[imagem]": "Imagem",
+  "[vídeo]": "Vídeo",
+  "[video]": "Vídeo",
+  "[áudio]": "Áudio",
+  "[audio]": "Áudio",
+  "[documento]": "Documento",
   "[sticker]": "Figurinha",
+  "[localização]": "Localização",
   "[reação]": "Reação",
   "[enquete]": "Enquete",
   "[contato]": "Contato",
@@ -121,6 +128,22 @@ const PREVIEW_POR_CORPO: Record<string, string> = {
   "[interativo]": "Mensagem interativa",
   "[resposta interativa]": "Resposta interativa",
 };
+
+const PLACEHOLDERS_MIDIA = new Set([
+  "[imagem]",
+  "[vídeo]",
+  "[video]",
+  "[áudio]",
+  "[audio]",
+  "[documento]",
+  "[sticker]",
+]);
+
+/** Indica se o corpo é só placeholder de mídia (sem legenda real). */
+export function isCorpoPlaceholderMidia(corpo: string | null | undefined): boolean {
+  const texto = corpo?.trim() ?? "";
+  return PLACEHOLDERS_MIDIA.has(texto);
+}
 
 /** Preview amigável da última mensagem na lista de conversas. */
 export function formatarPreviewMensagem(
@@ -131,6 +154,14 @@ export function formatarPreviewMensagem(
   if (!texto && !tipo) return "";
 
   switch (tipo) {
+    case "image":
+      return texto && !isCorpoPlaceholderMidia(texto) ? texto : "Imagem";
+    case "video":
+      return texto && !isCorpoPlaceholderMidia(texto) ? texto : "Vídeo";
+    case "audio":
+      return "Áudio";
+    case "document":
+      return texto && !isCorpoPlaceholderMidia(texto) ? texto : "Documento";
     case "sticker":
       return "Figurinha";
     case "reaction":
@@ -141,6 +172,8 @@ export function formatarPreviewMensagem(
       return texto ? `Contato: ${texto}` : "Contato";
     case "event":
       return texto ? `Evento: ${texto}` : "Evento";
+    case "location":
+      return "Localização";
     case "interactive":
       if (texto && !texto.startsWith("[")) return texto;
       return "Mensagem interativa";

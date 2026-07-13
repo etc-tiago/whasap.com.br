@@ -246,6 +246,7 @@ export const colunasMensagemLista = {
   status: true,
   templateNome: true,
   criadoEm: true,
+  metadados: true,
 } as const;
 
 /** Preview da última mensagem em lista de conversas. */

@@ -64,6 +64,7 @@ import {
   removerEtiquetaEvolution,
 } from "../lib/evolution-etiquetas";
 import { isInstanceOperational } from "../lib/instance-operational";
+import { garantirMidiasDaConversa } from "../lib/garantir-midia-conversa";
 import type { MemberRole } from "../types";
 
 function base64ParaArrayBuffer(base64: string): ArrayBuffer {
@@ -603,7 +604,23 @@ export const caixaEntradaHandlers = {
         orderBy: [asc(mensagem.criadoEm)],
       });
 
-      return rows.map((m) => mapearMensagemParaSaida(m, ctx.env.CDN_URL));
+      const midiasAtualizadas = await garantirMidiasDaConversa(ctx, {
+        instance: conv.instance,
+        conversaIdInterno: conv.conversation.id,
+        contatoId: conv.contact?.id ?? conv.conversation.contatoId,
+        telefone: conv.contact?.telefone ?? null,
+        rows,
+      });
+
+      return rows.map((m) =>
+        mapearMensagemParaSaida(
+          {
+            ...m,
+            midiaR2Chave: midiasAtualizadas.get(m.id) ?? m.midiaR2Chave,
+          },
+          ctx.env.CDN_URL,
+        ),
+      );
     },
 
     enviar: async (
@@ -1186,7 +1203,10 @@ export const caixaEntradaHandlers = {
       const ext = mimeToExtension(input.tipoConteudo, input.nomeArquivo);
       const r2Key = buildOutboundMediaR2Key(conv.instance.uuid, ext);
 
-      await ctx.env.R2.put(r2Key, buffer, {
+      const bucket = ctx.env.CDN_R2 ?? ctx.env.R2;
+      if (!bucket) preconditionFailed("Storage de mídia não configurado");
+
+      await bucket.put(r2Key, buffer, {
         httpMetadata: { contentType: input.tipoConteudo.split(";")[0]?.trim() },
       });
 

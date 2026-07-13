@@ -1,8 +1,8 @@
-import { Check, CheckCheck, Mic, Play } from "lucide-react";
+import { Check, CheckCheck, FileText, Mic, Play } from "lucide-react";
 import type { ReactNode } from "react";
 
 import type { MensagemItem } from "@/lib/orpc";
-import { formatarHorarioMensagem } from "@/lib/inbox-utils";
+import { formatarHorarioMensagem, isCorpoPlaceholderMidia } from "@/lib/inbox-utils";
 
 function StatusTick({ status }: { status: string }) {
   const lido = status === "read" || status === "played";
@@ -17,7 +17,15 @@ function StatusTick({ status }: { status: string }) {
   return <Check className="h-3.5 w-3.5 text-wa-text-muted" />;
 }
 
-function AudioBlock() {
+function AudioBlock({ mediaUrl }: { mediaUrl?: string | null }) {
+  if (mediaUrl) {
+    return (
+      <audio controls preload="metadata" src={mediaUrl} className="max-w-full">
+        <track kind="captions" />
+      </audio>
+    );
+  }
+
   return (
     <div className="flex items-center gap-3 py-1">
       <div
@@ -30,80 +38,154 @@ function AudioBlock() {
       >
         <Mic className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-wa-green p-0.5 text-white" />
       </div>
-      <button type="button" className="text-wa-icon" disabled aria-label="Reproduzir áudio">
+      <button type="button" className="text-wa-icon" disabled aria-label="Áudio indisponível">
         <Play className="h-5 w-5 fill-current" />
       </button>
       <div className="flex w-40 items-center">
-        <div className="relative h-0.5 flex-1 rounded-full bg-black/20">
-          <div className="absolute inset-y-0 left-0 w-1/3 rounded-full bg-wa-tick" />
-          <div className="absolute left-1/3 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-wa-tick" />
-        </div>
+        <div className="relative h-0.5 flex-1 rounded-full bg-black/20" />
       </div>
-      <span className="text-[11px] text-wa-text-muted">0:00</span>
+      <span className="text-[11px] text-wa-text-muted">Áudio</span>
     </div>
   );
 }
 
+function MediaPendente({ tipo }: { tipo: string }) {
+  const rotulo =
+    tipo === "image"
+      ? "Imagem"
+      : tipo === "video"
+        ? "Vídeo"
+        : tipo === "audio"
+          ? "Áudio"
+          : tipo === "document"
+            ? "Documento"
+            : tipo === "sticker"
+              ? "Figurinha"
+              : "Mídia";
+  return <p className="text-[13px] text-wa-text-muted">{rotulo} indisponível</p>;
+}
+
 function MediaContent({ mensagem }: { mensagem: MensagemItem }) {
+  const url = mensagem.mediaUrl;
+
   if (mensagem.type === "audio") {
-    return <AudioBlock />;
+    return <AudioBlock mediaUrl={url} />;
   }
-  if (mensagem.mediaUrl) {
-    if (mensagem.type === "image") {
-      return (
-        <a href={mensagem.mediaUrl} target="_blank" rel="noreferrer">
-          <img
-            src={mensagem.mediaUrl}
-            alt="Mídia"
-            className="max-h-64 max-w-full rounded-md object-cover"
-          />
-        </a>
-      );
+
+  if (!url) {
+    if (["image", "video", "document", "sticker"].includes(mensagem.type)) {
+      return <MediaPendente tipo={mensagem.type} />;
     }
+    return null;
+  }
+
+  if (mensagem.type === "image" || mensagem.type === "sticker") {
     return (
-      <a href={mensagem.mediaUrl} target="_blank" rel="noreferrer" className="text-xs underline">
-        Ver {mensagem.type}
+      <a href={url} target="_blank" rel="noreferrer">
+        <img
+          src={url}
+          alt={mensagem.type === "sticker" ? "Figurinha" : "Imagem"}
+          className="max-h-64 max-w-full rounded-md object-cover"
+        />
       </a>
     );
   }
-  return null;
+
+  if (mensagem.type === "video") {
+    return (
+      <video controls preload="metadata" src={url} className="max-h-64 max-w-full rounded-md">
+        <track kind="captions" />
+      </video>
+    );
+  }
+
+  if (mensagem.type === "document") {
+    const nome =
+      mensagem.body && !isCorpoPlaceholderMidia(mensagem.body) ? mensagem.body : "Documento";
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-center gap-2 text-[13px] underline"
+      >
+        <FileText className="h-4 w-4 shrink-0" />
+        <span className="min-w-0 truncate">{nome}</span>
+      </a>
+    );
+  }
+
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="text-xs underline">
+      Ver mídia
+    </a>
+  );
+}
+
+function corpoVisivel(mensagem: MensagemItem): string | null {
+  const corpo = mensagem.body?.trim();
+  if (!corpo) return null;
+  if (isCorpoPlaceholderMidia(corpo)) return null;
+  if (mensagem.type === "document" && mensagem.mediaUrl) return null;
+  return corpo;
+}
+
+function BubbleBody({
+  mensagem,
+  footer,
+  alignEnd,
+}: {
+  mensagem: MensagemItem;
+  footer: ReactNode;
+  alignEnd?: boolean;
+}) {
+  const isAudio = mensagem.type === "audio";
+  const texto = corpoVisivel(mensagem);
+
+  if (isAudio) {
+    return (
+      <>
+        <AudioBlock mediaUrl={mensagem.mediaUrl} />
+        <div className="mt-0.5 flex justify-end gap-1 text-[11px] text-wa-text-muted">{footer}</div>
+      </>
+    );
+  }
+
+  return (
+    <div className={`flex flex-wrap items-end gap-x-2${alignEnd ? " justify-end" : ""}`}>
+      <div className="min-w-0 pl-1 text-[14.2px] text-wa-text">
+        <MediaContent mensagem={mensagem} />
+        {texto ? <p className="whitespace-pre-wrap wrap-break-word">{texto}</p> : null}
+        {mensagem.enviadoPorNome ? (
+          <p className="mt-0.5 text-[10px] opacity-70">{mensagem.enviadoPorNome}</p>
+        ) : null}
+        {mensagem.templateNome ? (
+          <p className="mt-0.5 text-[10px] opacity-70">Template: {mensagem.templateNome}</p>
+        ) : null}
+      </div>
+      <span className="ml-auto flex shrink-0 items-center gap-1 pt-1 text-[11px] text-wa-text-muted">
+        {footer}
+      </span>
+    </div>
+  );
 }
 
 export function WaBubbleOut({ mensagem }: { mensagem: MensagemItem }) {
   const time = formatarHorarioMensagem(mensagem.criadoEm);
-  const isAudio = mensagem.type === "audio";
 
   return (
     <div className="mb-1 flex justify-end">
       <div className="relative max-w-[65%] rounded-lg rounded-tr-none bg-wa-bubble-out px-2 py-1.5 shadow-sm">
-        {isAudio ? (
-          <AudioBlock />
-        ) : (
-          <div className="flex flex-wrap items-end justify-end gap-x-2">
-            <div className="min-w-0 pl-1 text-[14.2px] text-wa-text">
-              <MediaContent mensagem={mensagem} />
-              {mensagem.body ? (
-                <p className="whitespace-pre-wrap wrap-break-word">{mensagem.body}</p>
-              ) : null}
-              {mensagem.enviadoPorNome ? (
-                <p className="mt-0.5 text-[10px] opacity-70">{mensagem.enviadoPorNome}</p>
-              ) : null}
-              {mensagem.templateNome ? (
-                <p className="mt-0.5 text-[10px] opacity-70">Template: {mensagem.templateNome}</p>
-              ) : null}
-            </div>
-            <span className="ml-auto flex shrink-0 items-center gap-1 pt-1 text-[11px] text-wa-text-muted">
+        <BubbleBody
+          mensagem={mensagem}
+          alignEnd
+          footer={
+            <>
               {time}
               <StatusTick status={mensagem.statusEntrega} />
-            </span>
-          </div>
-        )}
-        {isAudio ? (
-          <div className="mt-0.5 flex justify-end gap-1 text-[11px] text-wa-text-muted">
-            {time}
-            <StatusTick status={mensagem.statusEntrega} />
-          </div>
-        ) : null}
+            </>
+          }
+        />
       </div>
     </div>
   );
@@ -111,32 +193,11 @@ export function WaBubbleOut({ mensagem }: { mensagem: MensagemItem }) {
 
 export function WaBubbleIn({ mensagem }: { mensagem: MensagemItem }) {
   const time = formatarHorarioMensagem(mensagem.criadoEm);
-  const isAudio = mensagem.type === "audio";
 
   return (
     <div className="mb-1 flex justify-start">
       <div className="relative max-w-[65%] rounded-lg rounded-tl-none bg-wa-bubble-in px-2 py-1.5 shadow-sm">
-        {isAudio ? (
-          <AudioBlock />
-        ) : (
-          <div className="flex flex-wrap items-end gap-x-2">
-            <div className="min-w-0 pl-1 text-[14.2px] text-wa-text">
-              <MediaContent mensagem={mensagem} />
-              {mensagem.body ? (
-                <p className="whitespace-pre-wrap wrap-break-word">{mensagem.body}</p>
-              ) : null}
-              {mensagem.templateNome ? (
-                <p className="mt-0.5 text-[10px] opacity-70">Template: {mensagem.templateNome}</p>
-              ) : null}
-            </div>
-            <span className="ml-auto flex shrink-0 items-center gap-1 pt-1 text-[11px] text-wa-text-muted">
-              {time}
-            </span>
-          </div>
-        )}
-        {isAudio ? (
-          <div className="mt-0.5 flex justify-end text-[11px] text-wa-text-muted">{time}</div>
-        ) : null}
+        <BubbleBody mensagem={mensagem} footer={time} />
       </div>
     </div>
   );

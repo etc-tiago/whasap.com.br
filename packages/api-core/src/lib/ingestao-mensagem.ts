@@ -196,18 +196,31 @@ async function buscarOuCriarConversa(
 
 /**
  * Persiste mensagem: contato org, vínculo instância, conversa, mensagem e uso mensal.
- * Idempotente por `externalId` quando informado.
+ * Idempotente por `externalId` quando informado — retorna a existente (`created: false`)
+ * para permitir backfill de mídia sem recriar a linha.
  */
 export async function ingerirMensagem(
   db: Db,
   params: IngerirMensagemParams,
-): Promise<{ messageId: number; conversaId: number; created: boolean } | null> {
+): Promise<{
+  messageId: number;
+  conversaId: number;
+  created: boolean;
+  midiaR2Chave: string | null;
+} | null> {
   if (params.externalId) {
     const existing = await db.query.mensagem.findFirst({
       where: and(eq(mensagem.idExterno, params.externalId), isNull(mensagem.excluidoEm)),
-      columns: colunasSomenteId,
+      columns: { id: true, conversaId: true, midiaR2Chave: true },
     });
-    if (existing) return null;
+    if (existing) {
+      return {
+        messageId: existing.id,
+        conversaId: existing.conversaId,
+        created: false,
+        midiaR2Chave: existing.midiaR2Chave ?? null,
+      };
+    }
   }
 
   const contact = await buscarOuCriarContatoOrg(db, params);
@@ -259,7 +272,12 @@ export async function ingerirMensagem(
     await incrementarUsoMensal(db, params.instanciaId, contact.id);
   }
 
-  return { messageId: message!.id, conversaId: conversation.id, created: true };
+  return {
+    messageId: message!.id,
+    conversaId: conversation.id,
+    created: true,
+    midiaR2Chave: null,
+  };
 }
 
 async function incrementarUsoMensal(db: Db, instanciaId: number, contatoId: number) {

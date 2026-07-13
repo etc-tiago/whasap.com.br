@@ -3,9 +3,9 @@
  */
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { isMetaCloudProvider } from "@whasap/config";
+import { isEvoProvider, isMetaCloudProvider } from "@whasap/config";
 import { Badge } from "@whasap/ui/components/badge";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { WaChatHeader } from "@/components/inbox/wa-chat-header";
 import type { FiltroConversa } from "@/components/inbox/wa-chat-list-panel";
@@ -91,11 +91,52 @@ function InboxOrgPage() {
     }),
   );
 
-  const messages = useQuery(
-    orpc.caixaEntrada.mensagens.lista.queryOptions({
+  const midiaSyncDisparado = useRef(new Set<string>());
+  const midiaRefetchTentativas = useRef(new Map<string, number>());
+  const sincronizarHistoricoMidia = useMutation(
+    orpc.caixaEntrada.conversas.sincronizarHistorico.mutationOptions({}),
+  );
+
+  const messages = useQuery({
+    ...orpc.caixaEntrada.mensagens.lista.queryOptions({
       input: selectedId ? { conversaId: selectedId } : skipToken,
     }),
-  );
+    refetchInterval: (query) => {
+      if (!selectedId) return false;
+      const itens = query.state.data;
+      if (!itens) return false;
+      const midiaPendente = itens.some(
+        (m) =>
+          ["image", "video", "audio", "document", "sticker"].includes(m.type) && !m.mediaUrl,
+      );
+      if (!midiaPendente) {
+        midiaRefetchTentativas.current.delete(selectedId);
+        return false;
+      }
+      const n = midiaRefetchTentativas.current.get(selectedId) ?? 0;
+      if (n >= 20) return false;
+      midiaRefetchTentativas.current.set(selectedId, n + 1);
+      return 3_000;
+    },
+  });
+
+  useEffect(() => {
+    if (!selectedId || !messages.data?.length) return;
+    const conversa = conversations.data?.find((c) => c.id === selectedId);
+    if (!conversa) return;
+    const instanciaRow = instancias.data?.find((i) => i.id === conversa.instanciaId);
+    if (!instanciaRow || !isEvoProvider(instanciaRow.provider)) return;
+
+    const midiaPendente = messages.data.some(
+      (m) =>
+        ["image", "video", "audio", "document", "sticker"].includes(m.type) && !m.mediaUrl,
+    );
+    if (!midiaPendente) return;
+    if (midiaSyncDisparado.current.has(selectedId)) return;
+
+    midiaSyncDisparado.current.add(selectedId);
+    sincronizarHistoricoMidia.mutate({ conversaId: selectedId });
+  }, [selectedId, messages.data, conversations.data, instancias.data, sincronizarHistoricoMidia]);
 
   const membros = useQuery(
     orpc.organizacao.membros.lista.queryOptions({

@@ -1,6 +1,7 @@
 /**
  * Processa chunk HistorySync: ingere mensagens em ordem cronológica por conversa.
  * Conclusão: só syncType RECENT @ 100%, ou idle sem chunks (`concluirHistoricosSyncOciosos`).
+ * Mídia: retorna jobs para o worker baixar (Evolution downloadmedia) após a ingestão.
  */
 import {
   deveIgnorarHistorySyncChunk,
@@ -15,12 +16,16 @@ import { comTimestampAtualizacao, type Db, instanciaEvo } from "@whasap/db";
 import { and, eq, isNotNull, lt, or } from "drizzle-orm";
 
 import { ingerirMensagem } from "./ingestao-mensagem";
+import type { JobMidiaInbound } from "./midia-inbound";
 
 export type InstanciaParaHistorySync = {
   id: number;
   organizacaoId: number;
   uuid: string;
+  evoToken?: string | null;
 };
+
+const TIPOS_MIDIA = new Set(["image", "audio", "document", "video", "sticker"]);
 
 /** Sem novos chunks úteis por este intervalo → marcar completed (conta grande / RECENT incompleto). */
 export const HISTORICO_SYNC_IDLE_MS = 5 * 60 * 1000;
@@ -86,19 +91,44 @@ export async function concluirHistoricosSyncOciosos(
   return rows.length;
 }
 
+function mimeDeMessageObj(messageObj: Record<string, unknown>): string | undefined {
+  for (const key of [
+    "imageMessage",
+    "videoMessage",
+    "audioMessage",
+    "documentMessage",
+    "stickerMessage",
+  ] as const) {
+    const part = messageObj[key] as { mimetype?: string; fileName?: string } | undefined;
+    if (part?.mimetype) return part.mimetype;
+  }
+  return undefined;
+}
+
+function fileNameDeMessageObj(messageObj: Record<string, unknown>): string | undefined {
+  const doc = messageObj.documentMessage as { fileName?: string } | undefined;
+  return doc?.fileName;
+}
+
 /**
  * Ingere um chunk HistorySync já parseado (ou raw).
  * Mensagens de cada conversa são processadas em ordem cronológica, em série.
+ * Jobs de mídia (sem midiaR2Chave) são retornados para o worker persistir no CDN.
  */
 export async function processarHistorySyncChunk(
   db: Db,
   instance: InstanciaParaHistorySync,
   data: Record<string, unknown>,
-): Promise<{ ignorado: boolean; concluido: boolean; progress: number }> {
+): Promise<{
+  ignorado: boolean;
+  concluido: boolean;
+  progress: number;
+  midiaJobs: JobMidiaInbound[];
+}> {
   const chunk = parseGoHistorySyncChunk(data);
 
   if (deveIgnorarHistorySyncChunk(chunk)) {
-    return { ignorado: true, concluido: false, progress: chunk.progress ?? 0 };
+    return { ignorado: true, concluido: false, progress: chunk.progress ?? 0, midiaJobs: [] };
   }
 
   const onDemand = chunk.syncType === HISTORY_SYNC_TYPE.ON_DEMAND;
@@ -112,6 +142,8 @@ export async function processarHistorySyncChunk(
   }
 
   const lidParaPn = mapaLidParaPn(chunk.phoneLidMappings);
+  const midiaJobs: JobMidiaInbound[] = [];
+  const evoToken = instance.evoToken;
 
   // Ingest sequencial por conversa/timestamp — paralelo bagunça ultimaMensagemEm.
   const pendentes: Array<() => Promise<void>> = [];
@@ -129,8 +161,9 @@ export async function processarHistorySyncChunk(
 
     for (const msg of mensagensOrdenadas) {
       const direcao = msg.fromMe ? "outbound" : "inbound";
-      pendentes.push(() =>
-        ingerirMensagem(db, {
+      const isMidia = TIPOS_MIDIA.has(msg.type);
+      pendentes.push(async () => {
+        const result = await ingerirMensagem(db, {
           instanciaId: instance.id,
           organizacaoId: instance.organizacaoId,
           phone,
@@ -149,10 +182,31 @@ export async function processarHistorySyncChunk(
             origemHistorico: true,
             syncType: chunk.syncType,
             syncFase: rotuloHistorySyncType(chunk.syncType),
+            ...(isMidia ? { waMessage: msg.messageObj } : {}),
           },
           status: msg.status ?? (direcao === "outbound" ? "sent" : "delivered"),
-        }).then(() => undefined),
-      );
+        });
+
+        if (!result || !isMidia || !evoToken) return;
+        if (result.midiaR2Chave) return;
+
+        midiaJobs.push({
+          provider: "evo",
+          instanceUuid: instance.uuid,
+          messageId: result.messageId,
+          externalId: msg.messageId,
+          type: msg.type,
+          instanceToken: evoToken,
+          messageKey: {
+            remoteJid: msg.chatJid,
+            fromMe: msg.fromMe,
+            id: msg.messageId,
+          },
+          waMessage: msg.messageObj,
+          mimeType: mimeDeMessageObj(msg.messageObj),
+          fileName: fileNameDeMessageObj(msg.messageObj),
+        });
+      });
     }
   }
 
@@ -163,5 +217,5 @@ export async function processarHistorySyncChunk(
     await atualizarProgressoHistoricoSync(db, instance.id, { marcarConcluido: true });
   }
 
-  return { ignorado: false, concluido, progress: chunk.progress ?? 0 };
+  return { ignorado: false, concluido, progress: chunk.progress ?? 0, midiaJobs };
 }

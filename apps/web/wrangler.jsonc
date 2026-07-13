@@ -29,6 +29,10 @@
     {
       "binding": "R2",
       "bucket_name": "whasap"
+    },
+    {
+      "binding": "CDN_R2",
+      "bucket_name": "whasap-cdn"
     }
   ],
   "send_email": [
