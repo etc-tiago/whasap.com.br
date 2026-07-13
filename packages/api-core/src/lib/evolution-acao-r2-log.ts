@@ -175,9 +175,7 @@ export function prepararProvedorAcaoLogEntry(
   const responseBody = entry.response.body;
   const derivado =
     entry.derivado ??
-    (entry.provedor === "evo"
-      ? derivarEvolutionAcaoLog(entry.acao, responseBody)
-      : undefined);
+    (entry.provedor === "evo" ? derivarEvolutionAcaoLog(entry.acao, responseBody) : undefined);
 
   return {
     at: entry.at ?? new Date().toISOString(),
@@ -193,8 +191,7 @@ export function prepararProvedorAcaoLogEntry(
     },
     response: {
       status: entry.response.status,
-      body:
-        responseBody !== undefined ? redigirProvedorLogPayload(responseBody) : undefined,
+      body: responseBody !== undefined ? redigirProvedorLogPayload(responseBody) : undefined,
       error: entry.response.error ?? null,
       durationMs: entry.response.durationMs,
     },

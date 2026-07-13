@@ -251,16 +251,14 @@ export async function varrerInstanciasEvolutionAbandonadas(
     instanciaEvolutionEstaAbandonada(row, agora, abandonedAfterMinutes),
   );
 
+  const resultados = await Promise.allSettled(
+    abandonadas.map((row) => descartarInstanciaEvolutionAbandonada(db, env, row)),
+  );
   let descartadas = 0;
   let falhas = 0;
-
-  for (const row of abandonadas) {
-    try {
-      await descartarInstanciaEvolutionAbandonada(db, env, row);
-      descartadas += 1;
-    } catch {
-      falhas += 1;
-    }
+  for (const r of resultados) {
+    if (r.status === "fulfilled") descartadas += 1;
+    else falhas += 1;
   }
 
   return { candidatas: abandonadas.length, descartadas, falhas };

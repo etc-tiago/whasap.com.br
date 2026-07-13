@@ -56,8 +56,7 @@ export function WaRail({ organizacaoHash }: WaRailProps) {
   const instanciaEvo =
     instancias.data?.find(
       (i) =>
-        isEvoProvider(i.provider) &&
-        (i.status === "connected" || i.status === "pending_payment"),
+        isEvoProvider(i.provider) && (i.status === "connected" || i.status === "pending_payment"),
     ) ?? null;
 
   const syncStatus = instanciaEvo ? historicoSyncStatusDe(instanciaEvo) : "idle";

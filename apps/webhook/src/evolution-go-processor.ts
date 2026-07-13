@@ -259,6 +259,7 @@ async function enfileirarHistorySyncGo(
     status: "running",
     progress: chunk.progress,
     erro: null,
+    heartbeat: true,
   });
 }
 
@@ -546,7 +547,12 @@ export async function processEvolutionGoWebhook(
   }
 
   if (event === "HistorySync") {
-    await enfileirarHistorySyncGo(db, env, instance, (payload.data ?? {}) as Record<string, unknown>);
+    await enfileirarHistorySyncGo(
+      db,
+      env,
+      instance,
+      (payload.data ?? {}) as Record<string, unknown>,
+    );
     return;
   }
 

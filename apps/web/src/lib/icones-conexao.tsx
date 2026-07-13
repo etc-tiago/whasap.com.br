@@ -46,13 +46,7 @@ export const ICONES_CONEXAO_MAP: Record<IconeConexao, LucideIcon> = {
   Sparkles,
 };
 
-export function IconeConexaoLucide({
-  nome,
-  className,
-}: {
-  nome: string;
-  className?: string;
-}) {
+export function IconeConexaoLucide({ nome, className }: { nome: string; className?: string }) {
   const Icone = ICONES_CONEXAO_MAP[nome as IconeConexao] ?? MessageCircle;
   return <Icone className={className} />;
 }

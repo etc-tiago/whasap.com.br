@@ -41,9 +41,12 @@ export {
 } from "./labels";
 export {
   deveIgnorarHistorySyncChunk,
+  HISTORY_SYNC_CHUNK_MSG_CAP,
+  HISTORY_SYNC_TYPE,
   historySyncConcluido,
   jidParaIdExterno,
   jidParaTelefone,
+  mapaLidParaPn,
   montarJidContato,
   parseGoButtonClick,
   parseGoHistorySyncChunk,
@@ -55,12 +58,15 @@ export {
   receiptIndicaLeitura,
   resolverIdExternoCanonicoGo,
   resolverInstanciaWebhookGo,
+  resolverJidHistoricoSync,
+  rotuloHistorySyncType,
   telefoneExibicaoDeInfo,
   type EvolutionGoWebhookPayload,
   type GoButtonClick,
   type GoHistorySyncChunk,
   type GoLabelAssociation,
   type GoMensagemNormalizada,
+  type GoPhoneLidMapping,
   type GoPushName,
   type GoReceiptNormalizado,
 } from "./webhook-go";

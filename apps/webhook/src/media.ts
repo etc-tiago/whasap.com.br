@@ -1,5 +1,9 @@
 import type { WorkerExecutionContext } from "@whasap/evlog/workers";
-import { criarClienteEvolutionGo, criarClienteMeta, getEvolutionCredentials } from "@whasap/api-core";
+import {
+  criarClienteEvolutionGo,
+  criarClienteMeta,
+  getEvolutionCredentials,
+} from "@whasap/api-core";
 import { log } from "@whasap/evlog";
 import { eq } from "drizzle-orm";
 import { buildSecureInboundMediaR2Key, mimeToExtension } from "@whasap/config";

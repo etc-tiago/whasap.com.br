@@ -208,7 +208,11 @@ function InstancesPage() {
             disabled={atualizar.isPending}
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditando(null)} disabled={atualizar.isPending}>
+            <Button
+              variant="outline"
+              onClick={() => setEditando(null)}
+              disabled={atualizar.isPending}
+            >
               Cancelar
             </Button>
             <Button

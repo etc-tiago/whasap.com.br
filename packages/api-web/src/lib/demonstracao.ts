@@ -1,4 +1,8 @@
-import { preconditionFailed, marcarInstanciaConectadaEvolution, solicitarHistoricoSyncSePrimeiraConexao } from "@whasap/api-core";
+import {
+  preconditionFailed,
+  marcarInstanciaConectadaEvolution,
+  solicitarHistoricoSyncSePrimeiraConexao,
+} from "@whasap/api-core";
 import { isEvoProvider, mvpDefaults } from "@whasap/config";
 import {
   colunasOrganizacaoPublica,
@@ -134,12 +138,7 @@ export async function marcarInstanciaConectada(
   });
   if (row && isEvoProvider(row.provedor)) {
     try {
-      await solicitarHistoricoSyncSePrimeiraConexao(
-        ctx.db,
-        ctx.env,
-        instanciaIdInterno,
-        row.uuid,
-      );
+      await solicitarHistoricoSyncSePrimeiraConexao(ctx.db, ctx.env, instanciaIdInterno, row.uuid);
     } catch {
       // Sync automático não bloqueia a conexão.
     }

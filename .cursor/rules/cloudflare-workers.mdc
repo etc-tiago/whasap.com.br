@@ -125,4 +125,5 @@ Workers com binding `R2` → `whasap`: `web`, `webhook`, `office`, `evolution-cl
 | `whasap-history-sync` | `webhook` (`HISTORY_SYNC_QUEUE`) | `history-sync` |
 
 Chunks HistorySync: R2 `historico-sync/{instanciaUuid}/…` + mensagem de fila `{ instanciaUuid, r2Key, receivedAt }`.
+O consumer `history-sync` também tem Cron `*/2` para marcar sync ocioso (5 min sem chunk) como `completed` — não concluir no `progress=100` do bootstrap (`syncType` 0).
 

@@ -86,8 +86,10 @@ Não usamos `wrangler deploy --env production` — isso criaria workers com sufi
 
 - Worker vars: `WORKER_NAME`
 - Sem domínio — consumer da fila `whasap-history-sync` (chunks HistorySync enfileirados pelo `webhook`)
+- Cron `*/2` — conclui syncs ociosos (sem chunk há 5 min; cobre RECENT incompleto)
 - Hyperdrive + R2 (`whasap`)
 - Criar a fila na Cloudflare: `wrangler queues create whasap-history-sync`
+- Conclusão do sync: fase RECENT (`syncType` 2) com `progress=100`, ou idle no cron — **não** no bootstrap (`syncType` 0 @ 100)
 
 ## Setup local rápido
 

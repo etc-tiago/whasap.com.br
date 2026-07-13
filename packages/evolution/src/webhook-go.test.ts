@@ -12,8 +12,10 @@ import {
 } from "./flow-parser";
 import {
   deveIgnorarHistorySyncChunk,
+  HISTORY_SYNC_TYPE,
   historySyncConcluido,
   jidParaTelefone,
+  mapaLidParaPn,
   parseGoButtonClick,
   parseGoHistorySyncChunk,
   parseGoLabelAssociation,
@@ -24,6 +26,7 @@ import {
   receiptIndicaLeitura,
   resolverIdExternoCanonicoGo,
   resolverInstanciaWebhookGo,
+  resolverJidHistoricoSync,
   telefoneExibicaoDeInfo,
 } from "./webhook-go";
 import { parseGoDisconnectedEvent } from "./connection-state";
@@ -105,19 +108,61 @@ describe("parseGoHistorySyncChunk", () => {
     expect(chunk.conversations).toHaveLength(0);
   });
 
-  it("parseia bootstrap mini com mensagens", () => {
+  it("parseia bootstrap mini sem marcar sync concluído (fase 0 @ 100)", () => {
     const fixture = buscarFixtureWebhookGo("history-sync-bootstrap-mini.json")!;
     const chunk = parseGoHistorySyncChunk(fixture.payload.data as Record<string, unknown>);
     expect(deveIgnorarHistorySyncChunk(chunk)).toBe(false);
     expect(chunk.conversations[0]?.messages.length).toBe(2);
-    expect(historySyncConcluido(chunk)).toBe(true);
+    expect(chunk.syncType).toBe(HISTORY_SYNC_TYPE.INITIAL_BOOTSTRAP);
+    expect(chunk.progress).toBe(100);
+    expect(historySyncConcluido(chunk)).toBe(false);
   });
 
-  it("parseia conversa de grupo", () => {
-    const fixture = buscarFixtureWebhookGo("history-sync-group.json")!;
+  it("marca concluído só na fase RECENT @ 100", () => {
+    const fixture = buscarFixtureWebhookGo("history-sync-recent-complete.json")!;
     const chunk = parseGoHistorySyncChunk(fixture.payload.data as Record<string, unknown>);
-    expect(chunk.conversations[0]?.jid).toContain("@g.us");
-    expect(jidParaTelefone(chunk.conversations[0]!.jid)).toBeTruthy();
+    expect(chunk.syncType).toBe(HISTORY_SYNC_TYPE.RECENT);
+    expect(chunk.progress).toBe(100);
+    expect(historySyncConcluido(chunk)).toBe(true);
+    expect(deveIgnorarHistorySyncChunk(chunk)).toBe(false);
+  });
+
+  it("resolve LID via phoneNumberToLidMappings", () => {
+    const fixture = buscarFixtureWebhookGo("history-sync-lid-map.json")!;
+    const chunk = parseGoHistorySyncChunk(fixture.payload.data as Record<string, unknown>);
+    expect(chunk.phoneLidMappings.length).toBeGreaterThan(0);
+    const lidJid = chunk.phoneLidMappings[0]!.lidJid;
+    const pnJid = chunk.phoneLidMappings[0]!.pnJid;
+    const resolved = resolverJidHistoricoSync(lidJid, mapaLidParaPn(chunk.phoneLidMappings));
+    expect(resolved.idExternoCanonico).toBe(pnJid);
+    expect(resolved.idExternoLinha).toBe(lidJid);
+    expect(resolved.phone).toBe(jidParaTelefone(pnJid));
+    expect(historySyncConcluido(chunk)).toBe(false);
+  });
+
+  it("timeline multi-fase: só RECENT@100 conclui (corpus real)", () => {
+    const fases = [
+      { syncType: 5, progress: null, temMensagens: false },
+      { syncType: 0, progress: 100, temMensagens: true },
+      { syncType: 4, progress: null, temMensagens: false },
+      { syncType: 3, progress: 29, temMensagens: true },
+      { syncType: 3, progress: 100, temMensagens: true },
+      { syncType: 2, progress: 26, temMensagens: true },
+      { syncType: 2, progress: 100, temMensagens: true },
+    ] as const;
+
+    const concluidos = fases.map((f) =>
+      historySyncConcluido({
+        syncType: f.syncType,
+        progress: f.progress,
+        chunkOrder: 1,
+        conversations: [],
+        temMensagens: f.temMensagens,
+        phoneLidMappings: [],
+      }),
+    );
+    expect(concluidos.filter(Boolean)).toHaveLength(1);
+    expect(concluidos.at(-1)).toBe(true);
   });
 });
 

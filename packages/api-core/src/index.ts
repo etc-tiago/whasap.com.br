@@ -93,6 +93,8 @@ export {
 } from "./lib/ingestao-mensagem";
 export {
   atualizarProgressoHistoricoSync,
+  concluirHistoricosSyncOciosos,
+  HISTORICO_SYNC_IDLE_MS,
   processarHistorySyncChunk,
   type InstanciaParaHistorySync,
 } from "./lib/history-sync";

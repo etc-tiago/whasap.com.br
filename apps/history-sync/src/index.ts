@@ -1,5 +1,6 @@
 import {
   atualizarProgressoHistoricoSync,
+  concluirHistoricosSyncOciosos,
   processarHistorySyncChunk,
 } from "@whasap/api-core";
 import {
@@ -65,11 +66,25 @@ async function marcarFalha(env: Env, instanciaUuid: string, erro: string): Promi
   }
 }
 
+async function varrerOciosos(env: Env): Promise<void> {
+  garantirWorkersLogger("historySync");
+  const { db, sql } = criarDb(env.HYPERDRIVE.connectionString);
+  try {
+    const n = await concluirHistoricosSyncOciosos(db);
+    if (n > 0) {
+      console.info("[whasap-history-sync] syncs concluídos por idle", { count: n });
+    }
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}
+
 export default {
   async queue(batch: MessageBatch<HistorySyncQueueMessage>, env: Env): Promise<void> {
     garantirWorkersLogger("historySync");
 
-    for (const message of batch.messages) {
+    await batch.messages.reduce<Promise<void>>(async (prev, message) => {
+      await prev;
       try {
         await processarMensagem(env, message.body);
         message.ack();
@@ -88,6 +103,14 @@ export default {
           message.retry();
         }
       }
-    }
+    }, Promise.resolve());
+  },
+
+  async scheduled(
+    _controller: ScheduledController,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<void> {
+    ctx.waitUntil(varrerOciosos(env));
   },
 };

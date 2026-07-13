@@ -15,8 +15,9 @@ export const instanciaEvo = pgTable(
     token: text(),
     historicoSincronizadoEm: timestamp(),
     historicoSincronizandoEm: timestamp(),
-    /** idle | requested | running | completed | failed */
+    /** idle | requested | running | completed | failed — completed só após RECENT@100 ou idle 5 min */
     historicoSyncStatus: text().notNull().default("idle"),
+    /** Progresso da fase atual (0–100); cada syncType tem o seu — não é % global. */
     historicoSyncProgress: integer(),
     historicoSyncErro: text(),
     criadoEm: timestamp().notNull(),

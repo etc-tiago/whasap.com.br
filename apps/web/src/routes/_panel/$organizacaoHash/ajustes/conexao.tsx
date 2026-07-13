@@ -98,9 +98,7 @@ function AjustesConexaoPage() {
               inst={inst}
               isAdmin={isAdmin}
               syncPending={sincronizar.isPending && sincronizar.variables?.instanciaId === inst.id}
-              syncError={
-                sincronizar.variables?.instanciaId === inst.id ? sincronizar.error : null
-              }
+              syncError={sincronizar.variables?.instanciaId === inst.id ? sincronizar.error : null}
               onSync={() => sincronizar.mutate({ instanciaId: inst.id })}
             />
           ))}

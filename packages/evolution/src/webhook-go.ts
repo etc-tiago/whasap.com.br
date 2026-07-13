@@ -45,13 +45,61 @@ export type GoHistorySyncConversa = {
   }>;
 };
 
+/**
+ * syncType do HistorySync (whatsmeow / Evolution GO).
+ * O provedor envia várias fases em sequência; cada uma tem seu próprio progress 0→100.
+ * Cap típico: {@link HISTORY_SYNC_CHUNK_MSG_CAP} mensagens por chunk.
+ */
+export const HISTORY_SYNC_TYPE = {
+  /** Bootstrap inicial (~1k msgs); progress=100 NÃO encerra o sync completo. */
+  INITIAL_BOOTSTRAP: 0,
+  PUSH_NAME: 1,
+  /** Histórico recente (~1 ano); última fase útil típica — progress=100 encerra o sync. */
+  RECENT: 2,
+  /** Histórico completo (anos); progress=100 NÃO encerra o sync (RECENT ainda vem). */
+  FULL: 3,
+  ON_DEMAND: 4,
+  /** Metadata only — ignorar. */
+  NON_BLOCKING_DATA: 5,
+} as const;
+
+/** Teto observado de mensagens por chunk no provedor. */
+export const HISTORY_SYNC_CHUNK_MSG_CAP = 5000;
+
+export type GoPhoneLidMapping = {
+  pnJid: string;
+  lidJid: string;
+};
+
 export type GoHistorySyncChunk = {
   syncType: number;
   progress: number | null;
   chunkOrder: number | null;
   conversations: GoHistorySyncConversa[];
   temMensagens: boolean;
+  /** Mapa LID → PN do chunk (`phoneNumberToLidMappings`). */
+  phoneLidMappings: GoPhoneLidMapping[];
 };
+
+/** Rótulo curto da fase para UI/logs. */
+export function rotuloHistorySyncType(syncType: number): string {
+  switch (syncType) {
+    case HISTORY_SYNC_TYPE.INITIAL_BOOTSTRAP:
+      return "bootstrap";
+    case HISTORY_SYNC_TYPE.PUSH_NAME:
+      return "push-name";
+    case HISTORY_SYNC_TYPE.RECENT:
+      return "recente";
+    case HISTORY_SYNC_TYPE.FULL:
+      return "completo";
+    case HISTORY_SYNC_TYPE.ON_DEMAND:
+      return "on-demand";
+    case HISTORY_SYNC_TYPE.NON_BLOCKING_DATA:
+      return "metadata";
+    default:
+      return `tipo-${syncType}`;
+  }
+}
 
 export type GoReceiptNormalizado = {
   chatJid: string;
@@ -293,6 +341,60 @@ function parseHistorySyncMessage(
   };
 }
 
+function parsePhoneLidMappings(raw: unknown): GoPhoneLidMapping[] {
+  if (!Array.isArray(raw)) return [];
+  const out: GoPhoneLidMapping[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    const pnJid = String(row.pnJID ?? row.pnJid ?? "");
+    const lidJid = String(row.lidJID ?? row.lidJid ?? "");
+    if (!pnJid.endsWith("@s.whatsapp.net") || !lidJid.endsWith("@lid")) continue;
+    out.push({ pnJid, lidJid });
+  }
+  return out;
+}
+
+/** Monta mapa lidJid → pnJid a partir dos mappings do chunk. */
+export function mapaLidParaPn(mappings: GoPhoneLidMapping[]): Map<string, string> {
+  const mapa = new Map<string, string>();
+  for (const m of mappings) mapa.set(m.lidJid, m.pnJid);
+  return mapa;
+}
+
+/**
+ * Resolve identidade de conversa no HistorySync.
+ * Prefere PN via `phoneNumberToLidMappings` quando o JID é `@lid`.
+ */
+export function resolverJidHistoricoSync(
+  jid: string,
+  lidParaPn: ReadonlyMap<string, string>,
+): { idExternoLinha: string; idExternoCanonico: string; phone: string } {
+  const idExternoLinha = jidParaIdExterno(jid);
+  if (jid.endsWith("@g.us")) {
+    return { idExternoLinha, idExternoCanonico: jid, phone: jidParaTelefone(jid) };
+  }
+  if (jid.endsWith("@lid")) {
+    const pn = lidParaPn.get(jid);
+    if (pn) {
+      return {
+        idExternoLinha,
+        idExternoCanonico: pn,
+        phone: jidParaTelefone(pn),
+      };
+    }
+    return { idExternoLinha, idExternoCanonico: jid, phone: jidParaTelefone(jid) };
+  }
+  if (jid.endsWith("@s.whatsapp.net")) {
+    return { idExternoLinha, idExternoCanonico: jid, phone: jidParaTelefone(jid) };
+  }
+  return {
+    idExternoLinha,
+    idExternoCanonico: `${jidParaTelefone(jid)}@s.whatsapp.net`,
+    phone: jidParaTelefone(jid),
+  };
+}
+
 /** Normaliza chunk HistorySync. syncType 5 e chunks sem conversas retornam temMensagens=false. */
 export function parseGoHistorySyncChunk(data: Record<string, unknown>): GoHistorySyncChunk {
   const inner = (data.Data ?? data) as Record<string, unknown>;
@@ -300,6 +402,7 @@ export function parseGoHistorySyncChunk(data: Record<string, unknown>): GoHistor
   const progress = inner.progress !== undefined ? Number(inner.progress) : null;
   const chunkOrder = inner.chunkOrder !== undefined ? Number(inner.chunkOrder) : null;
   const rawConversations = (inner.conversations as Array<Record<string, unknown>>) ?? [];
+  const phoneLidMappings = parsePhoneLidMappings(inner.phoneNumberToLidMappings);
 
   const conversations: GoHistorySyncConversa[] = [];
   for (const conv of rawConversations) {
@@ -322,18 +425,30 @@ export function parseGoHistorySyncChunk(data: Record<string, unknown>): GoHistor
 
   const temMensagens = conversations.some((c) => c.messages.length > 0);
 
-  return { syncType, progress, chunkOrder, conversations, temMensagens };
+  return {
+    syncType,
+    progress,
+    chunkOrder,
+    conversations,
+    temMensagens,
+    phoneLidMappings,
+  };
 }
 
 /** Indica se o chunk deve ser ignorado (metadata only). */
 export function deveIgnorarHistorySyncChunk(chunk: GoHistorySyncChunk): boolean {
-  if (chunk.syncType === 5) return true;
+  if (chunk.syncType === HISTORY_SYNC_TYPE.NON_BLOCKING_DATA) return true;
   return !chunk.temMensagens;
 }
 
-/** History sync concluído (último chunk). */
+/**
+ * Indica fim do sync completo: só a fase RECENT (syncType 2) com progress=100.
+ * Bootstrap (0) e FULL (3) também chegam a 100 — não marcar completed neles
+ * (ainda chegam dezenas de milhares de msgs depois). Contas que nunca terminam
+ * RECENT dependem do idle no worker (`concluirHistoricosSyncOciosos`).
+ */
 export function historySyncConcluido(chunk: GoHistorySyncChunk): boolean {
-  return chunk.progress === 100;
+  return chunk.syncType === HISTORY_SYNC_TYPE.RECENT && chunk.progress === 100;
 }
 
 export function parseGoReceipt(

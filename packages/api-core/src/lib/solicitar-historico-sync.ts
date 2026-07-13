@@ -3,12 +3,7 @@
  */
 import { criarClienteEvolutionGo, type EvolutionGoEnv } from "./criar-cliente-evolution-go";
 import { getEvolutionCredentials, type EvolutionSecretsEnv } from "./evolution-env";
-import {
-  colunasInstanciaEvo,
-  comTimestampAtualizacao,
-  type Db,
-  instanciaEvo,
-} from "@whasap/db";
+import { colunasInstanciaEvo, comTimestampAtualizacao, type Db, instanciaEvo } from "@whasap/db";
 import { eq } from "drizzle-orm";
 
 export type EnvSolicitarHistorico = EvolutionGoEnv & EvolutionSecretsEnv;

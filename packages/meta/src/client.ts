@@ -50,9 +50,9 @@ function tryParseJsonBody(texto: string): unknown {
   }
 }
 
-export function createMetaClient(credentials: MetaCredentials, options?: MetaClientOptions) {
+export function createMetaClient(credentials: MetaCredentials, clientOptions?: MetaClientOptions) {
   const base = `https://graph.facebook.com/${API_VERSION}`;
-  const logSink = options?.log;
+  const logSink = clientOptions?.log;
 
   function emitLog(entry: MetaRequestLogEntry) {
     if (!logSink) return;
@@ -61,12 +61,7 @@ export function createMetaClient(credentials: MetaCredentials, options?: MetaCli
     });
   }
 
-  async function graph<T>(
-    acao: string,
-    method: string,
-    path: string,
-    body?: unknown,
-  ): Promise<T> {
+  async function graph<T>(acao: string, method: string, path: string, body?: unknown): Promise<T> {
     const started = Date.now();
     const url = `${base}${path}${path.includes("?") ? "&" : "?"}access_token=${encodeURIComponent(credentials.accessToken)}`;
     let status: number | null = null;
@@ -107,21 +102,21 @@ export function createMetaClient(credentials: MetaCredentials, options?: MetaCli
     }
   }
 
-  const messageBase = (to: string, options?: MessageOptions) => ({
+  const messageBase = (to: string, messageOptions?: MessageOptions) => ({
     messaging_product: "whatsapp" as const,
     recipient_type: "individual" as const,
     to,
-    ...buildContext(options),
+    ...buildContext(messageOptions),
   });
 
   return {
-    sendText(to: string, text: string, options?: MessageOptions) {
+    sendText(to: string, text: string, messageOptions?: MessageOptions) {
       return graph<{ messages: Array<{ id: string }> }>(
         "send_text",
         "POST",
         `/${credentials.phoneNumberId}/messages`,
         {
-          ...messageBase(to, options),
+          ...messageBase(to, messageOptions),
           type: "text",
           text: { body: text },
         },
@@ -145,65 +140,70 @@ export function createMetaClient(credentials: MetaCredentials, options?: MetaCli
       );
     },
 
-    sendImage(to: string, imageUrl: string, caption?: string, options?: MessageOptions) {
+    sendImage(to: string, imageUrl: string, caption?: string, messageOptions?: MessageOptions) {
       return graph<{ messages: Array<{ id: string }> }>(
         "send_image",
         "POST",
         `/${credentials.phoneNumberId}/messages`,
         {
-          ...messageBase(to, options),
+          ...messageBase(to, messageOptions),
           type: "image",
           image: { link: imageUrl, ...(caption ? { caption } : {}) },
         },
       );
     },
 
-    sendAudio(to: string, audioUrl: string, voice?: boolean, options?: MessageOptions) {
+    sendAudio(to: string, audioUrl: string, voice?: boolean, messageOptions?: MessageOptions) {
       return graph<{ messages: Array<{ id: string }> }>(
         "send_audio",
         "POST",
         `/${credentials.phoneNumberId}/messages`,
         {
-          ...messageBase(to, options),
+          ...messageBase(to, messageOptions),
           type: "audio",
           audio: { link: audioUrl, ...(voice ? { voice: true } : {}) },
         },
       );
     },
 
-    sendVideo(to: string, videoUrl: string, caption?: string, options?: MessageOptions) {
+    sendVideo(to: string, videoUrl: string, caption?: string, messageOptions?: MessageOptions) {
       return graph<{ messages: Array<{ id: string }> }>(
         "send_video",
         "POST",
         `/${credentials.phoneNumberId}/messages`,
         {
-          ...messageBase(to, options),
+          ...messageBase(to, messageOptions),
           type: "video",
           video: { link: videoUrl, ...(caption ? { caption } : {}) },
         },
       );
     },
 
-    sendDocument(to: string, documentUrl: string, filename?: string, options?: MessageOptions) {
+    sendDocument(
+      to: string,
+      documentUrl: string,
+      filename?: string,
+      messageOptions?: MessageOptions,
+    ) {
       return graph<{ messages: Array<{ id: string }> }>(
         "send_document",
         "POST",
         `/${credentials.phoneNumberId}/messages`,
         {
-          ...messageBase(to, options),
+          ...messageBase(to, messageOptions),
           type: "document",
           document: { link: documentUrl, ...(filename ? { filename } : {}) },
         },
       );
     },
 
-    sendSticker(to: string, stickerUrl: string, options?: MessageOptions) {
+    sendSticker(to: string, stickerUrl: string, messageOptions?: MessageOptions) {
       return graph<{ messages: Array<{ id: string }> }>(
         "send_sticker",
         "POST",
         `/${credentials.phoneNumberId}/messages`,
         {
-          ...messageBase(to, options),
+          ...messageBase(to, messageOptions),
           type: "sticker",
           sticker: { link: stickerUrl },
         },
@@ -236,13 +236,13 @@ export function createMetaClient(credentials: MetaCredentials, options?: MetaCli
       );
     },
 
-    sendInteractive(to: string, interactive: unknown, options?: MessageOptions) {
+    sendInteractive(to: string, interactive: unknown, messageOptions?: MessageOptions) {
       return graph<{ messages: Array<{ id: string }> }>(
         "send_interactive",
         "POST",
         `/${credentials.phoneNumberId}/messages`,
         {
-          ...messageBase(to, options),
+          ...messageBase(to, messageOptions),
           type: "interactive",
           interactive,
         },
@@ -374,7 +374,10 @@ export function createMetaClient(credentials: MetaCredentials, options?: MetaCli
           status,
           durationMs: Date.now() - started,
           requestBody: { mediaId },
-          responseBody: status && status >= 200 && status < 300 ? { mimeType: info.mime_type } : tryParseJsonBody(errorText ?? ""),
+          responseBody:
+            status && status >= 200 && status < 300
+              ? { mimeType: info.mime_type }
+              : tryParseJsonBody(errorText ?? ""),
           error: errorText,
         });
       }

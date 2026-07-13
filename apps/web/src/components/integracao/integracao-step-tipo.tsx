@@ -17,7 +17,10 @@ type Props = {
   instanceId: string;
   criando: boolean;
   temReconectar: boolean;
-  onSelecionarProvider: (p: InstanceProvider, identidade: { nome: string; icone: IconeConexao }) => void;
+  onSelecionarProvider: (
+    p: InstanceProvider,
+    identidade: { nome: string; icone: IconeConexao },
+  ) => void;
   onVoltarReconectar: () => void;
   onTrocarTipo: () => void;
 };

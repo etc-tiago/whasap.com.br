@@ -186,7 +186,10 @@ async function buscarOuCriarConversa(
     setValues.naoLidas = params.naoLidasInicial;
   }
 
-  await db.update(conversa).set(setValues as never).where(eq(conversa.id, conversation.id));
+  await db
+    .update(conversa)
+    .set(setValues as never)
+    .where(eq(conversa.id, conversation.id));
 
   return conversation;
 }
@@ -247,7 +250,10 @@ export async function ingerirMensagem(
     setValues.naoLidas = Math.max(0, atual + params.naoLidasDelta);
   }
 
-  await db.update(conversa).set(setValues as never).where(eq(conversa.id, conversation.id));
+  await db
+    .update(conversa)
+    .set(setValues as never)
+    .where(eq(conversa.id, conversation.id));
 
   if (direcao === "inbound") {
     await incrementarUsoMensal(db, params.instanciaId, contact.id);

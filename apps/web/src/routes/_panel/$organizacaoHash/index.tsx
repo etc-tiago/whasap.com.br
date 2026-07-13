@@ -116,7 +116,10 @@ function HomePage() {
                   <Card key={inst.id}>
                     <CardHeader className="flex flex-row items-start justify-between space-y-0">
                       <div className="flex min-w-0 items-center gap-2">
-                        <IconeConexaoLucide nome={inst.icone} className="h-5 w-5 shrink-0 text-muted-foreground" />
+                        <IconeConexaoLucide
+                          nome={inst.icone}
+                          className="h-5 w-5 shrink-0 text-muted-foreground"
+                        />
                         <CardTitle className="text-base">{inst.nome}</CardTitle>
                       </div>
                       <Badge>{rotulosStatusInstancia[inst.status]}</Badge>
@@ -145,7 +148,10 @@ function HomePage() {
                   <Card key={inst.id}>
                     <CardHeader className="flex flex-row items-start justify-between space-y-0">
                       <div className="flex min-w-0 items-center gap-2">
-                        <IconeConexaoLucide nome={inst.icone} className="h-5 w-5 shrink-0 text-muted-foreground" />
+                        <IconeConexaoLucide
+                          nome={inst.icone}
+                          className="h-5 w-5 shrink-0 text-muted-foreground"
+                        />
                         <CardTitle className="text-base">{inst.nome}</CardTitle>
                       </div>
                       <Badge variant="outline">

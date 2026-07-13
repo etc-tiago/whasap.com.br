@@ -18,14 +18,18 @@ export function historicoSyncEmAndamento(inst: InstanciaItem): boolean {
   return s === "requested" || s === "running";
 }
 
+/**
+ * Copy de status. Não exibe % da fase atual: o provedor manda várias fases
+ * (bootstrap → completo → recente), cada uma com progress 0→100 — mostrar %
+ * enganaria (ex.: 100% no bootstrap com dezenas de milhares de msgs ainda por vir).
+ */
 export function rotuloHistoricoSync(inst: InstanciaItem): string {
   const s = historicoSyncStatusDe(inst);
-  const progress = inst.evoHistoricoSyncProgress;
   switch (s) {
     case "requested":
       return "Aguardando histórico…";
     case "running":
-      return progress != null ? `Sincronizando ${progress}%` : "Sincronizando…";
+      return "Sincronizando histórico…";
     case "completed":
       return "Histórico sincronizado";
     case "failed":
