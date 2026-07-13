@@ -3,6 +3,7 @@
  * Sync on-demand por conversa não altera o status da instância.
  */
 import { jidDeContato } from "@whasap/evolution";
+import { log } from "@whasap/evlog";
 import {
   colunasContatoInstancia,
   colunasInstanciaEvo,
@@ -17,6 +18,23 @@ import { and, asc, eq, isNotNull, isNull } from "drizzle-orm";
 
 import { criarClienteEvolutionGo, type EvolutionGoEnv } from "./criar-cliente-evolution-go";
 import { getEvolutionCredentials, type EvolutionSecretsEnv } from "./evolution-env";
+
+/** Mensagem amigável quando a Evolution GO falha ao iniciar o history sync. */
+function motivoFalhaHistorySync(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  const match = msg.match(/Evolution GO error \((\d+)\)/);
+  const status = match ? Number(match[1]) : undefined;
+  if (status === 500 || status === 502 || status === 503) {
+    return "O WhatsApp não conseguiu iniciar a sincronização agora. Tente novamente em alguns minutos.";
+  }
+  if (status === 404) {
+    return "Instância não encontrada no provedor. Reconecte o WhatsApp e tente de novo.";
+  }
+  if (status === 401 || status === 403) {
+    return "Sessão do WhatsApp inválida. Reconecte a instância e tente de novo.";
+  }
+  return "Não foi possível iniciar a sincronização do histórico. Tente novamente.";
+}
 
 export type EnvSolicitarHistorico = EvolutionGoEnv & EvolutionSecretsEnv;
 
@@ -90,7 +108,16 @@ export async function solicitarHistoricoSyncEvolution(
     { instanciaUuid: instancia.uuid },
   );
 
-  await client.historySync({ count: opts?.count ?? 5000 });
+  try {
+    await client.historySync({ count: opts?.count ?? 5000 });
+  } catch (err) {
+    log.error({
+      contexto: "historico_sync.solicitar",
+      instanciaUuid: instancia.uuid,
+      erro: err instanceof Error ? err.message : String(err),
+    });
+    return { ok: false, motivo: motivoFalhaHistorySync(err) };
+  }
 
   await db
     .update(instanciaEvo)
@@ -188,15 +215,24 @@ export async function solicitarHistoricoSyncConversaEvolution(
     { instanciaUuid: params.instanciaUuid, origem: "historico_sync_conversa" },
   );
 
-  await client.historySync({
-    count: params.count ?? COUNT_ON_DEMAND_PADRAO,
-    messageInfo: {
-      chat: chatJid,
-      id: ancora.idExterno,
-      isFromMe: ancora.direcao === "outbound",
-      timestamp: ancora.criadoEm.toISOString(),
-    },
-  });
+  try {
+    await client.historySync({
+      count: params.count ?? COUNT_ON_DEMAND_PADRAO,
+      messageInfo: {
+        chat: chatJid,
+        id: ancora.idExterno,
+        isFromMe: ancora.direcao === "outbound",
+        timestamp: ancora.criadoEm.toISOString(),
+      },
+    });
+  } catch (err) {
+    log.error({
+      contexto: "historico_sync.solicitar_conversa",
+      instanciaUuid: params.instanciaUuid,
+      erro: err instanceof Error ? err.message : String(err),
+    });
+    return { ok: false, motivo: motivoFalhaHistorySync(err) };
+  }
 
   return { ok: true };
 }
