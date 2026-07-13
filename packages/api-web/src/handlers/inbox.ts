@@ -1,4 +1,10 @@
-import { criarClienteMeta, forbidden, notFound, preconditionFailed } from "@whasap/api-core";
+import {
+  criarClienteMeta,
+  forbidden,
+  notFound,
+  preconditionFailed,
+  solicitarHistoricoSyncConversaEvolution,
+} from "@whasap/api-core";
 import {
   buildOutboundMediaR2Key,
   cdnMediaUrl,
@@ -549,6 +555,38 @@ export const caixaEntradaHandlers = {
         .update(conversa)
         .set(comTimestampAtualizacao({ status: "closed", fechadoEm: new Date() }))
         .where(eq(conversa.id, conv.conversation.id));
+      return { ok: true };
+    },
+
+    /** Sync on-demand do histórico WhatsApp da conversa (Evolution). */
+    sincronizarHistorico: async (ctx: WebContext, input: { conversaId: string }) => {
+      exigirAutenticacao(ctx);
+      const conv = await exigirAcessoConversa(ctx, input.conversaId);
+      if (!conv.contact) notFound();
+
+      if (!isEvoProvider(conv.instance.provedor)) {
+        preconditionFailed("Sincronização de histórico disponível apenas para WhatsApp Comercial");
+      }
+      if (conv.instance.status !== "connected" && conv.instance.status !== "pending_payment") {
+        preconditionFailed("Instância precisa estar conectada para sincronizar histórico");
+      }
+      const evoToken = conv.instance.evo?.token;
+      if (!evoToken) {
+        preconditionFailed("Instância Evolution sem token");
+      }
+
+      const result = await solicitarHistoricoSyncConversaEvolution(ctx.db, ctx.env, {
+        instanciaId: conv.instance.id,
+        instanciaUuid: conv.instance.uuid,
+        evoToken,
+        conversaIdInterno: conv.conversation.id,
+        contatoId: conv.contact.id,
+        telefone: conv.contact.telefone,
+      });
+      if (!result.ok) {
+        preconditionFailed(result.motivo ?? "Não foi possível iniciar a sincronização");
+      }
+
       return { ok: true };
     },
   },

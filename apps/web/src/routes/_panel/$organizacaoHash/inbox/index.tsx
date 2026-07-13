@@ -274,7 +274,6 @@ function InboxOrgPage() {
             instanciaId={instanciaAtivaId}
             organizacaoHash={organizacaoHash}
             provedor={instance.data?.provider}
-            evoHistoricoSincronizandoEm={instance.data?.evoHistoricoSincronizandoEm}
             membros={membros.data ?? []}
             podeAtribuir={podeEscrever}
             podeEtiquetar={podeEscrever}

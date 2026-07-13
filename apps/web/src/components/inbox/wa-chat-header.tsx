@@ -30,7 +30,6 @@ type WaChatHeaderProps = {
   instanciaId: string;
   organizacaoHash: string;
   provedor?: string;
-  evoHistoricoSincronizandoEm?: string | null;
   membros: Membro[];
   podeAtribuir?: boolean;
   podeEtiquetar?: boolean;
@@ -43,7 +42,6 @@ export function WaChatHeader({
   instanciaId,
   organizacaoHash,
   provedor,
-  evoHistoricoSincronizandoEm,
   membros,
   podeAtribuir = true,
   podeEtiquetar = true,
@@ -54,15 +52,17 @@ export function WaChatHeader({
   const nome = conversa.contatoNome ?? conversa.contatoTelefone;
   const cor = corAvatarContato(conversa.contatoId);
   const isEvo = isEvoProvider(provedor ?? "");
-  const sincronizando =
-    Boolean(evoHistoricoSincronizandoEm) &&
-    Date.now() - new Date(evoHistoricoSincronizandoEm!).getTime() < 30 * 60 * 1000;
 
   const sincronizarHistorico = useMutation(
-    orpc.instancia.sincronizarHistorico.mutationOptions({
+    orpc.caixaEntrada.conversas.sincronizarHistorico.mutationOptions({
       onSuccess: () => {
         queryClient.invalidateQueries({
-          queryKey: orpc.instancia.obter.key({ input: { instanciaId } }),
+          queryKey: orpc.caixaEntrada.mensagens.lista.key({
+            input: { conversaId: conversa.id },
+          }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: orpc.caixaEntrada.conversas.lista.key(),
         });
       },
     }),
@@ -136,11 +136,11 @@ export function WaChatHeader({
             <DropdownMenuContent align="end">
               {isEvo ? (
                 <DropdownMenuItem
-                  disabled={sincronizando || sincronizarHistorico.isPending}
-                  onSelect={() => sincronizarHistorico.mutate({ instanciaId })}
+                  disabled={sincronizarHistorico.isPending}
+                  onSelect={() => sincronizarHistorico.mutate({ conversaId: conversa.id })}
                 >
                   <History className="mr-2 h-4 w-4" />
-                  {sincronizando || sincronizarHistorico.isPending
+                  {sincronizarHistorico.isPending
                     ? "Sincronizando histórico..."
                     : "Sincronizar histórico"}
                 </DropdownMenuItem>

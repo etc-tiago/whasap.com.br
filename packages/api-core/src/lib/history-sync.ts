@@ -4,6 +4,7 @@
  */
 import {
   deveIgnorarHistorySyncChunk,
+  HISTORY_SYNC_TYPE,
   historySyncConcluido,
   mapaLidParaPn,
   parseGoHistorySyncChunk,
@@ -100,12 +101,15 @@ export async function processarHistorySyncChunk(
     return { ignorado: true, concluido: false, progress: chunk.progress ?? 0 };
   }
 
-  await atualizarProgressoHistoricoSync(db, instance.id, {
-    status: "running",
-    progress: chunk.progress,
-    erro: null,
-    heartbeat: true,
-  });
+  const onDemand = chunk.syncType === HISTORY_SYNC_TYPE.ON_DEMAND;
+  if (!onDemand) {
+    await atualizarProgressoHistoricoSync(db, instance.id, {
+      status: "running",
+      progress: chunk.progress,
+      erro: null,
+      heartbeat: true,
+    });
+  }
 
   const lidParaPn = mapaLidParaPn(chunk.phoneLidMappings);
 
@@ -154,7 +158,7 @@ export async function processarHistorySyncChunk(
 
   await pendentes.reduce<Promise<void>>((acc, run) => acc.then(run), Promise.resolve());
 
-  const concluido = historySyncConcluido(chunk);
+  const concluido = !onDemand && historySyncConcluido(chunk);
   if (concluido) {
     await atualizarProgressoHistoricoSync(db, instance.id, { marcarConcluido: true });
   }

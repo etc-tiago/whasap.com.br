@@ -25,6 +25,7 @@ import { log } from "@whasap/evlog";
 import {
   deveIgnorarHistorySyncChunk,
   formatInteractiveResponseBody,
+  HISTORY_SYNC_TYPE,
   indiceWhatsappParaCorPainel,
   jidParaIdExterno,
   jidParaTelefone,
@@ -222,11 +223,15 @@ async function enfileirarHistorySyncGo(
   data: Record<string, unknown>,
 ): Promise<void> {
   const chunk = parseGoHistorySyncChunk(data);
+  const onDemand = chunk.syncType === HISTORY_SYNC_TYPE.ON_DEMAND;
+
   if (deveIgnorarHistorySyncChunk(chunk)) {
-    await atualizarProgressoHistoricoSync(db, instance.id, {
-      status: "running",
-      progress: chunk.progress,
-    });
+    if (!onDemand) {
+      await atualizarProgressoHistoricoSync(db, instance.id, {
+        status: "running",
+        progress: chunk.progress,
+      });
+    }
     return;
   }
 
@@ -236,10 +241,12 @@ async function enfileirarHistorySyncGo(
       erro: "Fila HISTORY_SYNC_QUEUE não configurada",
       instanciaUuid: instance.uuid,
     });
-    await atualizarProgressoHistoricoSync(db, instance.id, {
-      status: "failed",
-      erro: "Fila HISTORY_SYNC_QUEUE não configurada",
-    });
+    if (!onDemand) {
+      await atualizarProgressoHistoricoSync(db, instance.id, {
+        status: "failed",
+        erro: "Fila HISTORY_SYNC_QUEUE não configurada",
+      });
+    }
     return;
   }
 
@@ -255,12 +262,14 @@ async function enfileirarHistorySyncGo(
     receivedAt: new Date().toISOString(),
   });
 
-  await atualizarProgressoHistoricoSync(db, instance.id, {
-    status: "running",
-    progress: chunk.progress,
-    erro: null,
-    heartbeat: true,
-  });
+  if (!onDemand) {
+    await atualizarProgressoHistoricoSync(db, instance.id, {
+      status: "running",
+      progress: chunk.progress,
+      erro: null,
+      heartbeat: true,
+    });
+  }
 }
 
 async function marcarConectadaEPedirHistorico(

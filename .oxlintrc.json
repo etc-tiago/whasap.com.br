@@ -1,6 +1,13 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["eslint", "typescript", "unicorn", "oxc", "react", "import"],
+  "plugins": [
+    "eslint",
+    "typescript",
+    "unicorn",
+    "oxc",
+    "react",
+    "import"
+  ],
   "env": {
     "browser": true,
     "node": true,
@@ -17,17 +24,23 @@
     ".output",
     ".wrangler",
     "**/routeTree.gen.ts",
-    "bun.lock"
+    "bun.lock",
+    "**/auto-imports.d.ts"
   ],
   "overrides": [
     {
-      "files": ["apps/*/src/**/*.{ts,tsx}", "packages/*/src/**/*.{ts,tsx}"],
+      "files": [
+        "apps/*/src/**/*.{ts,tsx}",
+        "packages/*/src/**/*.{ts,tsx}"
+      ],
       "rules": {
         "react/react-in-jsx-scope": "off"
       }
     },
     {
-      "files": ["packages/ui/**"],
+      "files": [
+        "packages/ui/**"
+      ],
       "rules": {
         "react/jsx-no-constructed-context-values": "off",
         "react/no-unstable-nested-components": "off",
@@ -35,25 +48,33 @@
       }
     },
     {
-      "files": ["packages/r2-sync/**"],
+      "files": [
+        "packages/r2-sync/**"
+      ],
       "rules": {
         "eslint/no-await-in-loop": "off"
       }
     },
     {
-      "files": ["**/vite.config.ts"],
+      "files": [
+        "**/vite.config.ts"
+      ],
       "rules": {
         "eslint/no-underscore-dangle": "off"
       }
     },
     {
-      "files": ["apps/web/src/server.ts"],
+      "files": [
+        "apps/web/src/server.ts"
+      ],
       "rules": {
         "import/no-unassigned-import": "off"
       }
     },
     {
-      "files": ["apps/web/src/lib/error-reporting.ts"],
+      "files": [
+        "apps/web/src/lib/error-reporting.ts"
+      ],
       "rules": {
         "eslint/no-underscore-dangle": "off"
       }

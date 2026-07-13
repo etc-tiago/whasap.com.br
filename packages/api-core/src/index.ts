@@ -100,10 +100,12 @@ export {
 } from "./lib/history-sync";
 export {
   historicoSyncEmAndamento,
+  solicitarHistoricoSyncConversaEvolution,
   solicitarHistoricoSyncEvolution,
   solicitarHistoricoSyncSePrimeiraConexao,
   type EnvSolicitarHistorico,
   type InstanciaParaSolicitarHistorico,
+  type ParamsHistoricoSyncConversa,
 } from "./lib/solicitar-historico-sync";
 export { resolveSessionJwtSecret } from "./lib/session-jwt-secret";
 export type { BaseEnv, DbContext } from "./types";

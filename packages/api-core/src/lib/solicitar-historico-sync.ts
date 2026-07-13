@@ -1,10 +1,22 @@
 /**
  * Solicita sync de histórico Evolution GO e marca status na instancia_evo.
+ * Sync on-demand por conversa não altera o status da instância.
  */
+import { jidDeContato } from "@whasap/evolution";
+import {
+  colunasContatoInstancia,
+  colunasInstanciaEvo,
+  colunasMensagemLista,
+  comTimestampAtualizacao,
+  contatoInstancia,
+  type Db,
+  instanciaEvo,
+  mensagem,
+} from "@whasap/db";
+import { and, asc, eq, isNotNull, isNull } from "drizzle-orm";
+
 import { criarClienteEvolutionGo, type EvolutionGoEnv } from "./criar-cliente-evolution-go";
 import { getEvolutionCredentials, type EvolutionSecretsEnv } from "./evolution-env";
-import { colunasInstanciaEvo, comTimestampAtualizacao, type Db, instanciaEvo } from "@whasap/db";
-import { eq } from "drizzle-orm";
 
 export type EnvSolicitarHistorico = EvolutionGoEnv & EvolutionSecretsEnv;
 
@@ -19,7 +31,18 @@ export type InstanciaParaSolicitarHistorico = {
   } | null;
 };
 
+export type ParamsHistoricoSyncConversa = {
+  instanciaId: number;
+  instanciaUuid: string;
+  evoToken: string;
+  conversaIdInterno: number;
+  contatoId: number;
+  telefone: string | null;
+  count?: number;
+};
+
 const LOCK_MS = 30 * 60 * 1000;
+const COUNT_ON_DEMAND_PADRAO = 100;
 
 export function historicoSyncEmAndamento(
   evo: { historicoSincronizandoEm: Date | null; historicoSyncStatus?: string | null } | null,
@@ -116,4 +139,64 @@ export async function solicitarHistoricoSyncSePrimeiraConexao(
     },
     { forcar: false },
   );
+}
+
+/**
+ * Dispara HistorySync on-demand de uma conversa via `messageInfo`.
+ * Não altera `historicoSyncStatus` da instância (independente do sync completo).
+ * @returns false se sem token, sem JID ou sem mensagem âncora com idExterno.
+ */
+export async function solicitarHistoricoSyncConversaEvolution(
+  db: Db,
+  env: EnvSolicitarHistorico,
+  params: ParamsHistoricoSyncConversa,
+): Promise<{ ok: boolean; motivo?: string }> {
+  const vinculo = await db.query.contatoInstancia.findFirst({
+    where: and(
+      eq(contatoInstancia.contatoId, params.contatoId),
+      eq(contatoInstancia.instanciaId, params.instanciaId),
+    ),
+    columns: colunasContatoInstancia,
+  });
+
+  const chatJid = jidDeContato(params.telefone ?? "", vinculo?.idExterno);
+  if (!chatJid.includes("@")) {
+    return { ok: false, motivo: "Contato sem identificador WhatsApp" };
+  }
+
+  const ancora = await db.query.mensagem.findFirst({
+    where: and(
+      eq(mensagem.conversaId, params.conversaIdInterno),
+      isNull(mensagem.excluidoEm),
+      isNotNull(mensagem.idExterno),
+    ),
+    columns: colunasMensagemLista,
+    orderBy: [asc(mensagem.criadoEm)],
+  });
+  if (!ancora?.idExterno) {
+    return {
+      ok: false,
+      motivo: "Envie ou receba ao menos uma mensagem nesta conversa",
+    };
+  }
+
+  const creds = await getEvolutionCredentials(env);
+  const client = criarClienteEvolutionGo(
+    env,
+    creds,
+    { instanceToken: params.evoToken },
+    { instanciaUuid: params.instanciaUuid, origem: "historico_sync_conversa" },
+  );
+
+  await client.historySync({
+    count: params.count ?? COUNT_ON_DEMAND_PADRAO,
+    messageInfo: {
+      chat: chatJid,
+      id: ancora.idExterno,
+      isFromMe: ancora.direcao === "outbound",
+      timestamp: ancora.criadoEm.toISOString(),
+    },
+  });
+
+  return { ok: true };
 }

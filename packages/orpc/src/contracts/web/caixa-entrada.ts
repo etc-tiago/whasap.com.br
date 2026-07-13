@@ -83,6 +83,10 @@ export const caixaEntradaContract = {
     fechar: oc
       .input(z.object({ conversaId: z.string().uuid() }))
       .output(z.object({ ok: z.boolean() })),
+
+    sincronizarHistorico: oc
+      .input(z.object({ conversaId: z.string().uuid() }))
+      .output(z.object({ ok: z.boolean() })),
   },
 
   mensagens: {
