@@ -141,7 +141,7 @@ LIMIT 20;
 
 **Webhooks recebidos** — prefixo: `webhook/evo/{evolucaoNomeInstancia}/{YYYY-MM-DD}/`
 
-**Ações outbound (Evolution GO client)** — prefixo: `acao/{tipo}/{YYYY-MM-DD}/{HH-mm-ss}.{uuid}.json`
+**Ações outbound (Evolution GO / Meta Graph)** — prefixo: `acao/{provedor}/{instanciaUuid?}/{acao}/{YYYY-MM-DD}/{HH-mm-ss}.{uuid}.json` (formato `{ request, response }`; ver regra `provedor-acao-r2`).
 
 Exemplos de `tipo`: `instance_create`, `instance_connect`, `instance_qr`, `instance_status`, `instance_disconnect`, `send_text`, `message_downloadmedia`.
 

@@ -44,14 +44,23 @@ export {
 } from "./lib/evolution-env";
 export {
   buildAcaoEvolutionLogKey,
+  buildAcaoProvedorLogKey,
   derivarEvolutionAcaoLog,
+  parseCorpoErroHttp,
   prepararEvolutionAcaoLogEntry,
+  prepararProvedorAcaoLogEntry,
   putEvolutionAcaoLog,
+  putProvedorAcaoLog,
   redigirEvolutionLogPayload,
+  redigirProvedorLogPayload,
+  redigirUrlLog,
   type EvolutionAcaoLogDerivado,
   type EvolutionAcaoLogEntry,
+  type ProvedorAcao,
+  type ProvedorAcaoLogEntry,
 } from "./lib/evolution-acao-r2-log";
 export { criarClienteEvolutionGo, type EvolutionGoEnv } from "./lib/criar-cliente-evolution-go";
+export { criarClienteMeta, type MetaEnv } from "./lib/criar-cliente-meta";
 export { getClientIp } from "./lib/client-ip";
 export {
   iniciarDemonstracaoSeNecessarioDb,

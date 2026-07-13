@@ -1,0 +1,58 @@
+---
+description: Log R2 obrigatório de ações outbound Evolution/Meta (formato request/response) e aprendizado via r2-sync
+alwaysApply: true
+---
+
+# Ações provedor outbound (R2 `acao/`)
+
+## Obrigatório
+
+Toda comunicação **outbound** HTTP com Evolution GO ou Meta Graph/Cloud API deve gravar no bucket R2 `whasap` (prefixo `acao/...`), **sempre** — sucesso e erro.
+
+- Evolution: só via `criarClienteEvolutionGo` (`@whasap/api-core`) — nunca `createEvolutionGoClient` direto em apps
+- Meta: só via `criarClienteMeta` (`@whasap/api-core`) — nunca `createMetaClient` direto em apps
+- Workers com Postgres/provedor precisam de binding `R2` → `whasap`
+
+## Formato canônico
+
+```json
+{
+  "at": "ISO-8601",
+  "provedor": "evo | meta_cloud",
+  "acao": "instance_qr | send_text | list_templates | ...",
+  "request": { "url": "https://...", "tipo": "GET|POST|DELETE", "body": {} },
+  "response": { "status": 200, "body": {}, "error": null, "durationMs": 12 },
+  "meta": { "worker": "...", "instanciaUuid": "...", "origem": "..." },
+  "derivado": {}
+}
+```
+
+- `request.tipo` = método HTTP; `acao` = ação semântica
+- `request.url` completa; redigir `access_token` / tokens na URL e no body
+- Erro HTTP: preencher `response.status`, `response.body` (JSON do erro quando possível) e `response.error`
+- Truncar base64/QR; nunca omitir o log
+- Chave: `acao/{provedor}/{instanciaUuid?}/{acao}/{YYYY-MM-DD}/{HH-mm-ss}.{uuid}.json`
+- Sempre passar `meta.instanciaUuid` quando a instância for conhecida
+
+## Aprendizado contínuo (corpus vivo)
+
+Fonte oficial de shapes reais:
+
+| Prefixo | Uso |
+|---------|-----|
+| `packages/r2-sync/json/acao/` | Outbound Evolution/Meta |
+| `packages/r2-sync/json/webhook/` | Inbound webhooks |
+
+Ao trabalhar em parsers, clientes, mappers ou fixtures:
+
+1. Consultar amostras recentes em `r2-sync/json/` — não inventar shape se houver exemplo
+2. Se a API mudou: atualizar parser + fixtures + testes em `packages/evolution` / `packages/meta`
+3. Divergência log ↔ parser = bug
+4. Após deploy: `bun run r2:sync` atualiza o corpus local
+
+## Anti-padrões
+
+- Log só em sucesso
+- Cliente de provedor sem factory / sem `env.R2`
+- Formato flat legado (`tipo`/`method`/`path`/`requestBody` no topo)
+- Docs oficiais genéricas quando o R2 local já mostra o payload real

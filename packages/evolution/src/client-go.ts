@@ -20,8 +20,11 @@ export type {
 } from "./instance-types";
 
 export type EvolutionGoRequestLogEntry = {
+  /** Ação semântica (ex.: instance_qr, send_text). */
   tipo: string;
   method: string;
+  /** URL completa da requisição. */
+  url: string;
   path: string;
   status: number | null;
   durationMs: number;
@@ -45,6 +48,14 @@ type Quoted = { messageId: string; participant?: string };
 
 function quotedField(quoted?: Quoted) {
   return quoted ? { quoted: { messageId: quoted.messageId, participant: quoted.participant } } : {};
+}
+
+function tryParseJsonBody(texto: string): unknown {
+  try {
+    return JSON.parse(texto) as unknown;
+  } catch {
+    return { raw: texto };
+  }
 }
 
 /**
@@ -93,6 +104,7 @@ export function createEvolutionGoClient(
     timeoutMs?: number,
   ): Promise<T> {
     const started = Date.now();
+    const url = `${base}${path}`;
     let status: number | null = null;
     let responseBody: unknown;
     let errorText: string | undefined;
@@ -101,7 +113,7 @@ export function createEvolutionGoClient(
       timeoutMs && controller ? setTimeout(() => controller.abort(), timeoutMs) : undefined;
 
     try {
-      const res = await fetch(`${base}${path}`, {
+      const res = await fetch(url, {
         method,
         headers: headers(useInstanceToken),
         body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -110,6 +122,7 @@ export function createEvolutionGoClient(
       status = res.status;
       if (!res.ok) {
         errorText = await res.text();
+        responseBody = tryParseJsonBody(errorText);
         throw new Error(`Evolution GO error (${res.status}): ${errorText}`);
       }
       responseBody = await res.json();
@@ -124,6 +137,7 @@ export function createEvolutionGoClient(
       emitLog({
         tipo,
         method,
+        url,
         path,
         status,
         durationMs: Date.now() - started,

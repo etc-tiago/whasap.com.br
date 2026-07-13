@@ -1,7 +1,7 @@
-import { criarClienteEvolutionGo, preconditionFailed } from "@whasap/api-core";
+import { criarClienteEvolutionGo, criarClienteMeta, preconditionFailed } from "@whasap/api-core";
 import { isEvoProvider, isMetaCloudProvider, type InstanceProvider } from "@whasap/config";
 import { extractGoMessageId } from "@whasap/evolution";
-import { createMetaClient, extractMetaMessageId } from "@whasap/meta";
+import { extractMetaMessageId } from "@whasap/meta";
 
 import { obterCredenciaisEvolution, obterCredenciaisMeta } from "../handlers/instancia";
 import type { InstanciaComProvedor } from "./instancia-provedor";
@@ -82,6 +82,7 @@ export async function sendProviderMessage(params: SendMessageParams): Promise<st
       {
         origem: "messaging",
         rpc: "messaging.send",
+        instanciaUuid: instance.uuid,
         ...(instance.evo?.instanceId ? { evolutionInstanceId: instance.evo.instanceId } : {}),
       },
     );
@@ -147,7 +148,11 @@ export async function sendProviderMessage(params: SendMessageParams): Promise<st
 
   if (isMetaCloudProvider(instance.provedor)) {
     const creds = obterCredenciaisMeta(instance);
-    const client = createMetaClient(creds);
+    const client = criarClienteMeta(ctx.env, creds, {
+      origem: "messaging",
+      rpc: "messaging.send",
+      instanciaUuid: instance.uuid,
+    });
     const opts = metaOptions(params.contextoMensagemId);
 
     if (type === "template" && params.templateName) {
@@ -233,7 +238,11 @@ export async function markProviderMessageRead(
   externalMessageId: string,
 ): Promise<void> {
   if (isMetaCloudProvider(instance.provedor)) {
-    const client = createMetaClient(obterCredenciaisMeta(instance));
+    const client = criarClienteMeta(ctx.env, obterCredenciaisMeta(instance), {
+      origem: "messaging",
+      rpc: "messaging.markRead",
+      instanciaUuid: instance.uuid,
+    });
     await client.markAsRead(externalMessageId);
     return;
   }
@@ -246,7 +255,8 @@ export async function markProviderMessageRead(
       { instanceToken: evoToken },
       {
         origem: "messaging",
-        rpc: "messaging.send",
+        rpc: "messaging.markRead",
+        instanciaUuid: instance.uuid,
         ...(instance.evo?.instanceId ? { evolutionInstanceId: instance.evo.instanceId } : {}),
       },
     );

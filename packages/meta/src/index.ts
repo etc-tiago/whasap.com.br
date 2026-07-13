@@ -1,5 +1,12 @@
 export { metaCredentialsSchema, parseMetaCredentials, type MetaCredentials } from "./credentials";
-export { createMetaClient, extractMetaMessageId, type MetaTemplate } from "./client";
+export {
+  createMetaClient,
+  extractMetaMessageId,
+  type MetaClientOptions,
+  type MetaLogSink,
+  type MetaRequestLogEntry,
+  type MetaTemplate,
+} from "./client";
 export {
   metaMessageTemMidia,
   metaMidiaDeMetadados,

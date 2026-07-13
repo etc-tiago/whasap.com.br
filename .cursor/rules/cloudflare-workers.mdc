@@ -106,13 +106,14 @@ Documentação completa: `docs/ENV.md`, `docs/PRODUCAO.md`.
 | `POST /evo` | Evolution | `webhook/evo/{instance}/{date}/...` |
 | `GET`/`POST /cloud` | Meta | `webhook/cloud/{phoneNumberId}/{date}/...` |
 
-## Ações Evolution outbound (R2)
+## Ações provedor outbound (R2)
 
-Toda chamada via `createEvolutionGoClient` / `criarClienteEvolutionGo` grava no bucket `whasap`:
+Toda chamada via `criarClienteEvolutionGo` / `criarClienteMeta` grava no bucket `whasap` no formato `{ request, response }`. Ver regra completa: [`provedor-acao-r2.mdc`](provedor-acao-r2.mdc).
 
 | Prefixo | Origem |
 |---------|--------|
-| `acao/{tipo}/...` | Chamadas HTTP ao Evolution GO (`instance_qr`, `send_text`, etc.) |
+| `acao/evo/...` | Evolution GO (`instance_qr`, `send_text`, …) |
+| `acao/meta_cloud/...` | Meta Graph (`send_text`, `list_templates`, …) |
 
-Workers com binding `R2` → `whasap`: `web`, `webhook`, `office`.
+Workers com binding `R2` → `whasap`: `web`, `webhook`, `office`, `evolution-cleanup`.
 

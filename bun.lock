@@ -177,6 +177,7 @@
         "@whasap/db": "workspace:*",
         "@whasap/evlog": "workspace:*",
         "@whasap/evolution": "workspace:*",
+        "@whasap/meta": "workspace:*",
         "drizzle-orm": "^0.44.2",
         "jose": "^6.0.11",
       },

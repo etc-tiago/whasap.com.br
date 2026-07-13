@@ -1,10 +1,9 @@
 import type { WorkerExecutionContext } from "@whasap/evlog/workers";
-import { criarClienteEvolutionGo, getEvolutionCredentials } from "@whasap/api-core";
+import { criarClienteEvolutionGo, criarClienteMeta, getEvolutionCredentials } from "@whasap/api-core";
 import { log } from "@whasap/evlog";
 import { eq } from "drizzle-orm";
 import { buildSecureInboundMediaR2Key, mimeToExtension } from "@whasap/config";
 import { mensagem, type Db } from "@whasap/db";
-import { createMetaClient } from "@whasap/meta";
 
 import type { Env } from "./env";
 
@@ -104,11 +103,19 @@ export async function storeInboundMedia(env: Env, db: Db, job: InboundMediaJob):
       buffer = base64ToArrayBuffer(b64);
     }
   } else {
-    const meta = createMetaClient({
-      accessToken: job.accessToken,
-      phoneNumberId: job.phoneNumberId,
-      wabaId: job.wabaId,
-    });
+    const meta = criarClienteMeta(
+      env,
+      {
+        accessToken: job.accessToken,
+        phoneNumberId: job.phoneNumberId,
+        wabaId: job.wabaId,
+      },
+      {
+        instanciaUuid: job.instanceUuid,
+        origem: "webhook",
+        rpc: "webhook.media.download",
+      },
+    );
     const downloaded = await meta.downloadMedia(job.mediaId);
     buffer = downloaded.buffer;
     mimeType = downloaded.mimeType ?? job.mimeType ?? "application/octet-stream";

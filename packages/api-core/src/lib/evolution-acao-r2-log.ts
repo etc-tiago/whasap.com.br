@@ -16,64 +16,99 @@ const SENSITIVE_KEYS = new Set([
   "apiKey",
 ]);
 
+export type ProvedorAcao = "evo" | "meta_cloud";
+
 export type EvolutionAcaoLogDerivado = {
   estado?: string;
   conectado?: boolean;
   temQr?: boolean;
 };
 
-export type EvolutionAcaoLogEntry = {
+/** Entrada canônica R2 `acao/` (formato nested). */
+export type ProvedorAcaoLogEntry = {
   at: string;
-  tipo: string;
-  method: string;
-  path: string;
-  status: number | null;
-  durationMs: number;
-  requestBody?: unknown;
-  responseBody?: unknown;
-  error?: string;
+  provedor: ProvedorAcao;
+  acao: string;
+  request: {
+    url: string;
+    tipo: string;
+    body?: unknown;
+  };
+  response: {
+    status: number | null;
+    body?: unknown;
+    error?: string | null;
+    durationMs: number;
+  };
   derivado?: EvolutionAcaoLogDerivado;
   meta?: Record<string, string>;
 };
+
+/** @deprecated Preferir ProvedorAcaoLogEntry — mantido para imports legados em testes. */
+export type EvolutionAcaoLogEntry = ProvedorAcaoLogEntry;
 
 function sanitizeSegment(value: string): string {
   return value.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 120) || "unknown";
 }
 
 /**
- * Chave R2 de ação Evolution.
- * Com `instanciaUuid`: `acao/{instanciaUuid}/{tipo}/{YYYY-MM-DD}/{HH-mm-ss}.{uuid}.json`
- * Sem: `acao/{tipo}/{YYYY-MM-DD}/{HH-mm-ss}.{uuid}.json`
+ * Chave R2 de ação provedor.
+ * Com instancia: `acao/{provedor}/{instanciaUuid}/{acao}/{YYYY-MM-DD}/{HH-mm-ss}.{uuid}.json`
+ * Sem: `acao/{provedor}/{acao}/{YYYY-MM-DD}/{HH-mm-ss}.{uuid}.json`
  */
-export function buildAcaoEvolutionLogKey(
-  tipo: string,
+export function buildAcaoProvedorLogKey(
+  provedor: ProvedorAcao,
+  acao: string,
   at = new Date(),
   instanciaUuid?: string,
 ): string {
   const date = at.toISOString().slice(0, 10);
   const time = at.toISOString().slice(11, 19).replace(/:/g, "-");
   const id = crypto.randomUUID();
-  const tipoSeg = sanitizeSegment(tipo);
   const arquivo = `${time}.${id}.json`;
+  const provedorSeg = sanitizeSegment(provedor);
+  const acaoSeg = sanitizeSegment(acao);
   if (instanciaUuid) {
-    return `acao/${sanitizeSegment(instanciaUuid)}/${tipoSeg}/${date}/${arquivo}`;
+    return `acao/${provedorSeg}/${sanitizeSegment(instanciaUuid)}/${acaoSeg}/${date}/${arquivo}`;
   }
-  return `acao/${tipoSeg}/${date}/${arquivo}`;
+  return `acao/${provedorSeg}/${acaoSeg}/${date}/${arquivo}`;
+}
+
+/** @deprecated Use buildAcaoProvedorLogKey("evo", ...). */
+export function buildAcaoEvolutionLogKey(
+  tipo: string,
+  at = new Date(),
+  instanciaUuid?: string,
+): string {
+  return buildAcaoProvedorLogKey("evo", tipo, at, instanciaUuid);
+}
+
+/** Redige `access_token` e similares na URL antes de persistir. */
+export function redigirUrlLog(url: string): string {
+  try {
+    const u = new URL(url);
+    for (const key of ["access_token", "apikey", "api_key", "token"]) {
+      if (u.searchParams.has(key)) u.searchParams.set(key, "[redacted]");
+    }
+    return u.toString();
+  } catch {
+    return url.replace(/([?&](?:access_token|apikey|api_key|token)=)[^&]*/gi, "$1[redacted]");
+  }
 }
 
 /** Deriva estado/conectado/temQr a partir da resposta Evolution para o log R2. */
 export function derivarEvolutionAcaoLog(
-  tipo: string,
+  acao: string,
   responseBody?: unknown,
 ): EvolutionAcaoLogDerivado | undefined {
   if (!responseBody || typeof responseBody !== "object") return undefined;
 
-  if (tipo === "instance_status") {
+  if (acao === "instance_status") {
     const estado = parseGoConnectionState(responseBody as EvolutionGoStatusResponse);
     return { estado, conectado: estado === "open" };
   }
 
-  if (tipo === "instance_qr") {
+  if (acao === "instance_qr") {
     const { base64 } = parseGoQrResponse(responseBody as EvolutionQrResponse);
     return { temQr: Boolean(base64) };
   }
@@ -122,33 +157,65 @@ export function redigirEvolutionLogPayload(value: unknown): unknown {
   return value;
 }
 
-export function prepararEvolutionAcaoLogEntry(
-  entry: Omit<EvolutionAcaoLogEntry, "at"> & { at?: string },
-): EvolutionAcaoLogEntry {
-  const derivado = entry.derivado ?? derivarEvolutionAcaoLog(entry.tipo, entry.responseBody);
+export const redigirProvedorLogPayload = redigirEvolutionLogPayload;
+
+/** Tenta parsear texto de erro HTTP como JSON para `response.body`. */
+export function parseCorpoErroHttp(texto: string | undefined): unknown {
+  if (!texto) return undefined;
+  try {
+    return JSON.parse(texto) as unknown;
+  } catch {
+    return { raw: texto };
+  }
+}
+
+export function prepararProvedorAcaoLogEntry(
+  entry: Omit<ProvedorAcaoLogEntry, "at"> & { at?: string },
+): ProvedorAcaoLogEntry {
+  const responseBody = entry.response.body;
+  const derivado =
+    entry.derivado ??
+    (entry.provedor === "evo"
+      ? derivarEvolutionAcaoLog(entry.acao, responseBody)
+      : undefined);
 
   return {
     at: entry.at ?? new Date().toISOString(),
-    tipo: entry.tipo,
-    method: entry.method,
-    path: entry.path,
-    status: entry.status,
-    durationMs: entry.durationMs,
-    requestBody:
-      entry.requestBody !== undefined ? redigirEvolutionLogPayload(entry.requestBody) : undefined,
-    responseBody:
-      entry.responseBody !== undefined ? redigirEvolutionLogPayload(entry.responseBody) : undefined,
-    error: entry.error,
+    provedor: entry.provedor,
+    acao: entry.acao,
+    request: {
+      url: redigirUrlLog(entry.request.url),
+      tipo: entry.request.tipo,
+      body:
+        entry.request.body !== undefined
+          ? redigirProvedorLogPayload(entry.request.body)
+          : undefined,
+    },
+    response: {
+      status: entry.response.status,
+      body:
+        responseBody !== undefined ? redigirProvedorLogPayload(responseBody) : undefined,
+      error: entry.response.error ?? null,
+      durationMs: entry.response.durationMs,
+    },
     derivado,
     meta: entry.meta,
   };
 }
 
-/** Grava log de ação Evolution no R2 (fire-and-forget; nunca propaga erro). */
-export function putEvolutionAcaoLog(r2: R2Bucket, entry: EvolutionAcaoLogEntry): void {
-  const prepared = prepararEvolutionAcaoLogEntry(entry);
-  const key = buildAcaoEvolutionLogKey(
-    prepared.tipo,
+/** @deprecated Use prepararProvedorAcaoLogEntry. */
+export function prepararEvolutionAcaoLogEntry(
+  entry: Omit<ProvedorAcaoLogEntry, "at"> & { at?: string },
+): ProvedorAcaoLogEntry {
+  return prepararProvedorAcaoLogEntry(entry);
+}
+
+/** Grava log de ação provedor no R2 (fire-and-forget; nunca propaga erro). */
+export function putProvedorAcaoLog(r2: R2Bucket, entry: ProvedorAcaoLogEntry): void {
+  const prepared = prepararProvedorAcaoLogEntry(entry);
+  const key = buildAcaoProvedorLogKey(
+    prepared.provedor,
+    prepared.acao,
     new Date(prepared.at),
     prepared.meta?.instanciaUuid,
   );
@@ -158,12 +225,18 @@ export function putEvolutionAcaoLog(r2: R2Bucket, entry: EvolutionAcaoLogEntry):
     .put(key, body, { httpMetadata: { contentType: "application/json" } })
     .catch((err: unknown) => {
       log.warn({
-        evolution: {
+        provedorAcao: {
           acaoR2Falhou: true,
-          tipo: prepared.tipo,
+          provedor: prepared.provedor,
+          acao: prepared.acao,
           key,
           erro: err instanceof Error ? err.message : String(err),
         },
       });
     });
+}
+
+/** @deprecated Use putProvedorAcaoLog. */
+export function putEvolutionAcaoLog(r2: R2Bucket, entry: ProvedorAcaoLogEntry): void {
+  putProvedorAcaoLog(r2, entry);
 }

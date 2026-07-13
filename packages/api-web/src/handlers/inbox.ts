@@ -1,8 +1,8 @@
-import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
-import { forbidden, notFound, preconditionFailed } from "@whasap/api-core";
+import { criarClienteMeta, forbidden, notFound, preconditionFailed } from "@whasap/api-core";
 import { isEvoProvider, isMetaCloudProvider } from "@whasap/config";
 import { cdnMediaUrl, buildOutboundMediaR2Key, mimeToExtension } from "@whasap/config";
-import { createMetaClient, type MetaTemplate } from "@whasap/meta";
+import type { MetaTemplate } from "@whasap/meta";
+import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import {
   contato,
   contatoInstancia,
@@ -820,7 +820,11 @@ export const caixaEntradaHandlers = {
       if (!isMetaCloudProvider(instance.provedor)) preconditionFailed("Somente Cloud API");
 
       const creds = obterCredenciaisMeta(instance);
-      const meta = createMetaClient(creds);
+      const meta = criarClienteMeta(ctx.env, creds, {
+        origem: "templates.sincronizar",
+        rpc: "caixaEntrada.templates.sincronizar",
+        instanciaUuid: instance.uuid,
+      });
       const { data } = await meta.listTemplates();
 
       await Promise.all(data.map((tpl) => sincronizarTemplateMeta(ctx, instance.id, tpl)));

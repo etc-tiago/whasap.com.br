@@ -1,26 +1,17 @@
-import {
-  createEvolutionGoClient,
-  type EvolutionCredentials,
-  type EvolutionGoInstanceContext,
-  type EvolutionGoRequestLogEntry,
-} from "@whasap/evolution";
+import { createMetaClient, type MetaCredentials, type MetaRequestLogEntry } from "@whasap/meta";
 
 import { putProvedorAcaoLog } from "./evolution-acao-r2-log";
+import type { EvolutionGoEnv } from "./criar-cliente-evolution-go";
 
-export type EvolutionGoEnv = {
-  R2?: R2Bucket;
-  /** Nome do worker para meta do log (ex.: whasap-web). */
-  WORKER_NAME?: string;
-};
+export type MetaEnv = EvolutionGoEnv;
 
 /**
- * Cria cliente Evolution GO com log R2 obrigatório quando `env.R2` existe
- * (`acao/evo/...`, formato `{ request, response }`).
+ * Cria cliente Meta Graph com log R2 obrigatório quando `env.R2` existe
+ * (`acao/meta_cloud/...`, formato `{ request, response }`).
  */
-export function criarClienteEvolutionGo(
-  env: EvolutionGoEnv,
-  creds: EvolutionCredentials,
-  ctx?: EvolutionGoInstanceContext,
+export function criarClienteMeta(
+  env: MetaEnv,
+  creds: MetaCredentials,
   meta?: Record<string, string>,
 ) {
   const logMeta: Record<string, string> = {
@@ -29,19 +20,19 @@ export function criarClienteEvolutionGo(
   };
 
   if (!env.R2) {
-    return createEvolutionGoClient(creds, ctx);
+    return createMetaClient(creds);
   }
 
   const r2 = env.R2;
   const mergedMeta = Object.keys(logMeta).length > 0 ? logMeta : undefined;
 
-  return createEvolutionGoClient(creds, ctx, {
+  return createMetaClient(creds, {
     log: {
-      onRequest(entry: EvolutionGoRequestLogEntry) {
+      onRequest(entry: MetaRequestLogEntry) {
         putProvedorAcaoLog(r2, {
           at: new Date().toISOString(),
-          provedor: "evo",
-          acao: entry.tipo,
+          provedor: "meta_cloud",
+          acao: entry.acao,
           request: {
             url: entry.url,
             tipo: entry.method,

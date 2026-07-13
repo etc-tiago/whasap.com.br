@@ -1,5 +1,6 @@
 import {
   criarClienteEvolutionGo,
+  criarClienteMeta,
   getEvolutionCredentials,
   marcarInstanciaDesconectadaEvolution,
   notFound,
@@ -30,7 +31,6 @@ import {
   parseGoQrResponse,
   type EvolutionGoStatusResponse,
 } from "@whasap/evolution";
-import { createMetaClient } from "@whasap/meta";
 import { and, eq, isNull } from "drizzle-orm";
 
 import {
@@ -551,11 +551,19 @@ export const instanciaHandlers = {
     await exigirAdminPorIdInterno(ctx, row.organizacaoId);
     await exigirAcessoDemonstracao(ctx, row.organizacaoId);
 
-    const meta = createMetaClient({
-      accessToken: input.accessToken,
-      phoneNumberId: input.phoneNumberId,
-      wabaId: input.wabaId,
-    });
+    const meta = criarClienteMeta(
+      ctx.env,
+      {
+        accessToken: input.accessToken,
+        phoneNumberId: input.phoneNumberId,
+        wabaId: input.wabaId,
+      },
+      {
+        origem: "configurarCloud",
+        rpc: "instancia.configurarCloud",
+        instanciaUuid: row.uuid,
+      },
+    );
 
     let templatesCount: number;
     try {
