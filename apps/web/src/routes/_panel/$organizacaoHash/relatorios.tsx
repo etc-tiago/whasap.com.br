@@ -6,7 +6,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { skipToken, useQuery } from "@tanstack/react-query";
 import { rotuloProvedor } from "@whasap/config";
-import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@whasap/ui/components/card";
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@whasap/ui/components/chart";
 import { Input } from "@whasap/ui/components/input";
 import { Label } from "@whasap/ui/components/label";
 import {
@@ -17,6 +25,17 @@ import {
   SelectValue,
 } from "@whasap/ui/components/select";
 import { useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  LabelList,
+  Pie,
+  PieChart,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { orgInput } from "@/lib/org-input";
 import { orpc, type RelatorioVisaoGeral } from "@/lib/orpc";
@@ -29,6 +48,15 @@ export const Route = createFileRoute("/_panel/$organizacaoHash/relatorios")({
 const TODOS = "__todos__";
 
 type PeriodoPreset = "7" | "30" | "90" | "custom";
+
+const CORES_CHART = [
+  "oklch(0.55 0.15 155)",
+  "oklch(0.62 0.13 230)",
+  "oklch(0.7 0.14 85)",
+  "oklch(0.65 0.16 40)",
+  "oklch(0.6 0.12 300)",
+  "oklch(0.55 0.1 200)",
+] as const;
 
 function inicioDoDia(d: Date) {
   const x = new Date(d);
@@ -123,7 +151,7 @@ function ReportsPage() {
 
   if (org.data?.meuPapel === "usuario") {
     return (
-      <div className="h-full overflow-auto p-6">
+      <div className="flex h-full items-center justify-center overflow-auto p-6">
         <p className="text-sm text-muted-foreground">Relatórios não disponíveis para seu perfil.</p>
       </div>
     );
@@ -131,302 +159,450 @@ function ReportsPage() {
 
   const data = report.data;
   const dist = data?.distribuicaoTempoResposta;
-  const totalDist =
-    (dist?.ate5Min ?? 0) +
-    (dist?.de5a15Min ?? 0) +
-    (dist?.de15a60Min ?? 0) +
-    (dist?.acima60Min ?? 0) +
-    (dist?.semResposta ?? 0);
+
+  const tempoRespostaData = [
+    { faixa: "ate5", label: "≤ 5 min", total: dist?.ate5Min ?? 0, fill: "var(--color-ate5)" },
+    { faixa: "de5a15", label: "5–15 min", total: dist?.de5a15Min ?? 0, fill: "var(--color-de5a15)" },
+    {
+      faixa: "de15a60",
+      label: "15–60 min",
+      total: dist?.de15a60Min ?? 0,
+      fill: "var(--color-de15a60)",
+    },
+    {
+      faixa: "acima60",
+      label: "> 60 min",
+      total: dist?.acima60Min ?? 0,
+      fill: "var(--color-acima60)",
+    },
+    {
+      faixa: "semResposta",
+      label: "Sem resposta",
+      total: dist?.semResposta ?? 0,
+      fill: "var(--color-semResposta)",
+    },
+  ];
+
+  const tempoRespostaConfig = {
+    total: { label: "Conversas" },
+    ate5: { label: "≤ 5 min", color: "oklch(0.62 0.14 155)" },
+    de5a15: { label: "5–15 min", color: "oklch(0.7 0.14 130)" },
+    de15a60: { label: "15–60 min", color: "oklch(0.75 0.14 85)" },
+    acima60: { label: "> 60 min", color: "oklch(0.68 0.16 45)" },
+    semResposta: { label: "Sem resposta", color: "oklch(0.72 0.02 155)" },
+  } satisfies ChartConfig;
+
+  const mensagensConfig = {
+    enviadas: { label: "Enviadas", color: "oklch(0.55 0.15 155)" },
+    recebidas: { label: "Recebidas", color: "oklch(0.62 0.13 230)" },
+  } satisfies ChartConfig;
+
+  const mensagensData = [
+    {
+      tipo: "Mensagens",
+      enviadas: data?.mensagensEnviadas ?? 0,
+      recebidas: data?.mensagensRecebidas ?? 0,
+    },
+  ];
+
+  const itensData =
+    data?.porItemInteresse.map((item, i) => ({
+      id: item.id,
+      nome: item.nome,
+      total: item.total,
+      fill: item.cor ?? CORES_CHART[i % CORES_CHART.length]!,
+    })) ?? [];
+
+  const itensConfig = {
+    total: { label: "Aplicações" },
+    ...Object.fromEntries(
+      itensData.map((item) => [item.id, { label: item.nome, color: item.fill }]),
+    ),
+  } satisfies ChartConfig;
+
+  const agentesData =
+    data?.porAgente.map((a) => ({
+      nome: a.nome.split(" ")[0] ?? a.nome,
+      nomeCompleto: a.nome,
+      conversas: a.conversasAtribuidas,
+      enviadas: a.mensagensEnviadas,
+      tempo: a.tempoMedioPrimeiraRespostaMinutos,
+    })) ?? [];
+
+  const agentesConfig = {
+    conversas: { label: "Conversas", color: "oklch(0.55 0.15 155)" },
+    enviadas: { label: "Enviadas", color: "oklch(0.62 0.13 230)" },
+  } satisfies ChartConfig;
+
+  const numerosData =
+    data?.porInstancia.map((i, idx) => ({
+      nome: i.nome,
+      conversas: i.conversas,
+      fill: CORES_CHART[idx % CORES_CHART.length]!,
+    })) ?? [];
+
+  const numerosConfig = {
+    conversas: { label: "Conversas", color: "oklch(0.55 0.15 155)" },
+  } satisfies ChartConfig;
+
+  const temDistribuicao = tempoRespostaData.some((d) => d.total > 0);
 
   return (
-    <div className="h-full space-y-6 overflow-auto p-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Relatórios</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Visão geral de atendimento, tempo de resposta e itens de interesse no período.
-        </p>
-      </div>
+    <div className="h-full overflow-auto">
+      <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8 sm:px-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold">Relatórios</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Visão geral de atendimento, tempo de resposta e itens de interesse no período.
+          </p>
+        </div>
 
-      <Card>
-        <CardContent className="grid gap-4 pt-6 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="space-y-2">
-            <Label>Período</Label>
-            <Select
-              value={periodoPreset}
-              onValueChange={(v) => {
-                const preset = v as PeriodoPreset;
-                setPeriodoPreset(preset);
-                if (preset !== "custom") {
-                  const intervalo = intervaloPreset(preset);
-                  setDeInput(dataInputValue(intervalo.de));
-                  setAteInput(dataInputValue(intervalo.ate));
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7">Últimos 7 dias</SelectItem>
-                <SelectItem value="30">Últimos 30 dias</SelectItem>
-                <SelectItem value="90">Últimos 90 dias</SelectItem>
-                <SelectItem value="custom">Personalizado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Atendente</Label>
-            <Select value={atendenteId} onValueChange={setAtendenteId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TODOS}>Todos</SelectItem>
-                {(membros.data ?? []).map((m) => (
-                  <SelectItem key={m.usuarioId} value={m.usuarioId}>
-                    {m.usuarioNome ?? m.usuarioEmail ?? m.usuarioId}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Número</Label>
-            <Select value={instanciaId} onValueChange={setInstanciaId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TODOS}>Todos</SelectItem>
-                {(instancias.data ?? []).map((i) => (
-                  <SelectItem key={i.id} value={i.id}>
-                    {i.nome}
-                    {i.cloudPhoneNumberId
-                      ? ` · ${i.cloudPhoneNumberId}`
-                      : ` · ${rotuloProvedor(i.provider)}`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {periodoPreset === "custom" ? (
-            <div className="grid grid-cols-2 gap-2 sm:col-span-2 lg:col-span-1">
-              <div className="space-y-2">
-                <Label htmlFor="relatorio-de">De</Label>
-                <Input
-                  id="relatorio-de"
-                  type="date"
-                  value={deInput}
-                  max={ateInput}
-                  onChange={(e) => setDeInput(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="relatorio-ate">Até</Label>
-                <Input
-                  id="relatorio-ate"
-                  type="date"
-                  value={ateInput}
-                  min={deInput}
-                  onChange={(e) => setAteInput(e.target.value)}
-                />
-              </div>
+        <Card>
+          <CardContent className="grid gap-4 pt-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-2">
+              <Label>Período</Label>
+              <Select
+                value={periodoPreset}
+                onValueChange={(v) => {
+                  const preset = v as PeriodoPreset;
+                  setPeriodoPreset(preset);
+                  if (preset !== "custom") {
+                    const intervalo = intervaloPreset(preset);
+                    setDeInput(dataInputValue(intervalo.de));
+                    setAteInput(dataInputValue(intervalo.ate));
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7">Últimos 7 dias</SelectItem>
+                  <SelectItem value="30">Últimos 30 dias</SelectItem>
+                  <SelectItem value="90">Últimos 90 dias</SelectItem>
+                  <SelectItem value="custom">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          ) : (
-            <div className="flex items-end">
-              <p className="pb-2 text-sm text-muted-foreground">
-                {de.toLocaleDateString("pt-BR")} — {ate.toLocaleDateString("pt-BR")}
-              </p>
+
+            <div className="space-y-2">
+              <Label>Atendente</Label>
+              <Select value={atendenteId} onValueChange={setAtendenteId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TODOS}>Todos</SelectItem>
+                  {(membros.data ?? []).map((m) => (
+                    <SelectItem key={m.usuarioId} value={m.usuarioId}>
+                      {m.usuarioNome ?? m.usuarioEmail ?? m.usuarioId}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {report.isLoading ? (
-        <p className="text-sm text-muted-foreground">Carregando…</p>
-      ) : report.isError ? (
-        <p className="text-sm text-destructive">Não foi possível carregar os relatórios.</p>
-      ) : (
-        <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard title="Contatos" value={data?.totalContatos ?? 0} />
-            <MetricCard
-              title="Conversas"
-              value={data?.totalConversas ?? 0}
-              hint={`${data?.conversasAbertas ?? 0} abertas · ${data?.conversasFechadas ?? 0} fechadas`}
-            />
-            <MetricCard
-              title="Itens de interesse"
-              value={data?.itensInteresse ?? 0}
-              hint="Etiquetas aplicadas no período"
-            />
-            <MetricCard
-              title="1ª resposta (média)"
-              value={formatarMinutos(data?.tempoMedioPrimeiraRespostaMinutos)}
-              hint={
-                data?.conversasComResposta
-                  ? `${data.conversasComResposta} conversas com resposta`
-                  : "Sem respostas no período"
-              }
-            />
-          </div>
+            <div className="space-y-2">
+              <Label>Número</Label>
+              <Select value={instanciaId} onValueChange={setInstanciaId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TODOS}>Todos</SelectItem>
+                  {(instancias.data ?? []).map((i) => (
+                    <SelectItem key={i.id} value={i.id}>
+                      {i.nome}
+                      {i.cloudPhoneNumberId
+                        ? ` · ${i.cloudPhoneNumberId}`
+                        : ` · ${rotuloProvedor(i.provider)}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Análise de tempo de resposta</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <StatMini
-                    label="Média"
-                    value={formatarMinutos(data?.tempoMedioPrimeiraRespostaMinutos)}
-                  />
-                  <StatMini
-                    label="Mediana"
-                    value={formatarMinutos(data?.tempoMedianoPrimeiraRespostaMinutos)}
-                  />
-                  <StatMini label="Com resposta" value={String(data?.conversasComResposta ?? 0)} />
-                  <StatMini label="Sem resposta" value={String(dist?.semResposta ?? 0)} />
-                </div>
-
+            {periodoPreset === "custom" ? (
+              <div className="grid grid-cols-2 gap-2 sm:col-span-2 lg:col-span-1">
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Distribuição da 1ª resposta</p>
-                  {totalDist === 0 ? (
-                    <p className="text-sm text-muted-foreground">Sem conversas no período.</p>
+                  <Label htmlFor="relatorio-de">De</Label>
+                  <Input
+                    id="relatorio-de"
+                    type="date"
+                    value={deInput}
+                    max={ateInput}
+                    onChange={(e) => setDeInput(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="relatorio-ate">Até</Label>
+                  <Input
+                    id="relatorio-ate"
+                    type="date"
+                    value={ateInput}
+                    min={deInput}
+                    onChange={(e) => setAteInput(e.target.value)}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-end justify-center sm:justify-start">
+                <p className="pb-2 text-sm text-muted-foreground">
+                  {de.toLocaleDateString("pt-BR")} — {ate.toLocaleDateString("pt-BR")}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {report.isLoading ? (
+          <p className="text-center text-sm text-muted-foreground">Carregando…</p>
+        ) : report.isError ? (
+          <p className="text-center text-sm text-destructive">
+            Não foi possível carregar os relatórios.
+          </p>
+        ) : (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <MetricCard title="Contatos" value={data?.totalContatos ?? 0} />
+              <MetricCard
+                title="Conversas"
+                value={data?.totalConversas ?? 0}
+                hint={`${data?.conversasAbertas ?? 0} abertas · ${data?.conversasFechadas ?? 0} fechadas`}
+              />
+              <MetricCard
+                title="Itens de interesse"
+                value={data?.itensInteresse ?? 0}
+                hint="Etiquetas aplicadas no período"
+              />
+              <MetricCard
+                title="1ª resposta (média)"
+                value={formatarMinutos(data?.tempoMedioPrimeiraRespostaMinutos)}
+                hint={
+                  data?.conversasComResposta
+                    ? `${data.conversasComResposta} conversas com resposta`
+                    : "Sem respostas no período"
+                }
+              />
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Tempo de resposta</CardTitle>
+                  <CardDescription>
+                    Distribuição da 1ª resposta · média{" "}
+                    {formatarMinutos(data?.tempoMedioPrimeiraRespostaMinutos)} · mediana{" "}
+                    {formatarMinutos(data?.tempoMedianoPrimeiraRespostaMinutos)}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {!temDistribuicao ? (
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      Sem conversas no período.
+                    </p>
                   ) : (
-                    <ul className="space-y-2">
-                      <FaixaBar
-                        label="Até 5 min"
-                        count={dist?.ate5Min ?? 0}
-                        total={totalDist}
-                        className="bg-emerald-500"
-                      />
-                      <FaixaBar
-                        label="5–15 min"
-                        count={dist?.de5a15Min ?? 0}
-                        total={totalDist}
-                        className="bg-lime-500"
-                      />
-                      <FaixaBar
-                        label="15–60 min"
-                        count={dist?.de15a60Min ?? 0}
-                        total={totalDist}
-                        className="bg-amber-500"
-                      />
-                      <FaixaBar
-                        label="Acima de 60 min"
-                        count={dist?.acima60Min ?? 0}
-                        total={totalDist}
-                        className="bg-orange-500"
-                      />
-                      <FaixaBar
-                        label="Sem resposta"
-                        count={dist?.semResposta ?? 0}
-                        total={totalDist}
-                        className="bg-muted-foreground/40"
-                      />
-                    </ul>
+                    <ChartContainer config={tempoRespostaConfig} className="aspect-4/3 w-full">
+                      <BarChart accessibilityLayer data={tempoRespostaData}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                          dataKey="label"
+                          tickLine={false}
+                          tickMargin={8}
+                          axisLine={false}
+                          tick={{ fontSize: 11 }}
+                        />
+                        <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={28} />
+                        <ChartTooltip
+                          cursor={false}
+                          content={<ChartTooltipContent hideLabel nameKey="faixa" />}
+                        />
+                        <Bar dataKey="total" radius={4}>
+                          {tempoRespostaData.map((item) => (
+                            <Cell key={item.faixa} fill={item.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ChartContainer>
                   )}
-                </div>
+                </CardContent>
+              </Card>
 
-                <div className="grid grid-cols-2 gap-3 border-t pt-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Mensagens enviadas</p>
-                    <p className="font-semibold">{data?.mensagensEnviadas ?? 0}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Mensagens recebidas</p>
-                    <p className="font-semibold">{data?.mensagensRecebidas ?? 0}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Mensagens</CardTitle>
+                  <CardDescription>Enviadas vs recebidas no período</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {(data?.mensagensEnviadas ?? 0) + (data?.mensagensRecebidas ?? 0) === 0 ? (
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      Sem mensagens no período.
+                    </p>
+                  ) : (
+                    <ChartContainer config={mensagensConfig} className="aspect-4/3 w-full">
+                      <BarChart accessibilityLayer data={mensagensData}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis dataKey="tipo" tickLine={false} axisLine={false} />
+                        <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={36} />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <ChartLegend content={<ChartLegendContent />} />
+                        <Bar dataKey="enviadas" fill="var(--color-enviadas)" radius={4} />
+                        <Bar dataKey="recebidas" fill="var(--color-recebidas)" radius={4} />
+                      </BarChart>
+                    </ChartContainer>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Itens de interesse</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {(data?.porItemInteresse?.length ?? 0) === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Nenhuma etiqueta aplicada aos contatos do período.
-                  </p>
-                ) : (
-                  <ul className="space-y-2 text-sm">
-                    {data!.porItemInteresse.map((item) => (
-                      <li key={item.id} className="flex items-center justify-between gap-3">
-                        <span className="flex min-w-0 items-center gap-2">
-                          <span
-                            className="size-2.5 shrink-0 rounded-full"
-                            style={{ backgroundColor: item.cor ?? "var(--muted-foreground)" }}
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Itens de interesse</CardTitle>
+                  <CardDescription>Etiquetas aplicadas no período</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {itensData.length === 0 ? (
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      Nenhuma etiqueta aplicada aos contatos do período.
+                    </p>
+                  ) : (
+                    <ChartContainer
+                      config={itensConfig}
+                      className="mx-auto aspect-square max-h-[280px] w-full"
+                    >
+                      <PieChart>
+                        <ChartTooltip
+                          content={<ChartTooltipContent nameKey="id" hideLabel />}
+                        />
+                        <Pie
+                          data={itensData}
+                          dataKey="total"
+                          nameKey="id"
+                          innerRadius={55}
+                          strokeWidth={2}
+                        >
+                          {itensData.map((item) => (
+                            <Cell key={item.id} fill={item.fill} />
+                          ))}
+                        </Pie>
+                        <ChartLegend
+                          content={<ChartLegendContent nameKey="id" />}
+                          className="-translate-y-1 flex-wrap gap-2 *:basis-1/3 *:justify-center"
+                        />
+                      </PieChart>
+                    </ChartContainer>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Por número</CardTitle>
+                  <CardDescription>Conversas por conexão</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {numerosData.length === 0 ? (
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      Nenhum número no período.
+                    </p>
+                  ) : (
+                    <ChartContainer config={numerosConfig} className="aspect-4/3 w-full">
+                      <BarChart accessibilityLayer data={numerosData}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                          dataKey="nome"
+                          tickLine={false}
+                          tickMargin={8}
+                          axisLine={false}
+                          tick={{ fontSize: 11 }}
+                        />
+                        <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={28} />
+                        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                        <Bar dataKey="conversas" radius={4}>
+                          {numerosData.map((item) => (
+                            <Cell key={item.nome} fill={item.fill} />
+                          ))}
+                          <LabelList
+                            dataKey="conversas"
+                            position="top"
+                            className="fill-foreground"
+                            fontSize={11}
                           />
-                          <span className="truncate">{item.nome}</span>
-                        </span>
-                        <span className="shrink-0 text-muted-foreground">{item.total}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                        </Bar>
+                      </BarChart>
+                    </ChartContainer>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Por atendente</CardTitle>
+                <CardDescription>
+                  Conversas atribuídas e mensagens enviadas
+                  {agentesData.some((a) => a.tempo != null)
+                    ? " · tempo médio na lista abaixo"
+                    : null}
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                {(data?.porAgente?.length ?? 0) === 0 ? (
-                  <p className="text-sm text-muted-foreground">Sem atividade no período.</p>
+              <CardContent className="space-y-4">
+                {agentesData.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">
+                    Sem atividade no período.
+                  </p>
                 ) : (
-                  <ul className="space-y-3 text-sm">
-                    {data!.porAgente.map((a: RelatorioVisaoGeral["porAgente"][number]) => (
-                      <li key={a.usuarioId} className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate font-medium">{a.nome}</p>
-                          <p className="text-muted-foreground">
-                            {a.conversasAtribuidas} conversas · {a.mensagensEnviadas} enviadas
-                          </p>
-                        </div>
-                        <span className="shrink-0 text-muted-foreground">
-                          {formatarMinutos(a.tempoMedioPrimeiraRespostaMinutos)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
+                  <>
+                    <ChartContainer
+                      config={agentesConfig}
+                      className="aspect-16/7 min-h-[220px] w-full"
+                    >
+                      <BarChart accessibilityLayer data={agentesData}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                          dataKey="nome"
+                          tickLine={false}
+                          tickMargin={8}
+                          axisLine={false}
+                          tick={{ fontSize: 11 }}
+                        />
+                        <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={32} />
+                        <ChartTooltip
+                          content={
+                            <ChartTooltipContent
+                              labelFormatter={(_, payload) =>
+                                String(payload?.[0]?.payload?.nomeCompleto ?? "")
+                              }
+                            />
+                          }
+                        />
+                        <ChartLegend content={<ChartLegendContent />} />
+                        <Bar dataKey="conversas" fill="var(--color-conversas)" radius={4} />
+                        <Bar dataKey="enviadas" fill="var(--color-enviadas)" radius={4} />
+                      </BarChart>
+                    </ChartContainer>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Por número</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {(data?.porInstancia?.length ?? 0) === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum número no período.</p>
-                ) : (
-                  <ul className="space-y-2 text-sm">
-                    {data!.porInstancia.map((i) => (
-                      <li key={i.instanciaId} className="flex justify-between gap-3">
-                        <span className="truncate">{i.nome}</span>
-                        <span className="shrink-0 text-muted-foreground">
-                          {i.conversas} conversas
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                    <ul className="divide-y text-sm">
+                      {data!.porAgente.map((a: RelatorioVisaoGeral["porAgente"][number]) => (
+                        <li
+                          key={a.usuarioId}
+                          className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0"
+                        >
+                          <span className="truncate font-medium">{a.nome}</span>
+                          <span className="shrink-0 text-muted-foreground">
+                            1ª resposta {formatarMinutos(a.tempoMedioPrimeiraRespostaMinutos)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
                 )}
               </CardContent>
             </Card>
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -450,41 +626,5 @@ function MetricCard({
         {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
       </CardContent>
     </Card>
-  );
-}
-
-function StatMini({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border px-3 py-2">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm font-semibold">{value}</p>
-    </div>
-  );
-}
-
-function FaixaBar({
-  label,
-  count,
-  total,
-  className,
-}: {
-  label: string;
-  count: number;
-  total: number;
-  className: string;
-}) {
-  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-  return (
-    <li className="space-y-1">
-      <div className="flex justify-between text-xs">
-        <span>{label}</span>
-        <span className="text-muted-foreground">
-          {count} · {pct}%
-        </span>
-      </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-        <div className={`h-full rounded-full ${className}`} style={{ width: `${pct}%` }} />
-      </div>
-    </li>
   );
 }
