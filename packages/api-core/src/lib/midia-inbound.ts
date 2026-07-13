@@ -3,6 +3,7 @@
  */
 import { buildSecureInboundMediaR2Key, mimeToExtension } from "@whasap/config";
 import { mensagem, type Db } from "@whasap/db";
+import { EvolutionGoDownloadMediaError } from "@whasap/evolution";
 import { eq } from "drizzle-orm";
 
 import { criarClienteEvolutionGo } from "./criar-cliente-evolution-go";
@@ -91,13 +92,24 @@ export async function persistirMidiaInbound(
           rpc: "webhook.media.download",
         },
       );
-      const result = await client.downloadMedia(job.waMessage);
-      const b64 = result.base64 ?? result.data;
-      if (!b64) {
-        throw new Error(`Evolution downloadmedia sem base64 (${job.externalId})`);
+      try {
+        const result = await client.downloadMedia(job.waMessage);
+        const b64 = result.base64;
+        if (!b64) {
+          throw new Error(`Evolution downloadmedia sem base64 (${job.externalId})`);
+        }
+        mimeType = result.mimetype ?? job.mimeType ?? "application/octet-stream";
+        buffer = base64ParaArrayBuffer(b64);
+      } catch (err) {
+        if (err instanceof EvolutionGoDownloadMediaError) {
+          if (err.codigo === "unauthorized" || err.codigo === "forbidden") {
+            throw new Error(
+              `Evolution downloadmedia ${err.codigo} (${err.status}) (${job.externalId})`,
+            );
+          }
+        }
+        throw err;
       }
-      mimeType = result.mimetype ?? job.mimeType ?? "application/octet-stream";
-      buffer = base64ParaArrayBuffer(b64);
     }
   } else {
     const meta = criarClienteMeta(

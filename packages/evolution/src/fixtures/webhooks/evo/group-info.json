@@ -1,0 +1,7 @@
+{
+  "receivedAt": "2026-07-13T17:33:19.022Z",
+  "meta": {
+    "source": "evo"
+  },
+  "raw": "{\"data\":{\"JID\":\"120363411701120998@g.us\",\"Notify\":\"Equipe de Planejamento e Gestão de Contratações de Tecnologia da Informação\",\"Sender\":\"260460356096016@lid\",\"SenderPN\":\"556381430442@s.whatsapp.net\",\"Timestamp\":\"2026-07-13T14:33:18-03:00\",\"Name\":{\"Name\":\"Prontuário Eletrônico - Psico e serviço social - MPTO\",\"NameSetAt\":\"2026-07-13T14:33:18-03:00\",\"NameSetBy\":\"260460356096016@lid\",\"NameSetByPN\":\"556381430442@s.whatsapp.net\"},\"Topic\":null,\"Locked\":null,\"Announce\":null,\"Ephemeral\":null,\"MembershipApprovalMode\":null,\"Delete\":null,\"Link\":null,\"Unlink\":null,\"NewInviteLink\":null,\"PrevParticipantVersionID\":\"\",\"ParticipantVersionID\":\"\",\"JoinReason\":\"\",\"Join\":null,\"Leave\":null,\"Promote\":null,\"Demote\":null,\"Suspended\":false,\"Unsuspended\":false,\"UnknownChanges\":null},\"event\":\"GroupInfo\",\"instanceId\":\"acdc2f91-aceb-47f7-9d5e-fd53b91ad738\",\"instanceName\":\"whasap-acdc2f91\",\"instanceToken\":\"5d5d7629aaa742119e6ea710d940f3df\"}"
+}

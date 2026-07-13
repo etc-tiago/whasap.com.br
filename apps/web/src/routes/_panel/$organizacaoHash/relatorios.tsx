@@ -1,5 +1,5 @@
 /**
- * Relatórios da organização — visão geral em uma página.
+ * Relatórios da organização — dashboard de atendimento.
  * Filtros: período, atendente e número (instância).
  * RBAC: bloqueado para papel `usuario` (admin/analista).
  */
@@ -32,6 +32,8 @@ import {
 } from "@whasap/ui/components/select";
 import { useState } from "react";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
@@ -63,6 +65,19 @@ const CORES_CHART = [
   "oklch(0.6 0.12 300)",
   "oklch(0.55 0.1 200)",
 ] as const;
+
+const ROTULOS_TIPO: Record<string, string> = {
+  text: "Texto",
+  image: "Imagem",
+  audio: "Áudio",
+  video: "Vídeo",
+  document: "Documento",
+  sticker: "Figurinha",
+  template: "Template",
+  reaction: "Reação",
+  location: "Localização",
+  contact: "Contato",
+};
 
 function inicioDoDia(d: Date) {
   const x = new Date(d);
@@ -104,6 +119,19 @@ function formatarMinutos(minutos: number | null | undefined) {
   const h = Math.floor(minutos / 60);
   const m = Math.round(minutos % 60);
   return m > 0 ? `${h}h ${m}min` : `${h}h`;
+}
+
+function formatarNumero(n: number) {
+  return n.toLocaleString("pt-BR");
+}
+
+function formatarDiaCurto(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+  });
 }
 
 function ReportsPage() {
@@ -165,6 +193,7 @@ function ReportsPage() {
 
   const data = report.data;
   const dist = data?.distribuicaoTempoResposta;
+  const totalMensagens = (data?.mensagensEnviadas ?? 0) + (data?.mensagensRecebidas ?? 0);
 
   const tempoRespostaData = [
     { faixa: "ate5", label: "≤ 5 min", total: dist?.ate5Min ?? 0, fill: "var(--color-ate5)" },
@@ -203,18 +232,53 @@ function ReportsPage() {
     semResposta: { label: "Sem resposta", color: "oklch(0.72 0.02 155)" },
   } satisfies ChartConfig;
 
-  const mensagensConfig = {
-    enviadas: { label: "Enviadas", color: "oklch(0.55 0.15 155)" },
-    recebidas: { label: "Recebidas", color: "oklch(0.62 0.13 230)" },
+  const serieConfig = {
+    conversas: { label: "Conversas", color: "oklch(0.55 0.15 155)" },
+    enviadas: { label: "Enviadas", color: "oklch(0.62 0.13 230)" },
+    recebidas: { label: "Recebidas", color: "oklch(0.7 0.14 85)" },
   } satisfies ChartConfig;
 
-  const mensagensData = [
+  const serieData =
+    data?.serieDiaria.map((d) => ({
+      ...d,
+      label: formatarDiaCurto(d.data),
+    })) ?? [];
+
+  const statusData = [
     {
-      tipo: "Mensagens",
-      enviadas: data?.mensagensEnviadas ?? 0,
-      recebidas: data?.mensagensRecebidas ?? 0,
+      id: "abertas",
+      nome: "Abertas",
+      total: data?.conversasAbertas ?? 0,
+      fill: "oklch(0.62 0.13 230)",
+    },
+    {
+      id: "fechadas",
+      nome: "Fechadas",
+      total: data?.conversasFechadas ?? 0,
+      fill: "oklch(0.55 0.15 155)",
     },
   ];
+
+  const statusConfig = {
+    total: { label: "Conversas" },
+    abertas: { label: "Abertas", color: "oklch(0.62 0.13 230)" },
+    fechadas: { label: "Fechadas", color: "oklch(0.55 0.15 155)" },
+  } satisfies ChartConfig;
+
+  const tiposData =
+    data?.porTipoMensagem.map((item, i) => ({
+      id: item.tipo,
+      nome: ROTULOS_TIPO[item.tipo] ?? item.tipo,
+      total: item.total,
+      fill: CORES_CHART[i % CORES_CHART.length]!,
+    })) ?? [];
+
+  const tiposConfig = {
+    total: { label: "Mensagens" },
+    ...Object.fromEntries(
+      tiposData.map((item) => [item.id, { label: item.nome, color: item.fill }]),
+    ),
+  } satisfies ChartConfig;
 
   const itensData =
     data?.porItemInteresse.map((item, i) => ({
@@ -236,35 +300,48 @@ function ReportsPage() {
       nome: a.nome.split(" ")[0] ?? a.nome,
       nomeCompleto: a.nome,
       conversas: a.conversasAtribuidas,
+      fechadas: a.conversasFechadas,
       enviadas: a.mensagensEnviadas,
       tempo: a.tempoMedioPrimeiraRespostaMinutos,
     })) ?? [];
 
   const agentesConfig = {
     conversas: { label: "Conversas", color: "oklch(0.55 0.15 155)" },
+    fechadas: { label: "Fechadas", color: "oklch(0.7 0.14 85)" },
     enviadas: { label: "Enviadas", color: "oklch(0.62 0.13 230)" },
   } satisfies ChartConfig;
 
   const numerosData =
-    data?.porInstancia.map((i, idx) => ({
+    data?.porInstancia.map((i) => ({
       nome: i.nome,
       conversas: i.conversas,
-      fill: CORES_CHART[idx % CORES_CHART.length]!,
+      abertas: i.conversasAbertas,
+      fechadas: i.conversasFechadas,
+      enviadas: i.mensagensEnviadas,
+      recebidas: i.mensagensRecebidas,
     })) ?? [];
 
   const numerosConfig = {
-    conversas: { label: "Conversas", color: "oklch(0.55 0.15 155)" },
+    abertas: { label: "Abertas", color: "oklch(0.62 0.13 230)" },
+    fechadas: { label: "Fechadas", color: "oklch(0.55 0.15 155)" },
   } satisfies ChartConfig;
 
   const temDistribuicao = tempoRespostaData.some((d) => d.total > 0);
+  const temSerie = serieData.some((d) => d.conversas + d.enviadas + d.recebidas > 0);
+  const temStatus = statusData.some((d) => d.total > 0);
 
   return (
     <div className="h-full overflow-auto">
-      <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8 sm:px-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold">Relatórios</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Visão geral de atendimento, tempo de resposta e itens de interesse no período.
+      <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8 sm:px-6">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Relatórios</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Dashboard de volume, tempo de resposta e desempenho da equipe.
+            </p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {de.toLocaleDateString("pt-BR")} — {ate.toLocaleDateString("pt-BR")}
           </p>
         </div>
 
@@ -357,11 +434,7 @@ function ReportsPage() {
                 </div>
               </div>
             ) : (
-              <div className="flex items-end justify-center sm:justify-start">
-                <p className="pb-2 text-sm text-muted-foreground">
-                  {de.toLocaleDateString("pt-BR")} — {ate.toLocaleDateString("pt-BR")}
-                </p>
-              </div>
+              <div className="hidden lg:block" />
             )}
           </CardContent>
         </Card>
@@ -374,37 +447,160 @@ function ReportsPage() {
           </p>
         ) : (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <MetricCard title="Contatos" value={data?.totalContatos ?? 0} />
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               <MetricCard
                 title="Conversas"
-                value={data?.totalConversas ?? 0}
+                value={formatarNumero(data?.totalConversas ?? 0)}
                 hint={`${data?.conversasAbertas ?? 0} abertas · ${data?.conversasFechadas ?? 0} fechadas`}
               />
               <MetricCard
-                title="Itens de interesse"
-                value={data?.itensInteresse ?? 0}
-                hint="Etiquetas aplicadas no período"
+                title="Taxa de fechamento"
+                value={`${data?.taxaFechamento ?? 0}%`}
+                hint={
+                  data?.tempoMedioAteFechamentoMinutos != null
+                    ? `Média até fechar ${formatarMinutos(data.tempoMedioAteFechamentoMinutos)}`
+                    : "Sem fechamentos no período"
+                }
               />
               <MetricCard
-                title="1ª resposta (média)"
+                title="Contatos"
+                value={formatarNumero(data?.totalContatos ?? 0)}
+                hint="Únicos no período"
+              />
+              <MetricCard
+                title="Mensagens"
+                value={formatarNumero(totalMensagens)}
+                hint={`${formatarNumero(data?.mensagensEnviadas ?? 0)} env. · ${formatarNumero(data?.mensagensRecebidas ?? 0)} rec.`}
+              />
+              <MetricCard
+                title="1ª resposta"
                 value={formatarMinutos(data?.tempoMedioPrimeiraRespostaMinutos)}
                 hint={
                   data?.conversasComResposta
-                    ? `${data.conversasComResposta} conversas com resposta`
+                    ? `Média · mediana ${formatarMinutos(data.tempoMedianoPrimeiraRespostaMinutos)}`
                     : "Sem respostas no período"
+                }
+              />
+              <MetricCard
+                title="Sem atribuição"
+                value={formatarNumero(data?.conversasSemAtribuicao ?? 0)}
+                hint={
+                  data?.mediaMensagensPorConversa != null
+                    ? `${data.mediaMensagensPorConversa} msgs/conversa`
+                    : "Média de msgs indisponível"
                 }
               />
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Volume diário</CardTitle>
+                <CardDescription>
+                  Conversas criadas e mensagens enviadas/recebidas por dia
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!temSerie ? (
+                  <p className="py-10 text-center text-sm text-muted-foreground">
+                    Sem movimento no período.
+                  </p>
+                ) : (
+                  <ChartContainer config={serieConfig} className="aspect-video min-h-[220px] w-full">
+                    <AreaChart accessibilityLayer data={serieData}>
+                      <CartesianGrid vertical={false} />
+                      <XAxis
+                        dataKey="label"
+                        tickLine={false}
+                        tickMargin={8}
+                        axisLine={false}
+                        minTickGap={24}
+                        tick={{ fontSize: 11 }}
+                      />
+                      <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={32} />
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            labelFormatter={(_, payload) =>
+                              String(payload?.[0]?.payload?.data ?? "")
+                            }
+                          />
+                        }
+                      />
+                      <ChartLegend content={<ChartLegendContent />} />
+                      <Area
+                        type="monotone"
+                        dataKey="conversas"
+                        stroke="var(--color-conversas)"
+                        fill="var(--color-conversas)"
+                        fillOpacity={0.15}
+                        strokeWidth={2}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="enviadas"
+                        stroke="var(--color-enviadas)"
+                        fill="var(--color-enviadas)"
+                        fillOpacity={0.1}
+                        strokeWidth={2}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="recebidas"
+                        stroke="var(--color-recebidas)"
+                        fill="var(--color-recebidas)"
+                        fillOpacity={0.1}
+                        strokeWidth={2}
+                      />
+                    </AreaChart>
+                  </ChartContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-4 lg:grid-cols-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Status</CardTitle>
+                  <CardDescription>Abertas vs fechadas</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {!temStatus ? (
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      Sem conversas no período.
+                    </p>
+                  ) : (
+                    <ChartContainer
+                      config={statusConfig}
+                      className="mx-auto aspect-square max-h-[240px] w-full"
+                    >
+                      <PieChart>
+                        <ChartTooltip content={<ChartTooltipContent nameKey="id" hideLabel />} />
+                        <Pie
+                          data={statusData}
+                          dataKey="total"
+                          nameKey="id"
+                          innerRadius={50}
+                          strokeWidth={2}
+                        >
+                          {statusData.map((item) => (
+                            <Cell key={item.id} fill={item.fill} />
+                          ))}
+                        </Pie>
+                        <ChartLegend
+                          content={<ChartLegendContent nameKey="id" />}
+                          className="-translate-y-1 flex-wrap gap-2 *:basis-1/2 *:justify-center"
+                        />
+                      </PieChart>
+                    </ChartContainer>
+                  )}
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Tempo de resposta</CardTitle>
                   <CardDescription>
-                    Distribuição da 1ª resposta · média{" "}
-                    {formatarMinutos(data?.tempoMedioPrimeiraRespostaMinutos)} · mediana{" "}
-                    {formatarMinutos(data?.tempoMedianoPrimeiraRespostaMinutos)}
+                    1ª resposta · média {formatarMinutos(data?.tempoMedioPrimeiraRespostaMinutos)}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -421,7 +617,7 @@ function ReportsPage() {
                           tickLine={false}
                           tickMargin={8}
                           axisLine={false}
-                          tick={{ fontSize: 11 }}
+                          tick={{ fontSize: 10 }}
                         />
                         <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={28} />
                         <ChartTooltip
@@ -441,25 +637,37 @@ function ReportsPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Mensagens</CardTitle>
-                  <CardDescription>Enviadas vs recebidas no período</CardDescription>
+                  <CardTitle className="text-base">Tipos de mensagem</CardTitle>
+                  <CardDescription>Composição do volume no período</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {(data?.mensagensEnviadas ?? 0) + (data?.mensagensRecebidas ?? 0) === 0 ? (
+                  {tiposData.length === 0 ? (
                     <p className="py-8 text-center text-sm text-muted-foreground">
                       Sem mensagens no período.
                     </p>
                   ) : (
-                    <ChartContainer config={mensagensConfig} className="aspect-4/3 w-full">
-                      <BarChart accessibilityLayer data={mensagensData}>
-                        <CartesianGrid vertical={false} />
-                        <XAxis dataKey="tipo" tickLine={false} axisLine={false} />
-                        <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={36} />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <ChartLegend content={<ChartLegendContent />} />
-                        <Bar dataKey="enviadas" fill="var(--color-enviadas)" radius={4} />
-                        <Bar dataKey="recebidas" fill="var(--color-recebidas)" radius={4} />
-                      </BarChart>
+                    <ChartContainer
+                      config={tiposConfig}
+                      className="mx-auto aspect-square max-h-[240px] w-full"
+                    >
+                      <PieChart>
+                        <ChartTooltip content={<ChartTooltipContent nameKey="id" hideLabel />} />
+                        <Pie
+                          data={tiposData}
+                          dataKey="total"
+                          nameKey="id"
+                          innerRadius={50}
+                          strokeWidth={2}
+                        >
+                          {tiposData.map((item) => (
+                            <Cell key={item.id} fill={item.fill} />
+                          ))}
+                        </Pie>
+                        <ChartLegend
+                          content={<ChartLegendContent nameKey="id" />}
+                          className="-translate-y-1 flex-wrap gap-2 *:basis-1/3 *:justify-center"
+                        />
+                      </PieChart>
                     </ChartContainer>
                   )}
                 </CardContent>
@@ -470,7 +678,11 @@ function ReportsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Itens de interesse</CardTitle>
-                  <CardDescription>Etiquetas aplicadas no período</CardDescription>
+                  <CardDescription>
+                    {data?.itensInteresse
+                      ? `${formatarNumero(data.itensInteresse)} etiquetas aplicadas`
+                      : "Etiquetas aplicadas no período"}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {itensData.length === 0 ? (
@@ -508,7 +720,7 @@ function ReportsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Por número</CardTitle>
-                  <CardDescription>Conversas por conexão</CardDescription>
+                  <CardDescription>Conversas abertas e fechadas por conexão</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {numerosData.length === 0 ? (
@@ -527,11 +739,20 @@ function ReportsPage() {
                           tick={{ fontSize: 11 }}
                         />
                         <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={28} />
-                        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                        <Bar dataKey="conversas" radius={4}>
-                          {numerosData.map((item) => (
-                            <Cell key={item.nome} fill={item.fill} />
-                          ))}
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <ChartLegend content={<ChartLegendContent />} />
+                        <Bar
+                          dataKey="abertas"
+                          stackId="status"
+                          fill="var(--color-abertas)"
+                          radius={[0, 0, 0, 0]}
+                        />
+                        <Bar
+                          dataKey="fechadas"
+                          stackId="status"
+                          fill="var(--color-fechadas)"
+                          radius={[4, 4, 0, 0]}
+                        >
                           <LabelList
                             dataKey="conversas"
                             position="top"
@@ -550,10 +771,7 @@ function ReportsPage() {
               <CardHeader>
                 <CardTitle className="text-base">Por atendente</CardTitle>
                 <CardDescription>
-                  Conversas atribuídas e mensagens enviadas
-                  {agentesData.some((a) => a.tempo != null)
-                    ? " · tempo médio na lista abaixo"
-                    : null}
+                  Conversas atribuídas, fechamentos e mensagens enviadas
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -588,23 +806,43 @@ function ReportsPage() {
                         />
                         <ChartLegend content={<ChartLegendContent />} />
                         <Bar dataKey="conversas" fill="var(--color-conversas)" radius={4} />
+                        <Bar dataKey="fechadas" fill="var(--color-fechadas)" radius={4} />
                         <Bar dataKey="enviadas" fill="var(--color-enviadas)" radius={4} />
                       </BarChart>
                     </ChartContainer>
 
-                    <ul className="divide-y text-sm">
-                      {data!.porAgente.map((a: RelatorioVisaoGeral["porAgente"][number]) => (
-                        <li
-                          key={a.usuarioId}
-                          className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0"
-                        >
-                          <span className="truncate font-medium">{a.nome}</span>
-                          <span className="shrink-0 text-muted-foreground">
-                            1ª resposta {formatarMinutos(a.tempoMedioPrimeiraRespostaMinutos)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b text-left text-muted-foreground">
+                            <th className="pb-2 font-medium">Atendente</th>
+                            <th className="pb-2 text-right font-medium">Conversas</th>
+                            <th className="pb-2 text-right font-medium">Fechadas</th>
+                            <th className="pb-2 text-right font-medium">Enviadas</th>
+                            <th className="pb-2 text-right font-medium">1ª resposta</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {data!.porAgente.map((a: RelatorioVisaoGeral["porAgente"][number]) => (
+                            <tr key={a.usuarioId}>
+                              <td className="py-2.5 font-medium">{a.nome}</td>
+                              <td className="py-2.5 text-right tabular-nums">
+                                {formatarNumero(a.conversasAtribuidas)}
+                              </td>
+                              <td className="py-2.5 text-right tabular-nums">
+                                {formatarNumero(a.conversasFechadas)}
+                              </td>
+                              <td className="py-2.5 text-right tabular-nums">
+                                {formatarNumero(a.mensagensEnviadas)}
+                              </td>
+                              <td className="py-2.5 text-right tabular-nums text-muted-foreground">
+                                {formatarMinutos(a.tempoMedioPrimeiraRespostaMinutos)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </>
                 )}
               </CardContent>
@@ -631,7 +869,7 @@ function MetricCard({
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-2xl font-semibold">{value}</p>
+        <p className="text-2xl font-semibold tabular-nums tracking-tight">{value}</p>
         {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
       </CardContent>
     </Card>

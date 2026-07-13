@@ -1,0 +1,7 @@
+{
+  "receivedAt": "2026-07-13T14:45:29.238Z",
+  "meta": {
+    "source": "evo"
+  },
+  "raw": "{\"data\":{\"Chat\":\"120363426772714713@g.us\",\"Sender\":\"260460356096016@lid\",\"IsFromMe\":false,\"IsGroup\":true,\"AddressingMode\":\"\",\"SenderAlt\":\"\",\"RecipientAlt\":\"\",\"BroadcastListOwner\":\"\",\"BroadcastRecipients\":null,\"MessageIDs\":[\"2A5874F051FC7C43A599\"],\"Timestamp\":\"2026-07-13T11:45:26-03:00\",\"Type\":\"\",\"MessageSender\":\"\"},\"event\":\"Receipt\",\"instanceId\":\"139f886b-622a-45f9-a4f8-c2e963e882d2\",\"instanceName\":\"whasap-139f886b\",\"instanceToken\":\"d9cdedd645bb4fafbba7df2a0166a682\",\"state\":\"Delivered\"}"
+}

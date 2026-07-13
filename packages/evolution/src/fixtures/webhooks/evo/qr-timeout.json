@@ -1,0 +1,7 @@
+{
+  "receivedAt": "2026-07-13T13:01:47.348Z",
+  "meta": {
+    "source": "evo"
+  },
+  "raw": "{\"data\":{},\"event\":\"QRTimeout\",\"instanceId\":\"139f886b-622a-45f9-a4f8-c2e963e882d2\",\"instanceName\":\"whasap-139f886b\",\"instanceToken\":\"d9cdedd645bb4fafbba7df2a0166a682\"}"
+}

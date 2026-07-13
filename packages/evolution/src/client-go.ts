@@ -19,6 +19,76 @@ export type {
   EvolutionGoCreateResponse,
 } from "./instance-types";
 
+export type EvolutionGoDownloadMediaResult = {
+  base64: string;
+  mimetype?: string;
+  timestamp?: string;
+};
+
+export type EvolutionGoDownloadMediaCodigo = "forbidden" | "unauthorized" | "failed";
+
+/** Erro tipado de `/message/downloadmedia` (401 / 403-via-500 / genérico). */
+export class EvolutionGoDownloadMediaError extends Error {
+  readonly status: number;
+  readonly codigo: EvolutionGoDownloadMediaCodigo;
+  readonly body: unknown;
+
+  constructor(params: {
+    status: number;
+    codigo: EvolutionGoDownloadMediaCodigo;
+    body: unknown;
+    message?: string;
+  }) {
+    super(params.message ?? `Evolution downloadmedia error (${params.status})`);
+    this.name = "EvolutionGoDownloadMediaError";
+    this.status = params.status;
+    this.codigo = params.codigo;
+    this.body = params.body;
+  }
+}
+
+/** Classifica falha a partir do status HTTP e body do GO. */
+export function classificarErroDownloadMedia(
+  status: number,
+  body: unknown,
+): EvolutionGoDownloadMediaCodigo {
+  const texto =
+    body && typeof body === "object" && "error" in body
+      ? String((body as { error?: unknown }).error ?? "")
+      : typeof body === "string"
+        ? body
+        : JSON.stringify(body ?? "");
+  if (status === 401 || /not authorized/i.test(texto)) return "unauthorized";
+  if (status === 403 || /\b403\b/.test(texto) || /Failed to download/i.test(texto)) {
+    return "forbidden";
+  }
+  return "failed";
+}
+
+/** Unwrap `{ data: { base64 } }` ou shapes flat. */
+export function normalizarDownloadMediaBody(body: unknown): EvolutionGoDownloadMediaResult | null {
+  if (!body || typeof body !== "object") return null;
+  const row = body as Record<string, unknown>;
+  const data = row.data && typeof row.data === "object" ? (row.data as Record<string, unknown>) : null;
+  const b64 =
+    (typeof row.base64 === "string" ? row.base64 : null) ??
+    (typeof data?.base64 === "string" ? data.base64 : null) ??
+    (typeof row.data === "string" ? row.data : null);
+  if (!b64?.trim()) return null;
+
+  let mimetype =
+    (typeof row.mimetype === "string" ? row.mimetype : undefined) ??
+    (typeof data?.mimetype === "string" ? data.mimetype : undefined);
+  const dataUrl = /^data:([^;]+);base64,/i.exec(b64);
+  if (!mimetype && dataUrl?.[1]) mimetype = dataUrl[1];
+
+  const timestamp =
+    (typeof data?.timestamp === "string" ? data.timestamp : undefined) ??
+    (typeof row.timestamp === "string" ? row.timestamp : undefined);
+
+  return { base64: b64, mimetype, timestamp };
+}
+
 export type EvolutionGoRequestLogEntry = {
   /** Ação semântica (ex.: instance_qr, send_text). */
   tipo: string;
@@ -316,12 +386,62 @@ export function createEvolutionGoClient(
     },
 
     downloadMedia(message: unknown) {
-      return request<{ base64?: string; mimetype?: string; fileName?: string; data?: string }>(
-        "message_downloadmedia",
-        "POST",
-        "/message/downloadmedia",
-        { message },
-      );
+      return (async (): Promise<EvolutionGoDownloadMediaResult> => {
+        const started = Date.now();
+        const path = "/message/downloadmedia";
+        const url = `${base}${path}`;
+        const body = { message };
+        let status: number | null = null;
+        let responseBody: unknown;
+        let errorText: string | undefined;
+        try {
+          const res = await fetch(url, {
+            method: "POST",
+            headers: headers(true),
+            body: JSON.stringify(body),
+          });
+          status = res.status;
+          const texto = await res.text();
+          responseBody = tryParseJsonBody(texto);
+          if (!res.ok) {
+            errorText = texto;
+            const codigo = classificarErroDownloadMedia(res.status, responseBody);
+            throw new EvolutionGoDownloadMediaError({
+              status: res.status,
+              codigo,
+              body: responseBody,
+              message: `Evolution GO error (${res.status}): ${texto}`,
+            });
+          }
+          const normalizado = normalizarDownloadMediaBody(responseBody);
+          if (!normalizado) {
+            throw new EvolutionGoDownloadMediaError({
+              status: res.status,
+              codigo: "failed",
+              body: responseBody,
+              message: "Evolution downloadmedia sem base64",
+            });
+          }
+          return normalizado;
+        } catch (err) {
+          if (!errorText) {
+            errorText = err instanceof Error ? err.message : String(err);
+          }
+          throw err;
+        } finally {
+          emitLog({
+            tipo: "message_downloadmedia",
+            method: "POST",
+            url,
+            path,
+            status,
+            durationMs: Date.now() - started,
+            requestBody: body,
+            responseBody,
+            error: errorText,
+          });
+        }
+      })();
     },
 
     listLabels() {
@@ -370,8 +490,23 @@ export {
   parseGoQrResponse,
 } from "./connection-state";
 
-export function extractGoMessageId(
-  res: EvolutionSendResponse & { id?: string; messageId?: string },
-) {
-  return res.key?.id ?? res.id ?? res.messageId ?? null;
+/**
+ * Extrai o ID WhatsApp da resposta de `/send/*`.
+ * GO: `data.Info.ID`; legado Baileys: `key.id` / `id` / `messageId`.
+ */
+export function extractGoMessageId(res: EvolutionSendResponse): string | null {
+  const fromInfo = (info: { ID?: string; Id?: string; id?: string } | undefined) => {
+    const raw = info?.ID ?? info?.Id ?? info?.id;
+    if (typeof raw !== "string") return null;
+    const id = raw.trim();
+    return id.length > 0 ? id : null;
+  };
+
+  return (
+    fromInfo(res.data?.Info) ??
+    fromInfo(res.Info) ??
+    (typeof res.key?.id === "string" && res.key.id.trim() ? res.key.id.trim() : null) ??
+    (typeof res.id === "string" && res.id.trim() ? res.id.trim() : null) ??
+    (typeof res.messageId === "string" && res.messageId.trim() ? res.messageId.trim() : null)
+  );
 }

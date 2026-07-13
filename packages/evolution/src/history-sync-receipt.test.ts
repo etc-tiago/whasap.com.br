@@ -57,6 +57,22 @@ describe("parseGoReceipt (sintetico)", () => {
     expect(r!.state).toBe("DELIVERED");
   });
 
+  it("4b) Type vazio + state Delivered = nao leitura", () => {
+    const r = parseGoReceipt(
+      {
+        Chat: "5511@s.whatsapp.net",
+        MessageIDs: ["M1"],
+        Type: "",
+        IsFromMe: true,
+      },
+      "Delivered",
+    );
+    expect(r).not.toBeNull();
+    expect(r!.type).toBe("");
+    expect(r!.state).toBe("Delivered");
+    expect(receiptIndicaLeitura(r!)).toBe(false);
+  });
+
   it("5) multiplos MessageIDs", () => {
     const r = parseGoReceipt({
       Chat: "5511@s.whatsapp.net",

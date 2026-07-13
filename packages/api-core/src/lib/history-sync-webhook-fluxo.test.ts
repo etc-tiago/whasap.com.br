@@ -19,7 +19,7 @@ function simularWebhookHistorySync(
   chunk: { syncType: number; temMensagens: boolean; progress: number | null },
   opts: { temFila: boolean; instanciaUuid: string; dia: string; r2Id?: string },
 ): AcaoWebhook {
-  const onDemand = chunk.syncType === HISTORY_SYNC_TYPE.ON_DEMAND;
+  const onDemand = chunk.syncType === HISTORY_SYNC_TYPE.PUSH_NAMES;
   const acao = decidirAcaoHistorySyncEnqueue(chunk, opts.temFila);
 
   if (acao.tipo === "ignorar") {
@@ -99,18 +99,18 @@ describe("simularWebhookHistorySync", () => {
     }
   });
 
-  it("4) ON_DEMAND enfileira sem patch na instancia", () => {
+  it("4) STATUS_V3S enfileira sem patch na instancia", () => {
     const r = simularWebhookHistorySync(
-      { syncType: HISTORY_SYNC_TYPE.ON_DEMAND, temMensagens: true, progress: null },
+      { syncType: HISTORY_SYNC_TYPE.PUSH_NAMES, temMensagens: true, progress: null },
       { temFila: true, instanciaUuid: uuid, dia: "2026-07-13" },
     );
     expect(r.tipo).toBe("enfileirar");
     if (r.tipo === "enfileirar") expect(r.patchAposFila).toBeNull();
   });
 
-  it("5) ON_DEMAND sem msgs ignora sem patch", () => {
+  it("5) STATUS_V3S sem msgs ignora sem patch", () => {
     const r = simularWebhookHistorySync(
-      { syncType: HISTORY_SYNC_TYPE.ON_DEMAND, temMensagens: false, progress: null },
+      { syncType: HISTORY_SYNC_TYPE.PUSH_NAMES, temMensagens: false, progress: null },
       { temFila: true, instanciaUuid: uuid, dia: "2026-07-13" },
     );
     expect(r).toEqual({ tipo: "ignorar", patch: null });
@@ -144,17 +144,17 @@ describe("simularWebhookHistorySync", () => {
     expect(r.tipo).toBe("falha_sem_fila");
   });
 
-  it("9) ON_DEMAND sem fila ignora sem patch", () => {
+  it("9) STATUS_V3S sem fila ignora sem patch", () => {
     const r = simularWebhookHistorySync(
-      { syncType: HISTORY_SYNC_TYPE.ON_DEMAND, temMensagens: true, progress: null },
+      { syncType: HISTORY_SYNC_TYPE.PUSH_NAMES, temMensagens: true, progress: null },
       { temFila: false, instanciaUuid: uuid, dia: "2026-07-13" },
     );
     expect(r).toEqual({ tipo: "ignorar", patch: null });
   });
 
-  it("10) PUSH_NAME com msgs enfileira com heartbeat", () => {
+  it("10) STATUS_V3 com msgs enfileira com heartbeat", () => {
     const r = simularWebhookHistorySync(
-      { syncType: HISTORY_SYNC_TYPE.PUSH_NAME, temMensagens: true, progress: null },
+      { syncType: HISTORY_SYNC_TYPE.STATUS_V3, temMensagens: true, progress: null },
       { temFila: true, instanciaUuid: uuid, dia: "2026-07-13", r2Id: "push" },
     );
     expect(r.tipo).toBe("enfileirar");

@@ -1,0 +1,7 @@
+{
+  "receivedAt": "2026-07-13T12:07:33.982Z",
+  "meta": {
+    "source": "evo"
+  },
+  "raw": "{\"data\":{\"Timestamp\":\"2025-07-09T10:10:33.768-03:00\",\"LabelID\":\"20\",\"Action\":{\"name\":\"[odonto][midiapaga] Horário marcado\",\"color\":18,\"predefinedID\":0,\"deleted\":false,\"orderIndex\":9,\"isActive\":true,\"type\":5,\"isImmutable\":false},\"FromFullSync\":false},\"event\":\"LabelEdit\",\"instanceId\":\"7001e982-c08a-4c0c-be66-5c69297cd56c\",\"instanceName\":\"whasap-7001e982\",\"instanceToken\":\"edf47a35c0af48b6b6e16ec990e55e28\"}"
+}

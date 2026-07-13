@@ -643,7 +643,7 @@ describe.skipIf(!podeRodar)("HistorySync ingestao (Postgres + corpus R2)", () =>
     expect(meta?.syncType).toBe(HISTORY_SYNC_TYPE.FULL);
   });
 
-  it("19) ON_DEMAND nao altera historicoSyncStatus da instancia", async () => {
+  it("19) STATUS_V3S nao altera historicoSyncStatus da instancia", async () => {
     await db
       .update(instanciaEvo)
       .set({
@@ -656,7 +656,7 @@ describe.skipIf(!podeRodar)("HistorySync ingestao (Postgres + corpus R2)", () =>
     const externalId = `ond-${crypto.randomUUID().slice(0, 8)}`;
     const data = {
       Data: {
-        syncType: HISTORY_SYNC_TYPE.ON_DEMAND,
+        syncType: HISTORY_SYNC_TYPE.PUSH_NAMES,
         progress: null,
         conversations: [
           {

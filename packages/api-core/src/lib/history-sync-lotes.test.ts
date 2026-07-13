@@ -71,9 +71,9 @@ describe("planejarHistorySyncChunk", () => {
     expect(p.atualizarProgresso).toBe(true);
   });
 
-  it("4) ON_DEMAND nao atualiza progresso da instancia", () => {
+  it("4) STATUS_V3S nao atualiza progresso da instancia", () => {
     const p = planejarHistorySyncChunk(
-      chunkRaw({ syncType: HISTORY_SYNC_TYPE.ON_DEMAND, progress: null, msgs: 5 }),
+      chunkRaw({ syncType: HISTORY_SYNC_TYPE.PUSH_NAMES, progress: null, msgs: 5 }),
     );
     expect(p.atualizarProgresso).toBe(false);
     expect(p.marcarConcluidoAoFinal).toBe(false);

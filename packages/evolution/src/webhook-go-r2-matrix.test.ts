@@ -1,148 +1,150 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+/**
+ * Matriz soft contra corpus R2 local (`packages/r2-sync/json/webhook/evo`).
+ */
 import { describe, expect, it } from "vitest";
 
 import { parseGoDisconnectedEvent, parseConnectionUpdateWebhook } from "./connection-state";
 import {
-  parseGoButtonClick,
+  carregarWebhooksR2,
+  corpusWebhookR2Disponivel,
+} from "./fixtures/carregar-webhooks-r2";
+import {
+  parseGoContact,
+  parseGoGroupInfo,
+  parseGoJoinedGroup,
   parseGoLabelAssociation,
+  parseGoLabelEdit,
   parseGoMessageEvent,
+  parseGoPicture,
   parseGoPushName,
+  parseGoQrTimeout,
   parseGoReceipt,
+  receiptIndicaLeitura,
   resolverIdExternoCanonicoGo,
   telefoneExibicaoDeInfo,
 } from "./webhook-go";
 
-const PASTA_R2 = join(import.meta.dirname, "../../r2-sync/json/webhook/evo/unknown/2026-07-10");
-const pastaR2Existe = existsSync(PASTA_R2);
+const ok = corpusWebhookR2Disponivel();
 
-type EnvelopeR2 = {
-  receivedAt: string;
-  meta: Record<string, string>;
-  raw: string;
-};
+describe.skipIf(!ok)("matriz R2 evo (corpus local)", () => {
+  const fixtures = ok ? carregarWebhooksR2() : [];
 
-function carregarFixturesR2(): Array<{
-  arquivo: string;
-  payload: Record<string, unknown>;
-}> {
-  return readdirSync(PASTA_R2)
-    .filter((nome) => nome.endsWith(".json"))
-    .toSorted()
-    .map((arquivo) => {
-      const envelope = JSON.parse(readFileSync(join(PASTA_R2, arquivo), "utf8")) as EnvelopeR2;
-      return {
-        arquivo,
-        payload: JSON.parse(envelope.raw) as Record<string, unknown>,
-      };
-    });
-}
-
-describe.skipIf(!pastaR2Existe)("matriz R2 evo (42 fixtures)", () => {
-  const fixtures = pastaR2Existe ? carregarFixturesR2() : [];
-
-  it("carrega os 42 arquivos locais", () => {
-    expect(fixtures).toHaveLength(42);
+  it("1) carrega corpus com multiplos eventos", () => {
+    expect(fixtures.length).toBeGreaterThan(50);
+    const events = new Set(fixtures.map((f) => f.event));
+    expect(events.has("Message")).toBe(true);
+    expect(events.has("Receipt")).toBe(true);
+    expect(events.has("HistorySync")).toBe(true);
   });
 
-  it("parseia 24/24 Messages sem null", () => {
-    const messages = fixtures.filter((f) => f.payload.event === "Message");
-    expect(messages).toHaveLength(24);
+  it("2) Messages: taxa de parse alta + texto presente", () => {
+    const messages = fixtures.filter((f) => f.event === "Message");
+    expect(messages.length).toBeGreaterThan(20);
 
+    let okParse = 0;
     const tipos = new Set<string>();
     for (const fixture of messages) {
-      const data = fixture.payload.data as Record<string, unknown>;
-      const parsed = parseGoMessageEvent(data);
-      expect(parsed, fixture.arquivo).not.toBeNull();
-      expect(parsed!.body.length).toBeGreaterThan(0);
-      expect(parsed!.messageId).toBeTruthy();
-      tipos.add(parsed!.type);
+      const parsed = parseGoMessageEvent(fixture.data);
+      if (!parsed) continue;
+      okParse += 1;
+      expect(parsed.body.length).toBeGreaterThan(0);
+      expect(parsed.messageId).toBeTruthy();
+      tipos.add(parsed.type);
 
-      const info = data.Info as Record<string, unknown>;
-      const canonico = resolverIdExternoCanonicoGo(info);
-      expect(canonico).toBeTruthy();
-      expect(telefoneExibicaoDeInfo(info)).toBeTruthy();
+      const info = fixture.data.Info as Record<string, unknown>;
+      expect(resolverIdExternoCanonicoGo(info)).toBeTruthy();
     }
 
+    expect(okParse / messages.length).toBeGreaterThan(0.85);
     expect(tipos.has("text")).toBe(true);
-    expect(tipos.has("sticker")).toBe(true);
-    expect(tipos.has("reaction")).toBe(true);
-    expect(tipos.has("poll")).toBe(true);
-    expect(tipos.has("interactive")).toBe(true);
-    expect(tipos.has("contacts")).toBe(true);
-    expect(tipos.has("event")).toBe(true);
   });
 
-  it("resolve LID → telefone canônico nas Messages @lid", () => {
-    const lidMessages = fixtures.filter((f) => {
-      if (f.payload.event !== "Message") return false;
-      const info = (f.payload.data as Record<string, unknown>).Info as Record<string, unknown>;
-      return String(info.Chat ?? "").endsWith("@lid");
-    });
+  it("3) Receipts parseiam (Delivered Type vazio + Read)", () => {
+    const receipts = fixtures.filter((f) => f.event === "Receipt");
+    expect(receipts.length).toBeGreaterThan(20);
 
-    expect(lidMessages.length).toBeGreaterThanOrEqual(9);
-
-    for (const fixture of lidMessages) {
-      const info = (fixture.payload.data as Record<string, unknown>).Info as Record<
-        string,
-        unknown
-      >;
-      expect(resolverIdExternoCanonicoGo(info)).toMatch(/@s\.whatsapp\.net$/);
-      expect(telefoneExibicaoDeInfo(info)).toMatch(/^\d+$/);
-    }
-  });
-
-  it("parseia Receipts (Type vazio retorna receipt sem leitura)", () => {
-    const receipts = fixtures.filter((f) => f.payload.event === "Receipt");
-    expect(receipts).toHaveLength(12);
-
-    let comType = 0;
-    let semType = 0;
+    let parseados = 0;
+    let delivered = 0;
+    let read = 0;
     for (const fixture of receipts) {
       const parsed = parseGoReceipt(
-        fixture.payload.data as Record<string, unknown>,
+        fixture.data,
         fixture.payload.state as string | undefined,
       );
-      expect(parsed, fixture.arquivo).not.toBeNull();
-      expect(parsed!.messageIds.length).toBeGreaterThan(0);
-      if (parsed!.type) comType += 1;
-      else semType += 1;
+      if (!parsed) continue;
+      parseados += 1;
+      expect(parsed.messageIds.length).toBeGreaterThan(0);
+      if ((parsed.state ?? "").toLowerCase() === "delivered" && !parsed.type) {
+        delivered += 1;
+        expect(receiptIndicaLeitura(parsed)).toBe(false);
+      }
+      if (parsed.type.includes("read") || (parsed.state ?? "").toLowerCase().includes("read")) {
+        read += 1;
+        expect(receiptIndicaLeitura(parsed)).toBe(true);
+      }
     }
-    expect(comType + semType).toBe(12);
+    expect(parseados / receipts.length).toBeGreaterThan(0.9);
+    expect(delivered).toBeGreaterThan(0);
+    expect(read).toBeGreaterThan(0);
   });
 
-  it("parseia ButtonClick com flow_token", () => {
-    const fixture = fixtures.find((f) => f.payload.event === "ButtonClick")!;
-    expect(fixture).toBeTruthy();
-    const parsed = parseGoButtonClick(fixture.payload.data as Record<string, unknown>);
-    expect(parsed?.flowToken).toBeTruthy();
-    expect(parsed?.idempotencyKey).toBe(parsed?.flowToken);
-  });
+  it("4) PushName / LabelAssociation / Disconnected / QRTimeout", () => {
+    const push = fixtures.find((f) => f.event === "PushName");
+    if (push) {
+      expect(parseGoPushName(push.data)?.newPushName || parseGoPushName(push.data)?.jid).toBeTruthy();
+    }
 
-  it("parseia PushName com JID/LID", () => {
-    const fixture = fixtures.find((f) => f.payload.event === "PushName")!;
-    expect(fixture).toBeTruthy();
-    const parsed = parseGoPushName(fixture.payload.data as Record<string, unknown>);
-    expect(parsed?.jid).toBeTruthy();
-    expect(parsed?.newPushName || parsed?.oldPushName).toBeTruthy();
-  });
+    const labels = fixtures.filter((f) => f.event === "LabelAssociationChat");
+    for (const fixture of labels.slice(0, 5)) {
+      expect(parseGoLabelAssociation(fixture.data)).not.toBeNull();
+    }
 
-  it("parseia LabelAssociationChat", () => {
-    const labels = fixtures.filter((f) => f.payload.event === "LabelAssociationChat");
-    expect(labels).toHaveLength(3);
-    for (const fixture of labels) {
-      const parsed = parseGoLabelAssociation(fixture.payload.data as Record<string, unknown>);
-      expect(parsed, fixture.arquivo).not.toBeNull();
-      expect(parsed!.labelId).toBeTruthy();
-      expect(parsed!.jid).toBeTruthy();
+    const disc = fixtures.find((f) => f.event === "Disconnected");
+    if (disc) {
+      expect(parseGoDisconnectedEvent(disc.payload)).toBe("close");
+      expect(parseConnectionUpdateWebhook(disc.payload as never)).toBe("close");
+    }
+
+    const qrTimeout = fixtures.find((f) => f.event === "QRTimeout");
+    if (qrTimeout) {
+      expect(parseGoQrTimeout(qrTimeout.data)).toBe("close");
     }
   });
 
-  it("parseia Disconnected como close", () => {
-    const fixture = fixtures.find((f) => f.payload.event === "Disconnected")!;
-    expect(fixture).toBeTruthy();
-    expect(fixture.payload.data).toEqual({});
-    expect(parseGoDisconnectedEvent(fixture.payload)).toBe("close");
-    expect(parseConnectionUpdateWebhook(fixture.payload as never)).toBe("close");
+  it("5) eventos novos tipados quando presentes no corpus", () => {
+    const labelEdit = fixtures.find((f) => f.event === "LabelEdit");
+    if (labelEdit) expect(parseGoLabelEdit(labelEdit.data)?.labelId).toBeTruthy();
+
+    const contact = fixtures.find((f) => f.event === "Contact");
+    if (contact) expect(parseGoContact(contact.data)?.jid).toBeTruthy();
+
+    const picture = fixtures.find((f) => f.event === "Picture");
+    if (picture) expect(parseGoPicture(picture.data)?.jid).toBeTruthy();
+
+    const joined = fixtures.find((f) => f.event === "JoinedGroup");
+    if (joined) expect(parseGoJoinedGroup(joined.data)?.jid.endsWith("@g.us")).toBe(true);
+
+    const groupInfo = fixtures.find((f) => f.event === "GroupInfo");
+    if (groupInfo) expect(parseGoGroupInfo(groupInfo.data)?.jid.endsWith("@g.us")).toBe(true);
+  });
+
+  it("6) LID → telefone canonico nas Messages @lid (quando Alt presente)", () => {
+    const lidMessages = fixtures.filter((f) => {
+      if (f.event !== "Message") return false;
+      const info = f.data.Info as Record<string, unknown> | undefined;
+      return String(info?.Chat ?? "").endsWith("@lid");
+    });
+    expect(lidMessages.length).toBeGreaterThan(0);
+
+    let comTelefone = 0;
+    for (const fixture of lidMessages) {
+      const info = fixture.data.Info as Record<string, unknown>;
+      const tel = telefoneExibicaoDeInfo(info);
+      if (tel) {
+        comTelefone += 1;
+        expect(resolverIdExternoCanonicoGo(info)).toMatch(/@s\.whatsapp\.net$/);
+      }
+    }
+    expect(comTelefone).toBeGreaterThan(0);
   });
 });

@@ -47,7 +47,7 @@ describe.skipIf(!ok)("HistorySync corpus - lacunas e multi-instancia", () => {
     expect(parseados / comKeyMsg).toBeGreaterThan(0.9);
   });
 
-  it("4) templateMessage existe no bruto mas some no parse", () => {
+  it("4) templateMessage bruto passa a parsear type template", () => {
     let templatesBrutos = 0;
     let templatesParseados = 0;
     for (const f of all) {
@@ -62,7 +62,7 @@ describe.skipIf(!ok)("HistorySync corpus - lacunas e multi-instancia", () => {
       }
       for (const conv of parseGoHistorySyncChunk(f.data).conversations) {
         for (const msg of conv.messages) {
-          if (msg.messageObj.templateMessage) templatesParseados += 1;
+          if (msg.type === "template") templatesParseados += 1;
         }
       }
     }
@@ -70,12 +70,11 @@ describe.skipIf(!ok)("HistorySync corpus - lacunas e multi-instancia", () => {
       expect(true).toBe(true);
       return;
     }
-    // parser atual descarta template (parseGoMessageBody retorna null)
-    expect(templatesParseados).toBe(0);
+    expect(templatesParseados).toBeGreaterThan(0);
     expect(templatesBrutos).toBeGreaterThan(0);
   });
 
-  it("5) buttonsMessage bruto nao vira type conhecido", () => {
+  it("5) buttonsMessage bruto vira type buttons", () => {
     let buttons = 0;
     for (const f of all) {
       const inner = (f.data.Data ?? f.data) as Record<string, unknown>;
@@ -94,7 +93,9 @@ describe.skipIf(!ok)("HistorySync corpus - lacunas e multi-instancia", () => {
         for (const m of c.messages) tipos.add(m.type);
       }
     }
-    expect(tipos.has("buttons")).toBe(false);
+    if (buttons > 0) {
+      expect(tipos.has("buttons")).toBe(true);
+    }
     expect(buttons).toBeGreaterThanOrEqual(0);
   });
 
@@ -145,20 +146,20 @@ describe.skipIf(!ok)("HistorySync corpus - lacunas e multi-instancia", () => {
     expect(meta.temMensagens).toBe(false);
   });
 
-  it("10) PUSH_NAME code (syncType 1) tem 0 msgs parseadas", () => {
+  it("10) STATUS_V3 (syncType 1) tem 0 msgs parseadas", () => {
     const rows = all
       .map((f) => parseGoHistorySyncChunk(f.data))
-      .filter((c) => c.syncType === HISTORY_SYNC_TYPE.PUSH_NAME);
+      .filter((c) => c.syncType === HISTORY_SYNC_TYPE.STATUS_V3);
     expect(rows.length).toBeGreaterThanOrEqual(1);
     for (const c of rows) {
       expect(c.temMensagens).toBe(false);
     }
   });
 
-  it("11) ON_DEMAND code (syncType 4) no corpus e metadata pushnames", () => {
+  it("11) PUSH_NAMES (syncType 4) no corpus e metadata pushnames", () => {
     const rows = all
       .map((f) => parseGoHistorySyncChunk(f.data))
-      .filter((c) => c.syncType === HISTORY_SYNC_TYPE.ON_DEMAND);
+      .filter((c) => c.syncType === HISTORY_SYNC_TYPE.PUSH_NAMES);
     expect(rows.length).toBeGreaterThanOrEqual(1);
     for (const c of rows) {
       expect(c.temMensagens).toBe(false);

@@ -189,7 +189,7 @@ describe("parseGoHistorySyncChunk - sinteticos", () => {
     expect(chunk.temMensagens).toBe(false);
   });
 
-  it("15) templateMessage sozinho nao parseia (lacuna conhecida)", () => {
+  it("15) templateMessage hydrated vazio ainda parseia placeholder", () => {
     const chunk = parseGoHistorySyncChunk({
       Data: {
         syncType: 2,
@@ -210,7 +210,10 @@ describe("parseGoHistorySyncChunk - sinteticos", () => {
         ],
       },
     });
-    expect(chunk.temMensagens).toBe(false);
+    expect(chunk.conversations[0]!.messages[0]).toMatchObject({
+      type: "template",
+      body: "[template]",
+    });
   });
 
   it("16) imageMessage parseia type image", () => {
@@ -441,7 +444,7 @@ describe("parseGoHistorySyncChunk - sinteticos", () => {
     expect(deveIgnorarHistorySyncChunk(chunk)).toBe(false);
   });
 
-  it("26) editedMessage sozinho nao parseia (lacuna)", () => {
+  it("26) editedMessage faz unwrap do inner", () => {
     const chunk = parseGoHistorySyncChunk({
       Data: {
         syncType: 2,
@@ -462,7 +465,10 @@ describe("parseGoHistorySyncChunk - sinteticos", () => {
         ],
       },
     });
-    expect(chunk.temMensagens).toBe(false);
+    expect(chunk.conversations[0]!.messages[0]).toMatchObject({
+      type: "text",
+      body: "editado",
+    });
   });
 
   it("27) message sem inner.message descartada", () => {

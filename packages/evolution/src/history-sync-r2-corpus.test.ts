@@ -61,16 +61,16 @@ describe.skipIf(!corpusOk)("HistorySync corpus R2 (parser)", () => {
     }
   });
 
-  it("5) syncType 1 (status V3 / push-name code) sem mensagens é ignorado", () => {
-    const rows = parsed.filter((p) => p.chunk.syncType === HISTORY_SYNC_TYPE.PUSH_NAME);
+  it("5) syncType 1 (STATUS_V3) sem mensagens é ignorado", () => {
+    const rows = parsed.filter((p) => p.chunk.syncType === HISTORY_SYNC_TYPE.STATUS_V3);
     expect(rows.length).toBeGreaterThanOrEqual(1);
     for (const row of rows) {
       expect(deveIgnorarHistorySyncChunk(row.chunk), row.arquivo).toBe(true);
     }
   });
 
-  it("6) syncType 4 (pushnames no corpus) sem mensagens é ignorado", () => {
-    const rows = parsed.filter((p) => p.chunk.syncType === HISTORY_SYNC_TYPE.ON_DEMAND);
+  it("6) syncType 4 (PUSH_NAMES) sem mensagens é ignorado", () => {
+    const rows = parsed.filter((p) => p.chunk.syncType === HISTORY_SYNC_TYPE.PUSH_NAMES);
     expect(rows.length).toBeGreaterThanOrEqual(1);
     for (const row of rows) {
       expect(row.chunk.temMensagens, row.arquivo).toBe(false);

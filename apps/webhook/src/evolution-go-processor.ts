@@ -31,12 +31,18 @@ import {
   jidParaIdExterno,
   jidParaTelefone,
   parseGoButtonClick,
+  parseGoContact,
+  parseGoGroupInfo,
   parseGoConnectionLifecycleEvent,
   parseGoHistorySyncChunk,
+  parseGoJoinedGroup,
   parseGoLabelAssociation,
+  parseGoLabelEdit,
   parseGoMessageEvent,
   parseGoPairSuccess,
+  parseGoPicture,
   parseGoPushName,
+  parseGoQrTimeout,
   parseGoReceipt,
   receiptIndicaLeitura,
   resolverIdExternoCanonicoGo,
@@ -233,7 +239,7 @@ async function enfileirarHistorySyncGo(
   data: Record<string, unknown>,
 ): Promise<void> {
   const chunk = parseGoHistorySyncChunk(data);
-  const onDemand = chunk.syncType === HISTORY_SYNC_TYPE.ON_DEMAND;
+  const onDemand = chunk.syncType === HISTORY_SYNC_TYPE.PUSH_NAMES;
   const acao = decidirAcaoHistorySyncEnqueue(chunk, Boolean(env.HISTORY_SYNC_QUEUE));
 
   if (acao.tipo === "ignorar") {
@@ -498,6 +504,121 @@ async function processarLabelAssociationGo(
     );
 }
 
+async function processarLabelEditGo(
+  db: Db,
+  instance: InstanciaWebhook,
+  data: Record<string, unknown>,
+): Promise<void> {
+  const parsed = parseGoLabelEdit(data);
+  if (!parsed) return;
+
+  const existing = await db.query.contatoTag.findFirst({
+    where: and(
+      eq(contatoTag.organizacaoId, instance.organizacaoId),
+      eq(contatoTag.idExterno, parsed.labelId),
+    ),
+    columns: colunasContatoTag,
+  });
+
+  if (parsed.deleted) {
+    // Sem soft-delete no schema de tag — só evita criar; mantém existentes.
+    return;
+  }
+
+  const cor = indiceWhatsappParaCorPainel(parsed.color);
+  if (existing) {
+    await db
+      .update(contatoTag)
+      .set({ nome: parsed.name, cor })
+      .where(eq(contatoTag.id, existing.id));
+    return;
+  }
+
+  await db.insert(contatoTag).values(
+    comCriadoEm({
+      organizacaoId: instance.organizacaoId,
+      nome: parsed.name,
+      cor,
+      idExterno: parsed.labelId,
+    }),
+  );
+}
+
+async function processarContactGo(
+  db: Db,
+  instance: InstanciaWebhook,
+  data: Record<string, unknown>,
+): Promise<void> {
+  const parsed = parseGoContact(data);
+  if (!parsed?.fullName) return;
+
+  const phone = jidParaTelefone(parsed.jid);
+  const idExternoCanonico = parsed.jid.endsWith("@g.us")
+    ? parsed.jid
+    : resolverIdExternoCanonicoGo({ Chat: parsed.jid });
+  const contact = await buscarContatoPorIdExterno(
+    db,
+    instance.organizacaoId,
+    idExternoCanonico,
+    phone,
+  );
+  if (!contact) return;
+
+  await db
+    .update(contato)
+    .set(comTimestampAtualizacao({ nome: parsed.fullName }))
+    .where(eq(contato.id, contact.id));
+}
+
+async function processarPictureGo(data: Record<string, unknown>): Promise<void> {
+  const parsed = parseGoPicture(data);
+  if (!parsed) return;
+  // Schema sem campo de foto — tipagem/parse apenas.
+}
+
+async function processarJoinedGroupGo(
+  db: Db,
+  instance: InstanciaWebhook,
+  data: Record<string, unknown>,
+): Promise<void> {
+  const parsed = parseGoJoinedGroup(data);
+  if (!parsed?.name) return;
+
+  const phone = jidParaTelefone(parsed.jid);
+  const contact = await buscarContatoPorIdExterno(db, instance.organizacaoId, parsed.jid, phone);
+  if (!contact) {
+    log.info({
+      contexto: "webhook.evo.joinedGroup.semContato",
+      jid: parsed.jid,
+      nome: parsed.name,
+    });
+    return;
+  }
+
+  await db
+    .update(contato)
+    .set(comTimestampAtualizacao({ nome: parsed.name }))
+    .where(eq(contato.id, contact.id));
+}
+
+async function processarGroupInfoGo(
+  db: Db,
+  instance: InstanciaWebhook,
+  data: Record<string, unknown>,
+): Promise<void> {
+  const parsed = parseGoGroupInfo(data);
+  if (!parsed?.name) return;
+
+  const phone = jidParaTelefone(parsed.jid);
+  const contact = await buscarContatoPorIdExterno(db, instance.organizacaoId, parsed.jid, phone);
+  if (!contact) return;
+
+  await db
+    .update(contato)
+    .set(comTimestampAtualizacao({ nome: parsed.name }))
+    .where(eq(contato.id, contact.id));
+}
+
 /** Processa webhook Evolution GO e legado Baileys. */
 export async function processEvolutionGoWebhook(
   db: Db,
@@ -524,9 +645,13 @@ export async function processEvolutionGoWebhook(
     event === "connection.update" ||
     event === "Disconnected" ||
     event === "Connected" ||
-    event === "LoggedOut"
+    event === "LoggedOut" ||
+    event === "QRTimeout"
   ) {
-    const estado = parseGoConnectionLifecycleEvent(payload as never);
+    const estado =
+      event === "QRTimeout"
+        ? parseGoQrTimeout((payload.data ?? {}) as Record<string, unknown>)
+        : parseGoConnectionLifecycleEvent(payload as never);
     if (estado === "open") {
       await marcarConectadaEPedirHistorico(db, env, instance);
     } else if (estado === "close") {
@@ -588,6 +713,31 @@ export async function processEvolutionGoWebhook(
       instance,
       (payload.data ?? {}) as Record<string, unknown>,
     );
+    return;
+  }
+
+  if (event === "LabelEdit") {
+    await processarLabelEditGo(db, instance, (payload.data ?? {}) as Record<string, unknown>);
+    return;
+  }
+
+  if (event === "Contact") {
+    await processarContactGo(db, instance, (payload.data ?? {}) as Record<string, unknown>);
+    return;
+  }
+
+  if (event === "Picture") {
+    await processarPictureGo((payload.data ?? {}) as Record<string, unknown>);
+    return;
+  }
+
+  if (event === "JoinedGroup") {
+    await processarJoinedGroupGo(db, instance, (payload.data ?? {}) as Record<string, unknown>);
+    return;
+  }
+
+  if (event === "GroupInfo") {
+    await processarGroupInfoGo(db, instance, (payload.data ?? {}) as Record<string, unknown>);
     return;
   }
 

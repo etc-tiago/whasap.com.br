@@ -75,46 +75,46 @@ describe("decidirAcaoHistorySyncEnqueue", () => {
     ).toEqual({ tipo: "falha_sem_fila" });
   });
 
-  it("8) ON_DEMAND sem msgs ignora SEM atualizar progresso da instancia", () => {
+  it("8) STATUS_V3S sem msgs ignora SEM atualizar progresso da instancia", () => {
     expect(
       decidirAcaoHistorySyncEnqueue(
-        { syncType: HISTORY_SYNC_TYPE.ON_DEMAND, temMensagens: false },
+        { syncType: HISTORY_SYNC_TYPE.PUSH_NAMES, temMensagens: false },
         true,
       ),
     ).toEqual({ tipo: "ignorar", atualizarProgresso: false });
   });
 
-  it("9) ON_DEMAND com msgs + fila = enfileirar", () => {
+  it("9) STATUS_V3S com msgs + fila = enfileirar", () => {
     expect(
       decidirAcaoHistorySyncEnqueue(
-        { syncType: HISTORY_SYNC_TYPE.ON_DEMAND, temMensagens: true },
+        { syncType: HISTORY_SYNC_TYPE.PUSH_NAMES, temMensagens: true },
         true,
       ),
     ).toEqual({ tipo: "enfileirar" });
   });
 
-  it("10) ON_DEMAND com msgs sem fila nao marca falha da instancia", () => {
+  it("10) STATUS_V3S com msgs sem fila nao marca falha da instancia", () => {
     expect(
       decidirAcaoHistorySyncEnqueue(
-        { syncType: HISTORY_SYNC_TYPE.ON_DEMAND, temMensagens: true },
+        { syncType: HISTORY_SYNC_TYPE.PUSH_NAMES, temMensagens: true },
         false,
       ),
     ).toEqual({ tipo: "ignorar", atualizarProgresso: false });
   });
 
-  it("11) PUSH_NAME sem msgs ignora com progresso", () => {
+  it("11) STATUS_V3 sem msgs ignora com progresso", () => {
     expect(
       decidirAcaoHistorySyncEnqueue(
-        { syncType: HISTORY_SYNC_TYPE.PUSH_NAME, temMensagens: false },
+        { syncType: HISTORY_SYNC_TYPE.STATUS_V3, temMensagens: false },
         true,
       ),
     ).toEqual({ tipo: "ignorar", atualizarProgresso: true });
   });
 
-  it("12) PUSH_NAME com msgs + fila = enfileirar", () => {
+  it("12) STATUS_V3 com msgs + fila = enfileirar", () => {
     expect(
       decidirAcaoHistorySyncEnqueue(
-        { syncType: HISTORY_SYNC_TYPE.PUSH_NAME, temMensagens: true },
+        { syncType: HISTORY_SYNC_TYPE.STATUS_V3, temMensagens: true },
         true,
       ),
     ).toEqual({ tipo: "enfileirar" });

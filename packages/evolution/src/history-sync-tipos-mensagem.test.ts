@@ -152,37 +152,42 @@ describe("HistorySync tipos de mensagem (sintetico)", () => {
     });
   });
 
-  it("20) buttonsMessage nao parseia (lacuna)", () => {
+  it("20) buttonsMessage parseia contentText", () => {
     const c = chunkCom({ buttonsMessage: { contentText: "oi", buttons: [] } });
-    expect(c.temMensagens).toBe(false);
+    expect(c.temMensagens).toBe(true);
+    expect(c.conversations[0]!.messages[0]).toMatchObject({ type: "buttons", body: "oi" });
   });
 
-  it("21) albumMessage nao parseia (lacuna)", () => {
+  it("21) albumMessage parseia placeholder", () => {
     const c = chunkCom({ albumMessage: { expectedImageCount: 2 } });
-    expect(c.temMensagens).toBe(false);
+    expect(c.temMensagens).toBe(true);
+    expect(c.conversations[0]!.messages[0]).toMatchObject({ type: "album", body: "[álbum]" });
   });
 
-  it("22) listMessage nao parseia (lacuna)", () => {
+  it("22) listMessage parseia titulo", () => {
     const c = chunkCom({ listMessage: { title: "Lista" } });
-    expect(c.temMensagens).toBe(false);
+    expect(c.temMensagens).toBe(true);
+    expect(c.conversations[0]!.messages[0]).toMatchObject({ type: "list", body: "Lista" });
   });
 
-  it("23) viewOnceMessage nao unwrap (lacuna)", () => {
+  it("23) viewOnceMessage faz unwrap do inner", () => {
     const c = chunkCom({
       viewOnceMessage: {
         message: { conversation: "secreto" },
       },
     });
-    expect(c.temMensagens).toBe(false);
+    expect(c.temMensagens).toBe(true);
+    expect(c.conversations[0]!.messages[0]).toMatchObject({ type: "text", body: "secreto" });
   });
 
-  it("24) ephemeralMessage nao unwrap (lacuna)", () => {
+  it("24) ephemeralMessage faz unwrap do inner", () => {
     const c = chunkCom({
       ephemeralMessage: {
         message: { conversation: "some" },
       },
     });
-    expect(c.temMensagens).toBe(false);
+    expect(c.temMensagens).toBe(true);
+    expect(c.conversations[0]!.messages[0]).toMatchObject({ type: "text", body: "some" });
   });
 
   it("25) parseGoMessageEvent poll live", () => {
@@ -234,13 +239,12 @@ describe("HistorySync tipos de mensagem (sintetico)", () => {
     expect(parseGoMessageEvent({ Info: { Chat: "x", ID: "1" } })).toBeNull();
   });
 
-  it("30) parseGoMessageEvent template retorna null", () => {
-    expect(
-      parseGoMessageEvent({
-        Info: { Chat: "5511@s.whatsapp.net", ID: "T1", Timestamp: 1 },
-        Message: { templateMessage: {} },
-      }),
-    ).toBeNull();
+  it("30) parseGoMessageEvent template parseia", () => {
+    const p = parseGoMessageEvent({
+      Info: { Chat: "5511@s.whatsapp.net", ID: "T1", Timestamp: 1 },
+      Message: { templateMessage: { hydratedTemplate: { hydratedContentText: "Olá template" } } },
+    });
+    expect(p).toMatchObject({ type: "template", body: "Olá template" });
   });
 
   it("31) extendedText no HistorySync chunk", () => {
@@ -267,7 +271,7 @@ describe("HistorySync tipos de mensagem (sintetico)", () => {
     expect(c.temMensagens).toBe(false);
   });
 
-  it("34) status numerico no HistorySync vira null", () => {
+  it("34) status numerico no HistorySync vira string WMI", () => {
     const raw = {
       Data: {
         syncType: HISTORY_SYNC_TYPE.RECENT,
@@ -290,7 +294,7 @@ describe("HistorySync tipos de mensagem (sintetico)", () => {
       },
     };
     const c = parseGoHistorySyncChunk(raw);
-    expect(c.conversations[0]!.messages[0]!.status).toBeNull();
+    expect(c.conversations[0]!.messages[0]!.status).toBe("READ");
   });
 
   it("35) status string read preservado", () => {
@@ -319,8 +323,33 @@ describe("HistorySync tipos de mensagem (sintetico)", () => {
     expect(c.conversations[0]!.messages[0]!.status).toBe("READ");
   });
 
-  it("36) templateMessage no chunk nao parseia (lacuna)", () => {
-    const c = chunkCom({ templateMessage: { hydratedTemplate: {} } });
-    expect(c.temMensagens).toBe(false);
+  it("36) templateMessage no chunk parseia hydrated", () => {
+    const c = chunkCom({
+      templateMessage: { hydratedTemplate: { hydratedContentText: "Promo" } },
+    });
+    expect(c.temMensagens).toBe(true);
+    expect(c.conversations[0]!.messages[0]).toMatchObject({ type: "template", body: "Promo" });
+  });
+
+  it("37) associatedChildMessage unwrap midia", () => {
+    const c = chunkCom({
+      associatedChildMessage: { message: { imageMessage: { caption: "filho" } } },
+    });
+    expect(c.conversations[0]!.messages[0]).toMatchObject({ type: "image", body: "filho" });
+  });
+
+  it("38) secretEncryptedMessage vira encrypted", () => {
+    const c = chunkCom({ secretEncryptedMessage: { encPayload: "x" } });
+    expect(c.conversations[0]!.messages[0]).toMatchObject({
+      type: "encrypted",
+      body: "[mensagem criptografada]",
+    });
+  });
+
+  it("39) protocolMessage revoke", () => {
+    const c = chunkCom({
+      protocolMessage: { type: 0, key: { id: "ORIG-1" } },
+    });
+    expect(c.conversations[0]!.messages[0]).toMatchObject({ type: "revoke", body: "ORIG-1" });
   });
 });

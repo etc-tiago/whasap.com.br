@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,8 +12,6 @@ import {
 } from "@whasap/ui/components/alert-dialog";
 import { Badge } from "@whasap/ui/components/badge";
 import { Button } from "@whasap/ui/components/button";
-import { Input } from "@whasap/ui/components/input";
-import { Label } from "@whasap/ui/components/label";
 import {
   Select,
   SelectContent,
@@ -41,17 +39,19 @@ const rotulosPapel: Record<Papel, string> = {
   analista: "Analista",
 };
 
+type GestaoUsuariosProps = {
+  /** Slot para ação de convite (controlada pela rota via search param). */
+  acaoConvidar?: ReactNode;
+};
+
 /**
- * Gestão admin de membros da organização: lista, convite, papel e remoção.
+ * Gestão admin de membros da organização: lista, papel e remoção.
  */
-export function GestaoUsuarios() {
+export function GestaoUsuarios({ acaoConvidar }: GestaoUsuariosProps) {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const organizacaoHash = useOrganizacaoHash();
 
-  const [email, setEmail] = useState("");
-  const [nome, setNome] = useState("");
-  const [role, setRole] = useState<Papel>("usuario");
   const [membroRemoverId, setMembroRemoverId] = useState<string | null>(null);
 
   const org = useQuery(
@@ -83,26 +83,6 @@ export function GestaoUsuarios() {
       }),
     });
   };
-
-  const invalidarConvites = () => {
-    if (!organizacaoHash) return;
-    void queryClient.invalidateQueries({
-      queryKey: orpc.organizacao.convites.lista.key({
-        input: { organizacaoHash },
-      }),
-    });
-  };
-
-  const convidar = useMutation(
-    orpc.organizacao.membros.convidar.mutationOptions({
-      onSuccess: () => {
-        setEmail("");
-        setNome("");
-        setRole("usuario");
-        invalidarConvites();
-      },
-    }),
-  );
 
   const atualizarPapel = useMutation(
     orpc.organizacao.membros.atualizarPapel.mutationOptions({
@@ -139,11 +119,14 @@ export function GestaoUsuarios() {
 
   return (
     <div className="space-y-8 p-6">
-      <div>
-        <h2 className="text-lg font-semibold text-wa-text">Usuários</h2>
-        <p className="mt-1 text-sm text-wa-text-muted">
-          Convide membros, altere papéis e acompanhe atividade no painel.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-wa-text">Usuários</h2>
+          <p className="mt-1 text-sm text-wa-text-muted">
+            Convide membros, altere papéis e acompanhe atividade no painel.
+          </p>
+        </div>
+        {acaoConvidar}
       </div>
 
       <section className="space-y-3">
@@ -224,61 +207,6 @@ export function GestaoUsuarios() {
             {getOrpcErrorMessage(desativar.error, "Não foi possível remover o usuário.")}
           </p>
         ) : null}
-      </section>
-
-      <section className="max-w-md space-y-3">
-        <h3 className="text-sm font-medium text-wa-text">Convidar membro</h3>
-        <div className="space-y-2">
-          <Label htmlFor="convite-email">Email</Label>
-          <Input
-            id="convite-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="off"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="convite-nome">Nome</Label>
-          <Input
-            id="convite-nome"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            autoComplete="off"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Papel</Label>
-          <Select value={role} onValueChange={(v) => setRole(v as Papel)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="usuario">Usuário</SelectItem>
-              <SelectItem value="analista">Analista</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <Button
-          disabled={!email || convidar.isPending}
-          onClick={() =>
-            convidar.mutate({
-              organizacaoHash,
-              email,
-              nome: nome || undefined,
-              role,
-            })
-          }
-        >
-          Enviar convite
-        </Button>
-        {convidar.isError ? (
-          <p className="text-sm text-destructive">
-            {getOrpcErrorMessage(convidar.error, "Não foi possível enviar o convite.")}
-          </p>
-        ) : null}
-        {convidar.isSuccess ? <p className="text-sm text-wa-text-muted">Convite enviado.</p> : null}
       </section>
 
       {convitesPendentes.length > 0 ? (

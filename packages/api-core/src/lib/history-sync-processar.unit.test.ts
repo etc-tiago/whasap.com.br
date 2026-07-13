@@ -576,11 +576,11 @@ describe("processarHistorySyncChunk (unit)", () => {
     expect(result.midiaJobs).toHaveLength(0);
   });
 
-  it("21) ON_DEMAND@100 com msgs nao marca completed da instancia", async () => {
+  it("21) STATUS_V3S@100 com msgs nao marca completed da instancia", async () => {
     const { processarHistorySyncChunk } = await load();
     const result = await processarHistorySyncChunk(dbMock() as never, instance, {
       Data: {
-        syncType: HISTORY_SYNC_TYPE.ON_DEMAND,
+        syncType: HISTORY_SYNC_TYPE.PUSH_NAMES,
         progress: 100,
         conversations: [
           {
@@ -875,12 +875,12 @@ describe("processarHistorySyncChunk (unit)", () => {
     expect(result.midiaJobs[0]!.mimeType).toBe("image/png");
   });
 
-  it("36) ON_DEMAND nao grava running na instancia", async () => {
+  it("36) STATUS_V3S nao grava running na instancia", async () => {
     updates.length = 0;
     const { processarHistorySyncChunk } = await load();
     await processarHistorySyncChunk(dbMock() as never, instance, {
       Data: {
-        syncType: HISTORY_SYNC_TYPE.ON_DEMAND,
+        syncType: HISTORY_SYNC_TYPE.PUSH_NAMES,
         progress: 50,
         conversations: [
           {

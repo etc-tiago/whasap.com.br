@@ -63,10 +63,10 @@ describe("HistorySync fixtures estaticos (offline)", () => {
     expect(msgs.some((m) => m.body.includes("TIAGO"))).toBe(true);
   });
 
-  it("5) recent-complete: status numerico vira null (lacuna)", () => {
+  it("5) recent-complete: status numerico vira string WMI", () => {
     const chunk = parseGoHistorySyncChunk(dataDoFixture("history-sync-recent-complete.json"));
     for (const msg of chunk.conversations.flatMap((c) => c.messages)) {
-      expect(msg.status).toBeNull();
+      expect(msg.status).toBe("READ");
     }
   });
 

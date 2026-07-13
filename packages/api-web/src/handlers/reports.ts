@@ -15,12 +15,20 @@ import { and, asc, count, desc, eq, gte, inArray, isNull, lte, min } from "drizz
 
 import type { WebContext } from "../types";
 import { exigirAutenticacao, resolverMembroPorIdInterno } from "./auth";
+
 type DistribuicaoTempoResposta = {
   ate5Min: number;
   de5a15Min: number;
   de15a60Min: number;
   acima60Min: number;
   semResposta: number;
+};
+
+type SerieDiariaDia = {
+  data: string;
+  conversas: number;
+  enviadas: number;
+  recebidas: number;
 };
 
 const distribuicaoVazia = (): DistribuicaoTempoResposta => ({
@@ -35,13 +43,19 @@ const visaoGeralVazia = {
   totalConversas: 0,
   conversasAbertas: 0,
   conversasFechadas: 0,
+  taxaFechamento: 0,
+  conversasSemAtribuicao: 0,
   totalContatos: 0,
   mensagensEnviadas: 0,
   mensagensRecebidas: 0,
+  mediaMensagensPorConversa: null as number | null,
   tempoMedioPrimeiraRespostaMinutos: null as number | null,
   tempoMedianoPrimeiraRespostaMinutos: null as number | null,
+  tempoMedioAteFechamentoMinutos: null as number | null,
   conversasComResposta: 0,
   distribuicaoTempoResposta: distribuicaoVazia(),
+  serieDiaria: [] as SerieDiariaDia[],
+  porTipoMensagem: [] as Array<{ tipo: string; total: number }>,
   itensInteresse: 0,
   porItemInteresse: [] as Array<{
     id: string;
@@ -53,11 +67,72 @@ const visaoGeralVazia = {
     usuarioId: string;
     nome: string;
     conversasAtribuidas: number;
+    conversasFechadas: number;
     mensagensEnviadas: number;
     tempoMedioPrimeiraRespostaMinutos: number | null;
   }>,
-  porInstancia: [] as Array<{ instanciaId: string; nome: string; conversas: number }>,
+  porInstancia: [] as Array<{
+    instanciaId: string;
+    nome: string;
+    conversas: number;
+    conversasAbertas: number;
+    conversasFechadas: number;
+    mensagensEnviadas: number;
+    mensagensRecebidas: number;
+  }>,
 };
+
+/** Chave YYYY-MM-DD no fuso local do servidor (Worker UTC). */
+function chaveDia(d: Date) {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Preenche todos os dias do intervalo com zeros e soma os eventos.
+ * @returns série ordenada por data, um ponto por dia civil UTC.
+ */
+function montarSerieDiaria(
+  de: Date,
+  ate: Date,
+  eventos: {
+    conversas: Date[];
+    enviadas: Date[];
+    recebidas: Date[];
+  },
+): SerieDiariaDia[] {
+  const mapa = new Map<string, SerieDiariaDia>();
+  const cursor = new Date(Date.UTC(de.getUTCFullYear(), de.getUTCMonth(), de.getUTCDate()));
+  const fim = new Date(Date.UTC(ate.getUTCFullYear(), ate.getUTCMonth(), ate.getUTCDate()));
+
+  while (cursor <= fim) {
+    const key = chaveDia(cursor);
+    mapa.set(key, { data: key, conversas: 0, enviadas: 0, recebidas: 0 });
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  for (const em of eventos.conversas) {
+    const dia = mapa.get(chaveDia(em));
+    if (dia) dia.conversas += 1;
+  }
+  for (const em of eventos.enviadas) {
+    const dia = mapa.get(chaveDia(em));
+    if (dia) dia.enviadas += 1;
+  }
+  for (const em of eventos.recebidas) {
+    const dia = mapa.get(chaveDia(em));
+    if (dia) dia.recebidas += 1;
+  }
+
+  return [...mapa.values()];
+}
+
+function mediaArredondada(valores: number[]): number | null {
+  if (valores.length === 0) return null;
+  return Math.round((valores.reduce((a, b) => a + b, 0) / valores.length) * 10) / 10;
+}
 
 /**
  * Converte deltas em minutos para média, mediana e faixas de distribuição.
@@ -86,8 +161,7 @@ function analisarTemposResposta(
     return { media: null, mediana: null, comResposta: 0, distribuicao };
   }
 
-  const soma = deltasMinutos.reduce((acc, n) => acc + n, 0);
-  const media = Math.round((soma / deltasMinutos.length) * 10) / 10;
+  const media = mediaArredondada(deltasMinutos)!;
 
   const ordenados = [...deltasMinutos].toSorted((a, b) => a - b);
   const meio = Math.floor(ordenados.length / 2);
@@ -155,6 +229,7 @@ async function calcularDeltasPrimeiraResposta(
 export const relatoriosHandlers = {
   /**
    * Visão geral de conversas, contatos, tempo de resposta e itens de interesse (etiquetas).
+   * Inclui série diária e breakdowns para o dashboard de relatórios.
    * Bloqueado para membros com papel `usuario` (apenas admin/analista).
    * Soft-deletes entram na contabilidade do período.
    */
@@ -219,17 +294,30 @@ export const relatoriosHandlers = {
         contatoId: conversa.contatoId,
         status: conversa.status,
         atribuidoUsuarioId: conversa.atribuidoUsuarioId,
+        criadoEm: conversa.criadoEm,
+        fechadoEm: conversa.fechadoEm,
       })
       .from(conversa)
       .where(and(...convWhere));
 
+    const serieVazia = montarSerieDiaria(from, to, {
+      conversas: [],
+      enviadas: [],
+      recebidas: [],
+    });
+
     if (convRows.length === 0) {
       return {
         ...visaoGeralVazia,
+        serieDiaria: serieVazia,
         porInstancia: instanceRows.map((inst) => ({
           instanciaId: inst.uuid,
           nome: inst.nome,
           conversas: 0,
+          conversasAbertas: 0,
+          conversasFechadas: 0,
+          mensagensEnviadas: 0,
+          mensagensRecebidas: 0,
         })),
       };
     }
@@ -237,32 +325,62 @@ export const relatoriosHandlers = {
     const conversaIds = convRows.map((c) => c.id);
     const conversasAbertas = convRows.filter((c) => c.status === "open").length;
     const conversasFechadas = convRows.filter((c) => c.status === "closed").length;
+    const conversasSemAtribuicao = convRows.filter((c) => c.atribuidoUsuarioId == null).length;
     const totalContatos = new Set(convRows.map((c) => c.contatoId)).size;
+    const taxaFechamento =
+      convRows.length === 0
+        ? 0
+        : Math.round((conversasFechadas / convRows.length) * 1000) / 10;
 
-    const [[enviadas], [recebidas]] = await Promise.all([
+    const deltasFechamento = convRows
+      .filter((c): c is typeof c & { fechadoEm: Date } => c.status === "closed" && c.fechadoEm != null)
+      .map((c) => (c.fechadoEm.getTime() - c.criadoEm.getTime()) / 60_000)
+      .filter((m) => m >= 0);
+    const tempoMedioAteFechamentoMinutos = mediaArredondada(deltasFechamento);
+
+    const msgsWhere = and(
+      inArray(mensagem.conversaId, conversaIds),
+      gte(mensagem.criadoEm, from),
+      lte(mensagem.criadoEm, to),
+    );
+
+    const [msgRows, porTipoRows] = await Promise.all([
       ctx.db
-        .select({ n: count() })
+        .select({
+          conversaId: mensagem.conversaId,
+          direcao: mensagem.direcao,
+          criadoEm: mensagem.criadoEm,
+          enviadoPorUsuarioId: mensagem.enviadoPorUsuarioId,
+        })
         .from(mensagem)
-        .where(
-          and(
-            inArray(mensagem.conversaId, conversaIds),
-            eq(mensagem.direcao, "outbound"),
-            gte(mensagem.criadoEm, from),
-            lte(mensagem.criadoEm, to),
-          ),
-        ),
+        .where(msgsWhere),
       ctx.db
-        .select({ n: count() })
+        .select({
+          tipo: mensagem.tipo,
+          n: count(),
+        })
         .from(mensagem)
-        .where(
-          and(
-            inArray(mensagem.conversaId, conversaIds),
-            eq(mensagem.direcao, "inbound"),
-            gte(mensagem.criadoEm, from),
-            lte(mensagem.criadoEm, to),
-          ),
-        ),
+        .where(msgsWhere)
+        .groupBy(mensagem.tipo)
+        .orderBy(desc(count())),
     ]);
+
+    const enviadas = msgRows.filter((m) => m.direcao === "outbound");
+    const recebidas = msgRows.filter((m) => m.direcao === "inbound");
+    const totalMsgs = enviadas.length + recebidas.length;
+    const mediaMensagensPorConversa =
+      convRows.length === 0 ? null : Math.round((totalMsgs / convRows.length) * 10) / 10;
+
+    const porTipoMensagem = porTipoRows.map((r) => ({
+      tipo: r.tipo,
+      total: r.n,
+    }));
+
+    const serieDiaria = montarSerieDiaria(from, to, {
+      conversas: convRows.map((c) => c.criadoEm),
+      enviadas: enviadas.map((m) => m.criadoEm),
+      recebidas: recebidas.map((m) => m.criadoEm),
+    });
 
     const deltasPorConversa = await calcularDeltasPrimeiraResposta(ctx, conversaIds);
     const deltasTodos = [...deltasPorConversa.values()];
@@ -307,27 +425,11 @@ export const relatoriosHandlers = {
       with: { usuario: incluirUsuarioRelacao },
     });
 
-    const enviadasPorAgente = await ctx.db
-      .select({
-        usuarioId: mensagem.enviadoPorUsuarioId,
-        n: count(),
-      })
-      .from(mensagem)
-      .where(
-        and(
-          inArray(mensagem.conversaId, conversaIds),
-          eq(mensagem.direcao, "outbound"),
-          gte(mensagem.criadoEm, from),
-          lte(mensagem.criadoEm, to),
-        ),
-      )
-      .groupBy(mensagem.enviadoPorUsuarioId);
-
-    const enviadasMap = new Map(
-      enviadasPorAgente
-        .filter((r): r is typeof r & { usuarioId: number } => r.usuarioId != null)
-        .map((r) => [r.usuarioId, r.n] as const),
-    );
+    const enviadasMap = new Map<number, number>();
+    for (const m of enviadas) {
+      if (m.enviadoPorUsuarioId == null) continue;
+      enviadasMap.set(m.enviadoPorUsuarioId, (enviadasMap.get(m.enviadoPorUsuarioId) ?? 0) + 1);
+    }
 
     const porAgente = members
       .filter((member): member is typeof member & { usuario: NonNullable<typeof member.usuario> } =>
@@ -335,42 +437,65 @@ export const relatoriosHandlers = {
       )
       .map((member) => {
         const atribuídas = convRows.filter((c) => c.atribuidoUsuarioId === member.usuarioId);
+        const fechadas = atribuídas.filter((c) => c.status === "closed").length;
         const deltasAgente = atribuídas
           .map((c) => deltasPorConversa.get(c.id))
           .filter((n): n is number => n != null);
-        const mediaAgente =
-          deltasAgente.length === 0
-            ? null
-            : Math.round((deltasAgente.reduce((a, b) => a + b, 0) / deltasAgente.length) * 10) / 10;
 
         return {
           usuarioId: member.usuario.uuid,
           nome: member.usuario.nome,
           conversasAtribuidas: atribuídas.length,
+          conversasFechadas: fechadas,
           mensagensEnviadas: enviadasMap.get(member.usuarioId) ?? 0,
-          tempoMedioPrimeiraRespostaMinutos: mediaAgente,
+          tempoMedioPrimeiraRespostaMinutos: mediaArredondada(deltasAgente),
         };
       })
       .filter((a) => a.conversasAtribuidas > 0 || a.mensagensEnviadas > 0)
       .toSorted((a, b) => b.conversasAtribuidas - a.conversasAtribuidas);
 
-    const porInstancia = instanceRows.map((inst) => ({
-      instanciaId: inst.uuid,
-      nome: inst.nome,
-      conversas: convRows.filter((c) => c.instanciaId === inst.id).length,
-    }));
+    const msgsPorInstancia = new Map<number, { enviadas: number; recebidas: number }>();
+    const conversaParaInstancia = new Map(convRows.map((c) => [c.id, c.instanciaId] as const));
+    for (const m of msgRows) {
+      const instId = conversaParaInstancia.get(m.conversaId);
+      if (instId == null) continue;
+      const bucket = msgsPorInstancia.get(instId) ?? { enviadas: 0, recebidas: 0 };
+      if (m.direcao === "outbound") bucket.enviadas += 1;
+      else if (m.direcao === "inbound") bucket.recebidas += 1;
+      msgsPorInstancia.set(instId, bucket);
+    }
+
+    const porInstancia = instanceRows.map((inst) => {
+      const convs = convRows.filter((c) => c.instanciaId === inst.id);
+      const msgs = msgsPorInstancia.get(inst.id) ?? { enviadas: 0, recebidas: 0 };
+      return {
+        instanciaId: inst.uuid,
+        nome: inst.nome,
+        conversas: convs.length,
+        conversasAbertas: convs.filter((c) => c.status === "open").length,
+        conversasFechadas: convs.filter((c) => c.status === "closed").length,
+        mensagensEnviadas: msgs.enviadas,
+        mensagensRecebidas: msgs.recebidas,
+      };
+    });
 
     return {
       totalConversas: convRows.length,
       conversasAbertas,
       conversasFechadas,
+      taxaFechamento,
+      conversasSemAtribuicao,
       totalContatos,
-      mensagensEnviadas: enviadas?.n ?? 0,
-      mensagensRecebidas: recebidas?.n ?? 0,
+      mensagensEnviadas: enviadas.length,
+      mensagensRecebidas: recebidas.length,
+      mediaMensagensPorConversa,
       tempoMedioPrimeiraRespostaMinutos: tempos.media,
       tempoMedianoPrimeiraRespostaMinutos: tempos.mediana,
+      tempoMedioAteFechamentoMinutos,
       conversasComResposta: tempos.comResposta,
       distribuicaoTempoResposta: tempos.distribuicao,
+      serieDiaria,
+      porTipoMensagem,
       itensInteresse,
       porItemInteresse,
       porAgente,

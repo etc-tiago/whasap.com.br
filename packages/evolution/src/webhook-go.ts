@@ -46,25 +46,56 @@ export type GoHistorySyncConversa = {
 };
 
 /**
- * syncType do HistorySync (whatsmeow / Evolution GO).
- * O provedor envia várias fases em sequência; cada uma tem seu próprio progress 0→100.
+ * syncType do HistorySync (Evolution GO / whatsmeow).
+ * Números = wire real; nomes batem com o payload observado no R2 (não com o enum protobuf literal).
  * Cap típico: {@link HISTORY_SYNC_CHUNK_MSG_CAP} mensagens por chunk.
  */
 export const HISTORY_SYNC_TYPE = {
   /** Bootstrap inicial (~1k msgs); progress=100 NÃO encerra o sync completo. */
   INITIAL_BOOTSTRAP: 0,
-  PUSH_NAME: 1,
-  /** Histórico recente (~1 ano); última fase útil típica — progress=100 encerra o sync. */
+  /**
+   * Wire: `statusV3Messages` (status do WhatsApp).
+   * Protobuf GO chama de PUSH_NAME — no corpus não traz pushnames.
+   */
+  STATUS_V3: 1,
+  /** Histórico recente (~1 ano); progress=100 encerra o sync. */
   RECENT: 2,
   /** Histórico completo (anos); progress=100 NÃO encerra o sync (RECENT ainda vem). */
   FULL: 3,
-  ON_DEMAND: 4,
+  /**
+   * Wire: `pushnames[]` no bootstrap; também usado em sync sob demanda por conversa.
+   * Protobuf GO chama de ON_DEMAND.
+   */
+  PUSH_NAMES: 4,
   /** Metadata only — ignorar. */
   NON_BLOCKING_DATA: 5,
 } as const;
 
 /** Teto observado de mensagens por chunk no provedor. */
 export const HISTORY_SYNC_CHUNK_MSG_CAP = 5000;
+
+/** Status WMI numérico → rótulo string (HistorySync). */
+export const WMI_STATUS = {
+  0: "ERROR",
+  1: "PENDING",
+  2: "SERVER_ACK",
+  3: "DELIVERY_ACK",
+  4: "READ",
+  5: "PLAYED",
+} as const;
+
+/** Normaliza `status` string ou código WMI numérico. */
+export function normalizarStatusWmi(status: unknown): string | null {
+  if (typeof status === "string") {
+    const s = status.trim();
+    return s.length > 0 ? s : null;
+  }
+  if (typeof status === "number" && Number.isFinite(status)) {
+    const code = Math.trunc(status) as keyof typeof WMI_STATUS;
+    return WMI_STATUS[code] ?? null;
+  }
+  return null;
+}
 
 export type GoPhoneLidMapping = {
   pnJid: string;
@@ -86,14 +117,14 @@ export function rotuloHistorySyncType(syncType: number): string {
   switch (syncType) {
     case HISTORY_SYNC_TYPE.INITIAL_BOOTSTRAP:
       return "bootstrap";
-    case HISTORY_SYNC_TYPE.PUSH_NAME:
-      return "push-name";
+    case HISTORY_SYNC_TYPE.STATUS_V3:
+      return "status-v3";
     case HISTORY_SYNC_TYPE.RECENT:
       return "recente";
     case HISTORY_SYNC_TYPE.FULL:
       return "completo";
-    case HISTORY_SYNC_TYPE.ON_DEMAND:
-      return "on-demand";
+    case HISTORY_SYNC_TYPE.PUSH_NAMES:
+      return "push-names";
     case HISTORY_SYNC_TYPE.NON_BLOCKING_DATA:
       return "metadata";
     default:
@@ -130,6 +161,38 @@ export type GoPushName = {
   oldPushName: string | null;
   newPushName: string;
   messageInfo: Record<string, unknown> | null;
+};
+
+export type GoLabelEdit = {
+  labelId: string;
+  name: string;
+  color: number;
+  deleted: boolean;
+  orderIndex: number | null;
+};
+
+export type GoContactUpdate = {
+  jid: string;
+  fullName: string | null;
+  lidJid: string | null;
+};
+
+export type GoPictureUpdate = {
+  jid: string;
+  pictureId: string | null;
+  remove: boolean;
+};
+
+export type GoJoinedGroup = {
+  jid: string;
+  name: string | null;
+  participantCount: number | null;
+  type: string | null;
+};
+
+export type GoGroupInfo = {
+  jid: string;
+  name: string | null;
 };
 
 /** Resolve identificador de instância no payload GO. */
@@ -197,74 +260,250 @@ export function telefoneExibicaoDeInfo(info: Record<string, unknown>): string | 
   return null;
 }
 
+function textoNaoVazio(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const t = value.trim();
+  return t.length > 0 ? t : null;
+}
+
+function parsePollCreation(
+  part: { name?: string; options?: Array<{ optionName?: string }> } | undefined,
+): { body: string; type: string } | null {
+  if (!part) return null;
+  const options = part.options?.map((option) => option.optionName).filter(Boolean) ?? [];
+  const body =
+    options.length > 0
+      ? `${part.name ?? "[enquete]"}: ${options.join(", ")}`
+      : (part.name ?? "[enquete]");
+  return { body, type: "poll" };
+}
+
+function textoTemplateMessage(part: Record<string, unknown>): string {
+  const hydrated = part.hydratedTemplate as Record<string, unknown> | undefined;
+  if (hydrated) {
+    const hydratedContent = hydrated.hydratedContentText;
+    const hydratedTitle = hydrated.hydratedTitleText;
+    return (
+      textoNaoVazio(hydratedContent) ??
+      textoNaoVazio(hydratedTitle) ??
+      "[template]"
+    );
+  }
+
+  const format = part.Format as Record<string, unknown> | undefined;
+  const interactive =
+    (format?.InteractiveMessageTemplate as Record<string, unknown> | undefined)?.InteractiveMessage ??
+    (part.interactiveMessageTemplate as Record<string, unknown> | undefined)?.interactiveMessage;
+  if (interactive && typeof interactive === "object") {
+    const body = (interactive as { Body?: { Text?: string }; body?: { text?: string } }).Body?.Text
+      ?? (interactive as { body?: { text?: string } }).body?.text;
+    if (textoNaoVazio(body)) return body!;
+  }
+
+  return "[template]";
+}
+
+function desaninharMensagem(
+  messageObj: Record<string, unknown>,
+  profundidade = 0,
+): Record<string, unknown> {
+  if (profundidade > 4) return messageObj;
+
+  const wrappers = [
+    "viewOnceMessage",
+    "viewOnceMessageV2",
+    "viewOnceMessageV2Extension",
+    "ephemeralMessage",
+    "documentWithCaptionMessage",
+    "editedMessage",
+    "associatedChildMessage",
+    "lottieStickerMessage",
+  ] as const;
+
+  for (const key of wrappers) {
+    const wrap = messageObj[key];
+    if (!wrap || typeof wrap !== "object") continue;
+    const inner = (wrap as { message?: unknown }).message;
+    if (inner && typeof inner === "object") {
+      return desaninharMensagem(inner as Record<string, unknown>, profundidade + 1);
+    }
+  }
+
+  return messageObj;
+}
+
 function parseGoMessageBody(
   messageObj: Record<string, unknown>,
 ): { body: string; type: string } | null {
-  if (messageObj.conversation) {
-    return { body: String(messageObj.conversation), type: "text" };
+  const obj = desaninharMensagem(messageObj);
+
+  if (obj.conversation !== undefined && obj.conversation !== null) {
+    const body = String(obj.conversation);
+    if (!body) return null;
+    return { body, type: "text" };
   }
-  if (messageObj.extendedTextMessage) {
-    const text = (messageObj.extendedTextMessage as { text?: string }).text ?? "";
+  if (obj.extendedTextMessage) {
+    const text = (obj.extendedTextMessage as { text?: string }).text ?? "";
     return { body: String(text), type: "text" };
   }
-  if (messageObj.imageMessage) {
-    const part = messageObj.imageMessage as { caption?: string };
+  if (obj.imageMessage) {
+    const part = obj.imageMessage as { caption?: string };
     return { body: part.caption ?? "[imagem]", type: "image" };
   }
-  if (messageObj.audioMessage) {
+  if (obj.audioMessage) {
     return { body: "[áudio]", type: "audio" };
   }
-  if (messageObj.videoMessage) {
-    const part = messageObj.videoMessage as { caption?: string };
+  if (obj.videoMessage) {
+    const part = obj.videoMessage as { caption?: string };
     return { body: part.caption ?? "[vídeo]", type: "video" };
   }
-  if (messageObj.documentMessage) {
-    const part = messageObj.documentMessage as { fileName?: string; caption?: string };
+  if (obj.ptvMessage) {
+    return { body: "[vídeo]", type: "video" };
+  }
+  if (obj.documentMessage) {
+    const part = obj.documentMessage as { fileName?: string; caption?: string };
     return { body: part.fileName ?? part.caption ?? "[documento]", type: "document" };
   }
-  if (messageObj.locationMessage) {
+  if (obj.locationMessage) {
     return { body: "[localização]", type: "location" };
   }
-  if (messageObj.stickerMessage) {
+  if (obj.stickerMessage) {
     return { body: "[sticker]", type: "sticker" };
   }
-  if (messageObj.reactionMessage) {
-    const part = messageObj.reactionMessage as { text?: string };
+  if (obj.reactionMessage) {
+    const part = obj.reactionMessage as { text?: string };
     return { body: part.text ?? "[reação]", type: "reaction" };
   }
-  if (messageObj.pollCreationMessageV3) {
-    const part = messageObj.pollCreationMessageV3 as {
-      name?: string;
-      options?: Array<{ optionName?: string }>;
-    };
-    const options = part.options?.map((option) => option.optionName).filter(Boolean) ?? [];
-    const body =
-      options.length > 0
-        ? `${part.name ?? "[enquete]"}: ${options.join(", ")}`
-        : (part.name ?? "[enquete]");
-    return { body, type: "poll" };
-  }
-  if (messageObj.contactMessage) {
-    const part = messageObj.contactMessage as { displayName?: string };
+  const poll =
+    parsePollCreation(obj.pollCreationMessageV3 as never) ??
+    parsePollCreation(obj.pollCreationMessage as never);
+  if (poll) return poll;
+
+  if (obj.contactMessage) {
+    const part = obj.contactMessage as { displayName?: string };
     return { body: part.displayName ?? "[contato]", type: "contacts" };
   }
-  if (messageObj.eventMessage) {
-    const part = messageObj.eventMessage as { name?: string };
+  if (obj.contactsArrayMessage) {
+    const part = obj.contactsArrayMessage as {
+      displayName?: string;
+      contacts?: Array<{ displayName?: string }>;
+    };
+    const nomes =
+      part.contacts?.map((c) => c.displayName).filter(Boolean).join(", ") ?? "";
+    return {
+      body: textoNaoVazio(part.displayName) ?? textoNaoVazio(nomes) ?? "[contatos]",
+      type: "contacts",
+    };
+  }
+  if (obj.eventMessage) {
+    const part = obj.eventMessage as { name?: string };
     return { body: part.name ?? "[evento]", type: "event" };
   }
-  if (messageObj.interactiveMessage) {
-    const flow = parseInteractiveMessage(messageObj);
+  if (obj.interactiveMessage) {
+    const flow = parseInteractiveMessage(obj);
     return {
       body: flow ? formatInteractiveBody(flow) : "[interativo]",
       type: "interactive",
     };
   }
-  if (messageObj.interactiveResponseMessage) {
-    const response = parseInteractiveResponseMessage(messageObj);
+  if (obj.interactiveResponseMessage) {
+    const response = parseInteractiveResponseMessage(obj);
     return {
       body: response ? formatInteractiveResponseBody(response) : "[resposta interativa]",
       type: "interactive",
     };
+  }
+  if (obj.albumMessage) {
+    const part = obj.albumMessage as { caption?: string };
+    return { body: textoNaoVazio(part.caption) ?? "[álbum]", type: "album" };
+  }
+  if (obj.buttonsMessage) {
+    const part = obj.buttonsMessage as { contentText?: string; headerText?: string };
+    return {
+      body: textoNaoVazio(part.contentText) ?? textoNaoVazio(part.headerText) ?? "[botões]",
+      type: "buttons",
+    };
+  }
+  if (obj.buttonsResponseMessage) {
+    const part = obj.buttonsResponseMessage as {
+      selectedDisplayText?: string;
+      Response?: { SelectedDisplayText?: string };
+      selectedButtonID?: string;
+    };
+    return {
+      body:
+        textoNaoVazio(part.selectedDisplayText) ??
+        textoNaoVazio(part.Response?.SelectedDisplayText) ??
+        textoNaoVazio(part.selectedButtonID) ??
+        "[resposta botão]",
+      type: "buttons_response",
+    };
+  }
+  if (obj.listMessage) {
+    const part = obj.listMessage as { title?: string; description?: string };
+    return {
+      body: textoNaoVazio(part.title) ?? textoNaoVazio(part.description) ?? "[lista]",
+      type: "list",
+    };
+  }
+  if (obj.listResponseMessage) {
+    const part = obj.listResponseMessage as {
+      title?: string;
+      singleSelectReply?: { selectedRowID?: string };
+    };
+    return {
+      body:
+        textoNaoVazio(part.title) ??
+        textoNaoVazio(part.singleSelectReply?.selectedRowID) ??
+        "[resposta lista]",
+      type: "list_response",
+    };
+  }
+  if (obj.templateMessage) {
+    return {
+      body: textoTemplateMessage(obj.templateMessage as Record<string, unknown>),
+      type: "template",
+    };
+  }
+  if (obj.templateButtonReplyMessage) {
+    const part = obj.templateButtonReplyMessage as {
+      selectedDisplayText?: string;
+      selectedID?: string;
+    };
+    return {
+      body:
+        textoNaoVazio(part.selectedDisplayText) ??
+        textoNaoVazio(part.selectedID) ??
+        "[resposta template]",
+      type: "template_reply",
+    };
+  }
+  if (obj.groupInviteMessage) {
+    const part = obj.groupInviteMessage as { groupName?: string; caption?: string };
+    return {
+      body: textoNaoVazio(part.groupName) ?? textoNaoVazio(part.caption) ?? "[convite grupo]",
+      type: "group_invite",
+    };
+  }
+  if (obj.protocolMessage) {
+    const part = obj.protocolMessage as {
+      type?: number;
+      key?: { id?: string; ID?: string };
+    };
+    if (part.type === 0) {
+      const alvo = part.key?.id ?? part.key?.ID;
+      return {
+        body: textoNaoVazio(alvo) ?? "[mensagem apagada]",
+        type: "revoke",
+      };
+    }
+    return null;
+  }
+  if (obj.secretEncryptedMessage) {
+    return { body: "[mensagem criptografada]", type: "encrypted" };
+  }
+  if (obj.placeholderMessage) {
+    return { body: "[placeholder]", type: "placeholder" };
   }
   return null;
 }
@@ -336,7 +575,7 @@ function parseHistorySyncMessage(
     body: parsed.body,
     type: parsed.type,
     timestamp: timestampFromGo(inner.messageTimestamp),
-    status: typeof inner.status === "string" ? inner.status : null,
+    status: normalizarStatusWmi(inner.status),
     messageObj,
   };
 }
@@ -524,6 +763,82 @@ export function parseGoPairSuccess(data: Record<string, unknown>): "open" | "clo
   if (status === "open") return "open";
   if (status === "close") return "close";
   return null;
+}
+
+/** QRTimeout: data vazia — trata como desconexão/timeout do QR. */
+export function parseGoQrTimeout(_data?: Record<string, unknown>): "close" {
+  return "close";
+}
+
+/** Normaliza LabelEdit (criar/atualizar/remover etiqueta no WhatsApp). */
+export function parseGoLabelEdit(data: Record<string, unknown>): GoLabelEdit | null {
+  const labelId = String(data.LabelID ?? "").trim();
+  if (!labelId) return null;
+  const action = (data.Action as Record<string, unknown> | undefined) ?? {};
+  const name = textoNaoVazio(action.name) ?? `Etiqueta ${labelId}`;
+  return {
+    labelId,
+    name,
+    color: typeof action.color === "number" ? action.color : Number(action.color ?? 0) || 0,
+    deleted: Boolean(action.deleted),
+    orderIndex: typeof action.orderIndex === "number" ? action.orderIndex : null,
+  };
+}
+
+/** Normaliza Contact (atualização de nome / LID). */
+export function parseGoContact(data: Record<string, unknown>): GoContactUpdate | null {
+  const jid = String(data.JID ?? "").trim();
+  if (!jid) return null;
+  const action = (data.Action as Record<string, unknown> | undefined) ?? {};
+  const fullNameRaw = typeof action.fullName === "string" ? action.fullName : null;
+  const fullName = fullNameRaw
+    ? fullNameRaw.replace(/[\u200e\u200f\u202a-\u202e]/g, "").trim() || null
+    : null;
+  const lidJid =
+    typeof action.lidJID === "string" && action.lidJID
+      ? action.lidJID
+      : typeof action.lidJid === "string" && action.lidJid
+        ? action.lidJid
+        : null;
+  return { jid, fullName, lidJid };
+}
+
+/** Normaliza Picture (avatar) — tipagem apenas; schema sem campo de foto. */
+export function parseGoPicture(data: Record<string, unknown>): GoPictureUpdate | null {
+  const jid = String(data.JID ?? "").trim();
+  if (!jid) return null;
+  const pictureId = textoNaoVazio(data.PictureID);
+  return {
+    jid,
+    pictureId,
+    remove: Boolean(data.Remove),
+  };
+}
+
+/** Normaliza JoinedGroup. */
+export function parseGoJoinedGroup(data: Record<string, unknown>): GoJoinedGroup | null {
+  const jid = String(data.JID ?? "").trim();
+  if (!jid.endsWith("@g.us")) return null;
+  const participants = data.Participants;
+  return {
+    jid,
+    name: textoNaoVazio(data.Name),
+    participantCount: Array.isArray(participants) ? participants.length : null,
+    type: textoNaoVazio(data.Type),
+  };
+}
+
+/** Normaliza GroupInfo (deltas; hoje usamos Name). */
+export function parseGoGroupInfo(data: Record<string, unknown>): GoGroupInfo | null {
+  const jid = String(data.JID ?? "").trim();
+  if (!jid.endsWith("@g.us")) return null;
+  const nameObj = data.Name as { Name?: string; name?: string } | string | null | undefined;
+  let name: string | null = null;
+  if (typeof nameObj === "string") name = textoNaoVazio(nameObj);
+  else if (nameObj && typeof nameObj === "object") {
+    name = textoNaoVazio(nameObj.Name) ?? textoNaoVazio(nameObj.name);
+  }
+  return { jid, name };
 }
 
 /** Receipt indica leitura (inbound ou outbound). */

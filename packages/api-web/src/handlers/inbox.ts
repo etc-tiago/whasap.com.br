@@ -331,6 +331,79 @@ async function montarItensContatoLista(
   });
 }
 
+/**
+ * Persiste outbound do painel com anti-duplicata por `idExterno`.
+ * Se o webhook já ingeriu a mesma WA id, anexamos `enviadoPorUsuarioId` na row existente.
+ */
+async function persistirMensagemOutboundPainel(
+  db: WebContext["db"],
+  values: {
+    conversaId: number;
+    tipo: string;
+    corpo: string | null;
+    midiaR2Chave?: string | null;
+    idExterno: string | null;
+    enviadoPorUsuarioId: number;
+    templateNome?: string | null;
+    templateIdioma?: string | null;
+    templateVariaveis?: Record<string, string> | null;
+  },
+) {
+  if (values.idExterno) {
+    const existente = await db.query.mensagem.findFirst({
+      where: and(eq(mensagem.idExterno, values.idExterno), isNull(mensagem.excluidoEm)),
+      columns: {
+        id: true,
+        uuid: true,
+        idExterno: true,
+        direcao: true,
+        tipo: true,
+        corpo: true,
+        midiaR2Chave: true,
+        status: true,
+        templateNome: true,
+        criadoEm: true,
+        enviadoPorUsuarioId: true,
+      },
+    });
+    if (existente) {
+      const [atualizada] = await db
+        .update(mensagem)
+        .set(
+          comTimestampAtualizacao({
+            enviadoPorUsuarioId: values.enviadoPorUsuarioId,
+            ...(values.midiaR2Chave && !existente.midiaR2Chave
+              ? { midiaR2Chave: values.midiaR2Chave }
+              : {}),
+            ...(values.corpo && !existente.corpo ? { corpo: values.corpo } : {}),
+          }),
+        )
+        .where(eq(mensagem.id, existente.id))
+        .returning();
+      return atualizada ?? existente;
+    }
+  }
+
+  const [criada] = await db
+    .insert(mensagem)
+    .values(
+      comCriadoEm({
+        conversaId: values.conversaId,
+        direcao: "outbound",
+        tipo: values.tipo,
+        corpo: values.corpo,
+        midiaR2Chave: values.midiaR2Chave ?? null,
+        idExterno: values.idExterno,
+        enviadoPorUsuarioId: values.enviadoPorUsuarioId,
+        templateNome: values.templateNome ?? null,
+        templateIdioma: values.templateIdioma ?? null,
+        templateVariaveis: values.templateVariaveis ?? null,
+      }),
+    )
+    .returning();
+  return criada!;
+}
+
 function mapearMensagemParaSaida(
   m: {
     uuid: string;
@@ -625,19 +698,16 @@ export const caixaEntradaHandlers = {
             : undefined,
         });
 
-        await ctx.db.insert(mensagem).values(
-          comCriadoEm({
-            conversaId: conversation!.id,
-            direcao: "outbound",
-            tipo: "template",
-            corpo: input.corpo ?? template.nome,
-            templateNome: template.nome,
-            templateIdioma: template.idioma,
-            templateVariaveis: input.variaveis ?? null,
-            idExterno: externalId,
-            enviadoPorUsuarioId: ctx.usuario!.internalId,
-          }),
-        );
+        await persistirMensagemOutboundPainel(ctx.db, {
+          conversaId: conversation!.id,
+          tipo: "template",
+          corpo: input.corpo ?? template.nome,
+          templateNome: template.nome,
+          templateIdioma: template.idioma,
+          templateVariaveis: input.variaveis ?? null,
+          idExterno: externalId,
+          enviadoPorUsuarioId: ctx.usuario!.internalId,
+        });
       } else if (input.corpo) {
         const externalId = await sendProviderMessage({
           ctx,
@@ -646,16 +716,13 @@ export const caixaEntradaHandlers = {
           type: "text",
           body: input.corpo,
         });
-        await ctx.db.insert(mensagem).values(
-          comCriadoEm({
-            conversaId: conversation!.id,
-            direcao: "outbound",
-            tipo: "text",
-            corpo: input.corpo,
-            idExterno: externalId,
-            enviadoPorUsuarioId: ctx.usuario!.internalId,
-          }),
-        );
+        await persistirMensagemOutboundPainel(ctx.db, {
+          conversaId: conversation!.id,
+          tipo: "text",
+          corpo: input.corpo,
+          idExterno: externalId,
+          enviadoPorUsuarioId: ctx.usuario!.internalId,
+        });
       }
 
       return { conversaId: conversation!.uuid };
@@ -849,20 +916,14 @@ export const caixaEntradaHandlers = {
           ? `[${tipo}]`
           : null);
 
-      const [message] = await ctx.db
-        .insert(mensagem)
-        .values(
-          comCriadoEm({
-            conversaId: conv.conversation.id,
-            direcao: "outbound",
-            tipo,
-            corpo,
-            midiaR2Chave: input.mediaR2Key ?? null,
-            idExterno: externalId,
-            enviadoPorUsuarioId: ctx.usuario!.internalId,
-          }),
-        )
-        .returning();
+      const message = await persistirMensagemOutboundPainel(ctx.db, {
+        conversaId: conv.conversation.id,
+        tipo,
+        corpo,
+        midiaR2Chave: input.mediaR2Key ?? null,
+        idExterno: externalId,
+        enviadoPorUsuarioId: ctx.usuario!.internalId,
+      });
 
       await ctx.db
         .update(conversa)
@@ -872,7 +933,7 @@ export const caixaEntradaHandlers = {
       const usuario = ctx.usuario!;
       return mapearMensagemParaSaida(
         {
-          ...message!,
+          ...message,
           enviadoPorUsuario: { uuid: usuario.id, nome: usuario.nome },
         },
         ctx.env.CDN_URL,
@@ -952,22 +1013,16 @@ export const caixaEntradaHandlers = {
           : undefined,
       });
 
-      const [message] = await ctx.db
-        .insert(mensagem)
-        .values(
-          comCriadoEm({
-            conversaId: conv.conversation.id,
-            direcao: "outbound",
-            tipo: "template",
-            corpo: template.nome,
-            templateNome: template.nome,
-            templateIdioma: template.idioma,
-            templateVariaveis: input.variaveis ?? null,
-            idExterno: externalId,
-            enviadoPorUsuarioId: ctx.usuario!.internalId,
-          }),
-        )
-        .returning();
+      const message = await persistirMensagemOutboundPainel(ctx.db, {
+        conversaId: conv.conversation.id,
+        tipo: "template",
+        corpo: template.nome,
+        templateNome: template.nome,
+        templateIdioma: template.idioma,
+        templateVariaveis: input.variaveis ?? null,
+        idExterno: externalId,
+        enviadoPorUsuarioId: ctx.usuario!.internalId,
+      });
 
       await ctx.db
         .update(conversa)
@@ -977,7 +1032,7 @@ export const caixaEntradaHandlers = {
       const usuario = ctx.usuario!;
       return mapearMensagemParaSaida(
         {
-          ...message!,
+          ...message,
           enviadoPorUsuario: { uuid: usuario.id, nome: usuario.nome },
         },
         ctx.env.CDN_URL,

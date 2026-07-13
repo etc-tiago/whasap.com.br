@@ -1,0 +1,7 @@
+{
+  "receivedAt": "2026-07-13T14:05:03.174Z",
+  "meta": {
+    "source": "evo"
+  },
+  "raw": "{\"data\":{\"JID\":\"554163475327@s.whatsapp.net\",\"Timestamp\":\"2026-07-13T11:04:58.375-03:00\",\"Action\":{\"fullName\":\"‪+5541963475327‬\",\"lidJID\":\"207443447549985@lid\",\"saveOnPrimaryAddressbook\":true},\"FromFullSync\":false},\"event\":\"Contact\",\"instanceId\":\"139f886b-622a-45f9-a4f8-c2e963e882d2\",\"instanceName\":\"whasap-139f886b\",\"instanceToken\":\"d9cdedd645bb4fafbba7df2a0166a682\"}"
+}

@@ -102,8 +102,7 @@ describe.skipIf(!ok)("HistorySync lacunas corpus (status + tipos)", () => {
     expect(n).toBeGreaterThanOrEqual(20);
   });
 
-  it("9) lacuna: status numerico nao vira string no parse", () => {
-    // parser so aceita typeof status === "string"
+  it("9) status numerico WMI vira string no parse", () => {
     let checou = 0;
     for (const f of fixtures) {
       const chunk = parseGoHistorySyncChunk(f.data);
@@ -116,11 +115,10 @@ describe.skipIf(!ok)("HistorySync lacunas corpus (status + tipos)", () => {
         }
       }
     }
-    // pode ser 0 se corpus so tem status number — documenta lacuna
-    expect(checou).toBeGreaterThanOrEqual(0);
+    expect(checou).toBeGreaterThan(0);
   });
 
-  it("10) buttonsResponseMessage bruto existe e nao parseia", () => {
+  it("10) buttonsResponseMessage bruto parseia", () => {
     let bruto = 0;
     let parseado = 0;
     for (const { messageObj } of msgsBrutas()) {
@@ -129,16 +127,17 @@ describe.skipIf(!ok)("HistorySync lacunas corpus (status + tipos)", () => {
     for (const f of fixtures) {
       for (const conv of parseGoHistorySyncChunk(f.data).conversations) {
         for (const m of conv.messages) {
-          if (m.messageObj.buttonsResponseMessage) parseado += 1;
+          if (m.type === "buttons_response") parseado += 1;
         }
       }
     }
     expect(bruto).toBeGreaterThan(0);
-    expect(parseado).toBe(0);
+    expect(parseado).toBeGreaterThan(0);
   });
 
-  it("11) listResponseMessage bruto nao parseia", () => {
+  it("11) listResponseMessage bruto parseia", () => {
     let bruto = 0;
+    let parseado = 0;
     for (const { messageObj } of msgsBrutas()) {
       if (messageObj.listResponseMessage) bruto += 1;
     }
@@ -146,21 +145,31 @@ describe.skipIf(!ok)("HistorySync lacunas corpus (status + tipos)", () => {
     for (const f of fixtures) {
       for (const conv of parseGoHistorySyncChunk(f.data).conversations) {
         for (const m of conv.messages) {
-          expect(m.messageObj.listResponseMessage).toBeUndefined();
+          if (m.type === "list_response") parseado += 1;
         }
       }
     }
+    expect(parseado).toBeGreaterThan(0);
   });
 
-  it("12) placeholderMessage bruto nao parseia", () => {
+  it("12) placeholderMessage bruto parseia type placeholder", () => {
     let bruto = 0;
+    let parseado = 0;
     for (const { messageObj } of msgsBrutas()) {
       if (messageObj.placeholderMessage) bruto += 1;
     }
     expect(bruto).toBeGreaterThan(0);
+    for (const f of fixtures) {
+      for (const conv of parseGoHistorySyncChunk(f.data).conversations) {
+        for (const m of conv.messages) {
+          if (m.type === "placeholder") parseado += 1;
+        }
+      }
+    }
+    expect(parseado).toBeGreaterThan(0);
   });
 
-  it("13) associatedChildMessage bruto nao parseia", () => {
+  it("13) associatedChildMessage bruto unwrap midia", () => {
     let bruto = 0;
     for (const { messageObj } of msgsBrutas()) {
       if (messageObj.associatedChildMessage) bruto += 1;
@@ -168,28 +177,55 @@ describe.skipIf(!ok)("HistorySync lacunas corpus (status + tipos)", () => {
     expect(bruto).toBeGreaterThan(0);
   });
 
-  it("14) contactsArrayMessage bruto nao parseia (so contactMessage)", () => {
+  it("14) contactsArrayMessage bruto parseia contacts", () => {
     let bruto = 0;
+    let parseado = 0;
     for (const { messageObj } of msgsBrutas()) {
       if (messageObj.contactsArrayMessage) bruto += 1;
     }
     expect(bruto).toBeGreaterThan(0);
+    for (const f of fixtures) {
+      for (const conv of parseGoHistorySyncChunk(f.data).conversations) {
+        for (const m of conv.messages) {
+          if (m.messageObj.contactsArrayMessage && m.type === "contacts") parseado += 1;
+        }
+      }
+    }
+    expect(parseado).toBeGreaterThan(0);
   });
 
-  it("15) groupInviteMessage bruto nao parseia", () => {
+  it("15) groupInviteMessage bruto parseia quando presente", () => {
     let bruto = 0;
+    let parseado = 0;
     for (const { messageObj } of msgsBrutas()) {
       if (messageObj.groupInviteMessage) bruto += 1;
     }
-    expect(bruto).toBeGreaterThanOrEqual(0); // soft se amostra pequena
+    for (const f of fixtures) {
+      for (const conv of parseGoHistorySyncChunk(f.data).conversations) {
+        for (const m of conv.messages) {
+          if (m.type === "group_invite") parseado += 1;
+        }
+      }
+    }
+    expect(bruto).toBeGreaterThanOrEqual(0);
+    if (bruto > 0) expect(parseado).toBeGreaterThan(0);
   });
 
-  it("16) templateButtonReplyMessage bruto nao parseia", () => {
+  it("16) templateButtonReplyMessage bruto parseia", () => {
     let bruto = 0;
+    let parseado = 0;
     for (const { messageObj } of msgsBrutas()) {
       if (messageObj.templateButtonReplyMessage) bruto += 1;
     }
     expect(bruto).toBeGreaterThan(0);
+    for (const f of fixtures) {
+      for (const conv of parseGoHistorySyncChunk(f.data).conversations) {
+        for (const m of conv.messages) {
+          if (m.type === "template_reply") parseado += 1;
+        }
+      }
+    }
+    expect(parseado).toBeGreaterThan(0);
   });
 
   it("17) CAP 5000 e constante exportada", () => {
@@ -319,7 +355,7 @@ describe("HistorySync parse edge sinteticos extras", () => {
     expect(c.conversations).toHaveLength(1);
   });
 
-  it("24) status string preservado; status number vira null (lacuna)", () => {
+  it("24) status string preservado; status number vira string WMI", () => {
     const comString = parseGoHistorySyncChunk({
       Data: {
         syncType: 2,
@@ -364,7 +400,7 @@ describe("HistorySync parse edge sinteticos extras", () => {
         ],
       },
     });
-    expect(comNum.conversations[0]!.messages[0]!.status).toBeNull();
+    expect(comNum.conversations[0]!.messages[0]!.status).toBe("READ");
   });
 
   it("25) unreadCount string vira number", () => {
@@ -402,7 +438,7 @@ describe("HistorySync parse edge sinteticos extras", () => {
     expect(c.conversations[0]!.messages[0]!.timestamp).toBeNull();
   });
 
-  it("27) buttonsResponseMessage sintetico nao parseia", () => {
+  it("27) buttonsResponseMessage sintetico parseia", () => {
     const c = parseGoHistorySyncChunk({
       Data: {
         syncType: 2,
@@ -414,7 +450,12 @@ describe("HistorySync parse edge sinteticos extras", () => {
               {
                 message: {
                   key: { remoteJID: "5511@s.whatsapp.net", fromMe: false, ID: "BR" },
-                  message: { buttonsResponseMessage: { selectedButtonId: "1" } },
+                  message: {
+                    buttonsResponseMessage: {
+                      selectedDisplayText: "Sim",
+                      selectedButtonID: "1",
+                    },
+                  },
                   messageTimestamp: 1_700_000_000,
                 },
               },
@@ -423,10 +464,13 @@ describe("HistorySync parse edge sinteticos extras", () => {
         ],
       },
     });
-    expect(c.temMensagens).toBe(false);
+    expect(c.conversations[0]!.messages[0]).toMatchObject({
+      type: "buttons_response",
+      body: "Sim",
+    });
   });
 
-  it("28) contactsArrayMessage sintetico nao parseia", () => {
+  it("28) contactsArrayMessage sintetico parseia", () => {
     const c = parseGoHistorySyncChunk({
       Data: {
         syncType: 2,
@@ -438,7 +482,12 @@ describe("HistorySync parse edge sinteticos extras", () => {
               {
                 message: {
                   key: { remoteJID: "5511@s.whatsapp.net", fromMe: false, ID: "CA" },
-                  message: { contactsArrayMessage: { contacts: [] } },
+                  message: {
+                    contactsArrayMessage: {
+                      displayName: "Agenda",
+                      contacts: [{ displayName: "Ana" }],
+                    },
+                  },
                   messageTimestamp: 1_700_000_000,
                 },
               },
@@ -447,10 +496,13 @@ describe("HistorySync parse edge sinteticos extras", () => {
         ],
       },
     });
-    expect(c.temMensagens).toBe(false);
+    expect(c.conversations[0]!.messages[0]).toMatchObject({
+      type: "contacts",
+      body: "Agenda",
+    });
   });
 
-  it("29) groupInviteMessage sintetico nao parseia", () => {
+  it("29) groupInviteMessage sintetico parseia", () => {
     const c = parseGoHistorySyncChunk({
       Data: {
         syncType: 2,
@@ -471,7 +523,10 @@ describe("HistorySync parse edge sinteticos extras", () => {
         ],
       },
     });
-    expect(c.temMensagens).toBe(false);
+    expect(c.conversations[0]!.messages[0]).toMatchObject({
+      type: "group_invite",
+      body: "X",
+    });
   });
 
   it("30) conversation vazio e lacuna (truthy check descarta)", () => {

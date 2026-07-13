@@ -96,8 +96,8 @@ describe("rotuloHistorySyncType", () => {
     expect(rotuloHistorySyncType(HISTORY_SYNC_TYPE.RECENT)).toBe("recente");
     expect(rotuloHistorySyncType(HISTORY_SYNC_TYPE.FULL)).toBe("completo");
     expect(rotuloHistorySyncType(HISTORY_SYNC_TYPE.NON_BLOCKING_DATA)).toBe("metadata");
-    expect(rotuloHistorySyncType(HISTORY_SYNC_TYPE.ON_DEMAND)).toBe("on-demand");
-    expect(rotuloHistorySyncType(HISTORY_SYNC_TYPE.PUSH_NAME)).toBe("push-name");
+    expect(rotuloHistorySyncType(HISTORY_SYNC_TYPE.PUSH_NAMES)).toBe("push-names");
+    expect(rotuloHistorySyncType(HISTORY_SYNC_TYPE.STATUS_V3)).toBe("status-v3");
   });
 
   it("12) tipo desconhecido tem fallback", () => {
@@ -281,16 +281,16 @@ describe("motivoFalhaHistorySync (copy do rail)", () => {
   });
 });
 
-describe("STATUS_V3 / PUSH_NAME conclusao", () => {
+describe("STATUS_V3 / PUSH_NAMES conclusao", () => {
   it("34) STATUS_V3@100 nao conclui", () => {
     expect(
-      historySyncConcluido(chunk({ syncType: HISTORY_SYNC_TYPE.PUSH_NAME /* 4 */, progress: 100 })),
+      historySyncConcluido(chunk({ syncType: HISTORY_SYNC_TYPE.STATUS_V3 /* 1 */, progress: 100 })),
     ).toBe(false);
   });
 
-  it("35) ON_DEMAND@100 nao conclui sync da conta", () => {
+  it("35) PUSH_NAMES@100 nao conclui sync da conta", () => {
     expect(
-      historySyncConcluido(chunk({ syncType: HISTORY_SYNC_TYPE.ON_DEMAND, progress: 100 })),
+      historySyncConcluido(chunk({ syncType: HISTORY_SYNC_TYPE.PUSH_NAMES, progress: 100 })),
     ).toBe(false);
   });
 
@@ -306,18 +306,18 @@ describe("STATUS_V3 / PUSH_NAME conclusao", () => {
     ).toBe(true);
   });
 
-  it("37) ON_DEMAND com mensagens nao e ignorado", () => {
+  it("37) PUSH_NAMES com mensagens nao e ignorado", () => {
     expect(
       deveIgnorarHistorySyncChunk(
-        chunk({ syncType: HISTORY_SYNC_TYPE.ON_DEMAND, temMensagens: true }),
+        chunk({ syncType: HISTORY_SYNC_TYPE.PUSH_NAMES, temMensagens: true }),
       ),
     ).toBe(false);
   });
 
-  it("38) ON_DEMAND sem mensagens e ignorado", () => {
+  it("38) PUSH_NAMES sem mensagens e ignorado", () => {
     expect(
       deveIgnorarHistorySyncChunk(
-        chunk({ syncType: HISTORY_SYNC_TYPE.ON_DEMAND, temMensagens: false }),
+        chunk({ syncType: HISTORY_SYNC_TYPE.PUSH_NAMES, temMensagens: false }),
       ),
     ).toBe(true);
   });

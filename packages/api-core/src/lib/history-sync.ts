@@ -115,7 +115,7 @@ export function decidirAcaoHistorySyncEnqueue(
   },
   temFila: boolean,
 ): AcaoHistorySyncEnqueue {
-  const onDemand = chunk.syncType === HISTORY_SYNC_TYPE.ON_DEMAND;
+  const onDemand = chunk.syncType === HISTORY_SYNC_TYPE.PUSH_NAMES;
   const ignorar = chunk.syncType === HISTORY_SYNC_TYPE.NON_BLOCKING_DATA || !chunk.temMensagens;
   if (ignorar) {
     return { tipo: "ignorar", atualizarProgresso: !onDemand };
@@ -272,7 +272,7 @@ export type PlanoHistorySyncChunk = {
 /** Plano puro do chunk (sem DB) — define quantos `ingerir-lote-N` o Workflow cria. */
 export function planejarHistorySyncChunk(data: Record<string, unknown>): PlanoHistorySyncChunk {
   const chunk = parseGoHistorySyncChunk(data);
-  const onDemand = chunk.syncType === HISTORY_SYNC_TYPE.ON_DEMAND;
+  const onDemand = chunk.syncType === HISTORY_SYNC_TYPE.PUSH_NAMES;
 
   if (deveIgnorarHistorySyncChunk(chunk)) {
     return {
