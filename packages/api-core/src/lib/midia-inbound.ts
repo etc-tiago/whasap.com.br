@@ -3,7 +3,7 @@
  */
 import { buildSecureInboundMediaR2Key, mimeToExtension } from "@whasap/config";
 import { mensagem, type Db } from "@whasap/db";
-import { EvolutionGoDownloadMediaError } from "@whasap/evolution";
+import { cdnMidiaPresumivelmenteExpirada, EvolutionGoDownloadMediaError } from "@whasap/evolution";
 import { eq } from "drizzle-orm";
 
 import { criarClienteEvolutionGo } from "./criar-cliente-evolution-go";
@@ -30,6 +30,8 @@ export type JobMidiaInbound =
       mimeType?: string;
       base64?: string;
       fileName?: string;
+      /** Origem no log R2 `acao/` (ex.: history_sync). Default: webhook. */
+      origem?: string;
     }
   | {
       provider: "meta_cloud";
@@ -80,6 +82,16 @@ export async function persistirMidiaInbound(
       buffer = base64ParaArrayBuffer(inlineBase64);
     } else if (!job.waMessage) {
       throw new Error(`Evolution mídia sem waMessage/base64 (${job.externalId})`);
+    } else if (cdnMidiaPresumivelmenteExpirada(job.waMessage)) {
+      // Corpus R2: oe= expirado → GO 500 com "Failed to download … 403". Evita a ida ao provedor.
+      throw new Error(`Evolution downloadmedia forbidden (cdn-oe-expired) (${job.externalId})`, {
+        cause: new EvolutionGoDownloadMediaError({
+          status: 403,
+          codigo: "forbidden",
+          body: { error: "cdn oe expired" },
+          message: "CDN WhatsApp presumivelmente expirado (oe)",
+        }),
+      });
     } else {
       const creds = await getEvolutionCredentials(env);
       const client = criarClienteEvolutionGo(
@@ -88,7 +100,7 @@ export async function persistirMidiaInbound(
         { instanceToken: job.instanceToken },
         {
           instanciaUuid: job.instanceUuid,
-          origem: "webhook",
+          origem: job.origem ?? "webhook",
           rpc: "webhook.media.download",
         },
       );

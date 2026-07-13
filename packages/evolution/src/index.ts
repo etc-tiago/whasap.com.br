@@ -29,6 +29,12 @@ export {
   type EvolutionGoRequestLogEntry,
 } from "./client-go";
 export {
+  cdnMidiaPresumivelmenteExpirada,
+  coletarCaminhosMidiaWa,
+  extrairTimestampsOe,
+} from "./download-media-cdn";
+export { extrairMidiaGoDeMessageObj, type MidiaGoExtraida } from "./midia-go";
+export {
   type EvolutionConnectParams,
   type EvolutionGoApiError,
   type EvolutionGoApiSuccess,

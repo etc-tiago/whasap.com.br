@@ -1,0 +1,6 @@
+{
+  "status": 500,
+  "body": {
+    "error": "Failed to download sticker download failed with status code 403"
+  }
+}

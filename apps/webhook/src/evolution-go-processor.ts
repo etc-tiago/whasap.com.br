@@ -31,6 +31,7 @@ import {
   jidParaIdExterno,
   jidParaTelefone,
   parseGoButtonClick,
+  extrairMidiaGoDeMessageObj,
   parseGoContact,
   parseGoGroupInfo,
   parseGoConnectionLifecycleEvent,
@@ -64,69 +65,6 @@ import { scheduleInboundMedia } from "./media";
 type InstanciaWebhook = NonNullable<Awaited<ReturnType<typeof buscarInstanciaEvolution>>>;
 
 const MEDIA_TYPES = new Set(["image", "audio", "document", "video", "sticker"]);
-
-type EvolutionMediaPart = {
-  caption?: string;
-  mimetype?: string;
-  fileName?: string;
-  base64?: string;
-};
-
-function evolutionMediaFromMessage(messageObj: Record<string, unknown>) {
-  const msgBase64 = typeof messageObj.base64 === "string" ? messageObj.base64 : undefined;
-
-  if (messageObj.imageMessage) {
-    const part = messageObj.imageMessage as EvolutionMediaPart;
-    return {
-      type: "image" as const,
-      body: part.caption ?? "[imagem]",
-      mimeType: part.mimetype,
-      base64: part.base64 ?? msgBase64,
-      fileName: part.fileName,
-    };
-  }
-  if (messageObj.audioMessage) {
-    const part = messageObj.audioMessage as EvolutionMediaPart;
-    return {
-      type: "audio" as const,
-      body: "[áudio]",
-      mimeType: part.mimetype,
-      base64: part.base64 ?? msgBase64,
-      fileName: part.fileName,
-    };
-  }
-  if (messageObj.documentMessage) {
-    const part = messageObj.documentMessage as EvolutionMediaPart;
-    return {
-      type: "document" as const,
-      body: part.fileName ?? part.caption ?? "[documento]",
-      mimeType: part.mimetype,
-      base64: part.base64 ?? msgBase64,
-      fileName: part.fileName,
-    };
-  }
-  if (messageObj.videoMessage) {
-    const part = messageObj.videoMessage as EvolutionMediaPart;
-    return {
-      type: "video" as const,
-      body: part.caption ?? "[vídeo]",
-      mimeType: part.mimetype,
-      base64: part.base64 ?? msgBase64,
-      fileName: part.fileName,
-    };
-  }
-  if (messageObj.stickerMessage) {
-    const part = messageObj.stickerMessage as EvolutionMediaPart;
-    return {
-      type: "sticker" as const,
-      body: "[sticker]",
-      mimeType: part.mimetype,
-      base64: part.base64 ?? msgBase64,
-      fileName: part.fileName,
-    };
-  }
-  return null;
-}
 
 async function buscarInstanciaEvolution(db: Db, payload: EvolutionGoWebhookPayload) {
   const { instanceName, instanceId } = resolverInstanciaWebhookGo(payload);
@@ -179,7 +117,7 @@ async function processarMensagemGo(
   const direcao = parsed.fromMe ? "outbound" : direcaoPadrao;
 
   const mediaInfo = MEDIA_TYPES.has(parsed.type)
-    ? evolutionMediaFromMessage(parsed.messageObj)
+    ? extrairMidiaGoDeMessageObj(parsed.messageObj)
     : null;
 
   const result = await ingerirMensagem(db, {

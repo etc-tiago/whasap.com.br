@@ -157,6 +157,10 @@ describe("processarHistorySyncChunk (unit)", () => {
     expect(result.midiaJobs).toHaveLength(1);
     expect(result.midiaJobs[0]!.type).toBe("image");
     expect(result.midiaJobs[0]!.externalId).toBe("IMG");
+    expect(result.midiaJobs[0]!.provider).toBe("evo");
+    if (result.midiaJobs[0]!.provider === "evo") {
+      expect(result.midiaJobs[0]!.origem).toBe("history_sync");
+    }
   });
 
   it("6) imagem sem token nao gera midiaJob", async () => {

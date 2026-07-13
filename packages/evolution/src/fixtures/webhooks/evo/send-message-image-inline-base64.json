@@ -1,0 +1,8 @@
+{
+  "receivedAt": "2026-07-13T20:16:32.000Z",
+  "meta": {
+    "source": "evo",
+    "orig": "r2-sync-slim"
+  },
+  "raw": "{\"event\": \"SendMessage\", \"data\": {\"Info\": {\"Chat\": \"120363429233029829@g.us\", \"Sender\": \"554688281922:5@s.whatsapp.net\", \"IsFromMe\": true, \"IsGroup\": true, \"ID\": \"3EB0974655801028CD6953\", \"Timestamp\": \"2026-07-13T17:16:31.614252709-03:00\", \"PushName\": \"\", \"Type\": \"ImageMessage\", \"RecipientAlt\": \"\", \"SenderAlt\": \"\", \"AddressingMode\": \"\"}, \"Message\": {\"base64\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==\", \"imageMessage\": {\"JPEGThumbnail\": \"/9j/2wCEABALDA4MChAODQ4SERATGCga…\", \"URL\": \"https://mmg.whatsapp.net/o1/v/t24/f2/m269/AQNchI4_W8FwN7Kt97xA6bjBVa4nU4ZffALwhjcH1cjnw2fQoumcohI1tkFLQr6aktz6WbPx3TGpvH05HXOsiHQZEnZbIFG-svI_bnHF-w?ccb=9-4&oh=01_Q5Aa5AFO-O6xPmRIR2i6sukOwLUcZ09xIKv1Jx1PMZqxDbK__Q&oe=6A7CA207&_nc_sid=e6ed6c&mms3=true\", \"caption\": \"Conseguimos adicionar um agendamento sem erros...\", \"contextInfo\": {}, \"directPath\": \"/o1/v/t24/f2/m269/AQNchI4_W8FwN7Kt97xA6bjBVa4nU4ZffALwhjcH1cjnw2fQoumcohI1tkFLQr6aktz6WbPx3TGpvH05HXOsiHQZEnZbIFG-svI_bnHF-w?ccb=9-4&oh=01_Q5Aa5AFO-O6xPmRIR2i6sukOwLUcZ09xIKv1Jx1PMZqxDbK__Q&oe=6A7CA207&_nc_sid=e6ed6c\", \"fileEncSHA256\": \"yYhk9FeEiIwj6den2r2wh88zC/eFEJGkFaFoGctmO7U=\", \"fileLength\": 708966, \"fileSHA256\": \"J3GXjofUfxMPLqZrgKTy+hIkv/ZwBrRj6Y+VV3xl06Y=\", \"mediaKey\": \"Mi1WTbi5ED+0l7rdnXjRLnGhxfWTqC5mtclVyc72aGE=\", \"mimetype\": \"image/png\"}}}, \"instanceId\": \"4fdb1e21-d5ad-4404-8ccb-c153fa8de5e5\", \"instanceName\": \"whasap-4fdb1e21\", \"instanceToken\": \"test-token\"}"
+}

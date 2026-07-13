@@ -379,6 +379,7 @@ export async function processarHistorySyncChunkLote(
       externalId: msg.messageId,
       type: msg.type,
       instanceToken: evoToken,
+      origem: "history_sync",
       messageKey: {
         remoteJid: msg.chatJid,
         fromMe: msg.fromMe,
