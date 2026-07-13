@@ -134,7 +134,7 @@ async function processMetaInboundMessage(
     metaCloud.phoneNumberId &&
     metaCloud.wabaId
   ) {
-    scheduleInboundMedia(ctx, env, db, {
+    scheduleInboundMedia(ctx, env, {
       provider: "meta_cloud",
       instanceUuid: instance.uuid,
       messageId: result.messageId,

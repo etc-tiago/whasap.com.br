@@ -2,7 +2,7 @@
  * Solicita sync de histórico Evolution GO e marca status na instancia_evo.
  * Sync on-demand por conversa não altera o status da instância.
  */
-import { jidDeContato } from "@whasap/evolution";
+import { jidDeContato, parseGoConnectionState } from "@whasap/evolution";
 import { log } from "@whasap/evlog";
 import {
   colunasContatoInstancia,
@@ -20,12 +20,18 @@ import { criarClienteEvolutionGo, type EvolutionGoEnv } from "./criar-cliente-ev
 import { getEvolutionCredentials, type EvolutionSecretsEnv } from "./evolution-env";
 
 /** Mensagem amigável quando a Evolution GO falha ao iniciar o history sync. */
-function motivoFalhaHistorySync(err: unknown): string {
+function motivoFalhaHistorySync(
+  err: unknown,
+  opts?: { jaSincronizouAntes?: boolean },
+): string {
   const msg = err instanceof Error ? err.message : String(err);
   const match = msg.match(/Evolution GO error \((\d+)\)/);
   const status = match ? Number(match[1]) : undefined;
   if (status === 500 || status === 502 || status === 503) {
-    return "O WhatsApp não conseguiu iniciar a sincronização agora. Tente novamente em alguns minutos.";
+    if (opts?.jaSincronizouAntes) {
+      return "O WhatsApp recusou uma nova sincronização completa agora (já houve sync recente neste aparelho). Aguarde alguns minutos ou confira se as conversas já apareceram no inbox.";
+    }
+    return "O WhatsApp não conseguiu iniciar a sincronização agora. Confirme que a sessão está conectada e tente de novo em alguns minutos.";
   }
   if (status === 404) {
     return "Instância não encontrada no provedor. Reconecte o WhatsApp e tente de novo.";
@@ -75,7 +81,7 @@ export function historicoSyncEmAndamento(
 
 /**
  * Dispara `historySync` na Evolution e marca `requested`.
- * @returns false se já em andamento ou sem token.
+ * @returns false se já em andamento, sessão offline ou sem token.
  */
 export async function solicitarHistoricoSyncEvolution(
   db: Db,
@@ -90,6 +96,13 @@ export async function solicitarHistoricoSyncEvolution(
     return { ok: false, motivo: "Sincronização já em andamento" };
   }
 
+  const jaSincronizouAntes = Boolean(
+    instancia.evo.historicoSincronizadoEm ||
+      instancia.evo.historicoSyncStatus === "completed" ||
+      instancia.evo.historicoSyncStatus === "failed" ||
+      instancia.evo.historicoSyncStatus === "running",
+  );
+
   const creds = await getEvolutionCredentials(env);
   const client = criarClienteEvolutionGo(
     env,
@@ -99,14 +112,36 @@ export async function solicitarHistoricoSyncEvolution(
   );
 
   try {
+    const statusBruto = await client.getStatus();
+    if (parseGoConnectionState(statusBruto) !== "open") {
+      return {
+        ok: false,
+        motivo:
+          "A sessão do WhatsApp ainda não está totalmente conectada (LoggedIn). Aguarde a conexão estabilizar e tente de novo.",
+      };
+    }
+  } catch (err) {
+    log.warn({
+      contexto: "historico_sync.preflight_status",
+      instanciaUuid: instancia.uuid,
+      erro: err instanceof Error ? err.message : String(err),
+    });
+    return {
+      ok: false,
+      motivo: "Não foi possível verificar a conexão do WhatsApp. Tente novamente em instantes.",
+    };
+  }
+
+  try {
     await client.historySync({ count: opts?.count ?? 5000 });
   } catch (err) {
     log.error({
       contexto: "historico_sync.solicitar",
       instanciaUuid: instancia.uuid,
       erro: err instanceof Error ? err.message : String(err),
+      jaSincronizouAntes,
     });
-    return { ok: false, motivo: motivoFalhaHistorySync(err) };
+    return { ok: false, motivo: motivoFalhaHistorySync(err, { jaSincronizouAntes }) };
   }
 
   await db

@@ -71,9 +71,15 @@ export async function persistirMidiaInbound(
   let mimeType: string;
 
   if (job.provider === "evo") {
-    if (job.base64) {
+    const inlineBase64 =
+      job.base64 ??
+      (typeof job.waMessage?.base64 === "string" ? job.waMessage.base64 : undefined);
+
+    if (inlineBase64) {
       mimeType = job.mimeType ?? "application/octet-stream";
-      buffer = base64ParaArrayBuffer(job.base64);
+      buffer = base64ParaArrayBuffer(inlineBase64);
+    } else if (!job.waMessage) {
+      throw new Error(`Evolution mídia sem waMessage/base64 (${job.externalId})`);
     } else {
       const creds = await getEvolutionCredentials(env);
       const client = criarClienteEvolutionGo(
@@ -86,7 +92,7 @@ export async function persistirMidiaInbound(
           rpc: "webhook.media.download",
         },
       );
-      const result = await client.downloadMedia(job.waMessage ?? { key: job.messageKey });
+      const result = await client.downloadMedia(job.waMessage);
       const b64 = result.base64 ?? result.data;
       if (!b64) {
         throw new Error(`Evolution downloadmedia sem base64 (${job.externalId})`);

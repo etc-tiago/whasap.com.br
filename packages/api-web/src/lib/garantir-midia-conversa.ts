@@ -146,6 +146,7 @@ export async function garantirMidiasDaConversa(
       waMessage,
       mimeType: mimeDeWaMessage(waMessage),
       fileName: fileNameDeWaMessage(waMessage),
+      base64: typeof waMessage.base64 === "string" ? waMessage.base64 : undefined,
     });
   }
 

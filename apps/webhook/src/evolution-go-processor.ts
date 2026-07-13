@@ -206,7 +206,7 @@ async function processarMensagemGo(
   // base64 inline não precisa de token; download via API precisa.
   if (!mediaInfo.base64 && !evoToken) return;
 
-  scheduleInboundMedia(ctx, env, db, {
+  scheduleInboundMedia(ctx, env, {
     provider: "evo",
     instanceUuid: instance.uuid,
     messageId: result.messageId,
