@@ -6,7 +6,7 @@ import { cn } from "@whasap/ui/lib/utils";
 const ITENS = [
   { rotulo: "Usuários", icone: Users, to: "/$organizacaoHash/ajustes/usuarios" as const },
   { rotulo: "Etiquetas", icone: Tag, to: "/$organizacaoHash/ajustes/etiquetas" as const },
-  { rotulo: "Conexão", icone: Plug, to: "/$organizacaoHash/ajustes/conexao" as const },
+  { rotulo: "Conexões", icone: Plug, to: "/$organizacaoHash/ajustes/conexao" as const },
 ] as const;
 
 type WaAjustesPanelProps = {

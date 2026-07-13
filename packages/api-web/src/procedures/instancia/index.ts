@@ -1,4 +1,5 @@
 import adicionarPacoteConversas from "./adicionar-pacote-conversas";
+import atualizar from "./atualizar";
 import configurarCloud from "./configurar-cloud";
 import criar from "./criar";
 import criarCheckout from "./criar-checkout";
@@ -14,6 +15,7 @@ import statusConexao from "./status-conexao";
 export default {
   lista,
   criar,
+  atualizar,
   provisionar,
   encerrarPareamento,
   descartar,

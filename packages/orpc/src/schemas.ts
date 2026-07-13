@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { ICONES_CONEXAO } from "@whasap/config";
+
 export const officeUsuarioSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
@@ -20,6 +22,8 @@ export const instanceStatusSchema = z.enum([
   "connected",
   "deactivated",
 ]);
+
+export const iconeConexaoSchema = z.enum(ICONES_CONEXAO);
 
 export const usuarioSchema = z.object({
   id: z.string().uuid(),
@@ -66,6 +70,7 @@ export const instanciaSchema = z.object({
   id: z.string().uuid(),
   organizacaoId: z.string().uuid(),
   nome: z.string(),
+  icone: iconeConexaoSchema,
   provider: instanceProviderSchema,
   status: instanceStatusSchema,
   limiteConversas: z.number().int(),

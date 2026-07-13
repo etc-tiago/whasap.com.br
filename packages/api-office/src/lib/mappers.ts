@@ -1,4 +1,9 @@
-import type { InstanceProvider } from "@whasap/config";
+import {
+  ICONE_CONEXAO_PADRAO,
+  isIconeConexao,
+  type IconeConexao,
+  type InstanceProvider,
+} from "@whasap/config";
 
 /**
  * Converte linha de organização do banco para o formato público da API.
@@ -24,6 +29,11 @@ export function mapearOrganizacaoParaSaida(org: {
   };
 }
 
+function resolverIcone(icone: string | null | undefined): IconeConexao {
+  if (icone && isIconeConexao(icone)) return icone;
+  return ICONE_CONEXAO_PADRAO;
+}
+
 /**
  * Converte linha de instância do banco para o formato público da API.
  * Requer o uuid da organização para preencher `organizacaoId`.
@@ -32,6 +42,7 @@ export function mapearInstanciaParaSaida(
   instance: {
     uuid: string;
     nome: string;
+    icone?: string | null;
     provedor: InstanceProvider;
     status:
       | "pending_connection"
@@ -59,6 +70,7 @@ export function mapearInstanciaParaSaida(
     id: instance.uuid,
     organizacaoId: organizacaoUuid,
     nome: instance.nome,
+    icone: resolverIcone(instance.icone),
     provider: instance.provedor,
     status: instance.status,
     limiteConversas: instance.limiteConversas,

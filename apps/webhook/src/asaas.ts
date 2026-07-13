@@ -10,6 +10,7 @@ import {
   comTimestampAtualizacao,
   instancia,
   instanciaAddon,
+  organizacao,
   type Db,
 } from "@whasap/db";
 
@@ -49,6 +50,34 @@ function parseTrialEndsAt(nextDueDate: string | undefined | null): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+/** Ativa taxa base da organização após pagamento Asaas. */
+async function ativarAssinaturaBaseOrg(
+  db: Db,
+  organizacaoUuid: string,
+  subscriptionId: string,
+): Promise<void> {
+  const org = await db.query.organizacao.findFirst({
+    where: and(eq(organizacao.uuid, organizacaoUuid), isNull(organizacao.excluidoEm)),
+    columns: { id: true, asaasIdAssinaturaBase: true, limiteConversas: true },
+  });
+  if (!org) return;
+  if (org.asaasIdAssinaturaBase === subscriptionId) return;
+
+  await db
+    .update(organizacao)
+    .set(
+      comTimestampAtualizacao({
+        asaasIdAssinaturaBase: subscriptionId,
+        // Garante cota base se a org ainda estiver no default ou zerada.
+        limiteConversas: Math.max(
+          org.limiteConversas,
+          mvpDefaults.billing.conversationsIncludedBase,
+        ),
+      }),
+    )
+    .where(eq(organizacao.id, org.id));
+}
+
 /** Ativa instância após pagamento/checkout Asaas (`status: connected`). */
 async function ativarInstanciaAposPagamento(
   db: Db,
@@ -74,7 +103,7 @@ async function ativarInstanciaAposPagamento(
     .where(eq(instancia.id, row.id));
 }
 
-/** Adiciona pacote de conversas à instância após assinatura de addon. */
+/** Adiciona pacote de conversas à cota da org após assinatura de addon. */
 async function ativarPacoteConversas(
   db: Db,
   instanceUuid: string,
@@ -82,7 +111,7 @@ async function ativarPacoteConversas(
 ): Promise<void> {
   const instance = await db.query.instancia.findFirst({
     where: and(eq(instancia.uuid, instanceUuid), isNull(instancia.excluidoEm)),
-    columns: { id: true, limiteConversas: true },
+    columns: { id: true, organizacaoId: true },
   });
   if (!instance) return;
 
@@ -103,14 +132,20 @@ async function ativarPacoteConversas(
     }),
   );
 
+  const org = await db.query.organizacao.findFirst({
+    where: and(eq(organizacao.id, instance.organizacaoId), isNull(organizacao.excluidoEm)),
+    columns: { id: true, limiteConversas: true },
+  });
+  if (!org) return;
+
   await db
-    .update(instancia)
+    .update(organizacao)
     .set(
       comTimestampAtualizacao({
-        limiteConversas: instance.limiteConversas + mvpDefaults.billing.conversationsPerPack,
+        limiteConversas: org.limiteConversas + mvpDefaults.billing.conversationsPerPack,
       }),
     )
-    .where(eq(instancia.id, instance.id));
+    .where(eq(organizacao.id, org.id));
 }
 
 async function resolveSubscriptionId(
@@ -131,6 +166,25 @@ async function resolveSubscriptionId(
   return match?.id ?? data.at(-1)?.id ?? null;
 }
 
+async function ativarPorReferencia(
+  db: Db,
+  ref: NonNullable<ReturnType<typeof parseAsaasExternalReference>>,
+  subscriptionId: string,
+  trialEndsAt: Date | null,
+): Promise<void> {
+  if (ref.type === "org") {
+    await ativarAssinaturaBaseOrg(db, ref.organizacaoUuid, subscriptionId);
+    return;
+  }
+  if (ref.type === "instance") {
+    await ativarInstanciaAposPagamento(db, ref.instanceUuid, subscriptionId, trialEndsAt);
+    return;
+  }
+  if (ref.type === "pack") {
+    await ativarPacoteConversas(db, ref.instanceUuid, subscriptionId);
+  }
+}
+
 /** Processa eventos de webhook do Asaas (assinaturas e pagamentos). */
 export async function handleAsaasWebhook(db: Db, payload: string, env: Env): Promise<void> {
   const event = JSON.parse(payload) as AsaasWebhookEvent;
@@ -139,20 +193,7 @@ export async function handleAsaasWebhook(db: Db, payload: string, env: Env): Pro
     const sub = event.subscription;
     const ref = parseAsaasExternalReference(sub.externalReference);
     if (!ref) return;
-
-    if (ref.type === "instance") {
-      await ativarInstanciaAposPagamento(
-        db,
-        ref.instanceUuid,
-        sub.id,
-        parseTrialEndsAt(sub.nextDueDate),
-      );
-      return;
-    }
-
-    if (ref.type === "pack") {
-      await ativarPacoteConversas(db, ref.instanceUuid, sub.id);
-    }
+    await ativarPorReferencia(db, ref, sub.id, parseTrialEndsAt(sub.nextDueDate));
     return;
   }
 
@@ -167,24 +208,30 @@ export async function handleAsaasWebhook(db: Db, payload: string, env: Env): Pro
 
     if (!subscriptionId) return;
 
-    if (ref.type === "instance") {
-      await ativarInstanciaAposPagamento(
-        db,
-        ref.instanceUuid,
-        subscriptionId,
-        parseTrialEndsAt(checkout.subscription?.nextDueDate),
-      );
-      return;
-    }
-
-    if (ref.type === "pack") {
-      await ativarPacoteConversas(db, ref.instanceUuid, subscriptionId);
-    }
+    await ativarPorReferencia(
+      db,
+      ref,
+      subscriptionId,
+      parseTrialEndsAt(checkout.subscription?.nextDueDate),
+    );
     return;
   }
 
   if (event.event === "SUBSCRIPTION_DELETED" && event.subscription) {
     const subId = event.subscription.id;
+
+    const orgBase = await db.query.organizacao.findFirst({
+      where: and(eq(organizacao.asaasIdAssinaturaBase, subId), isNull(organizacao.excluidoEm)),
+      columns: colunasSomenteId,
+    });
+    if (orgBase) {
+      await db
+        .update(organizacao)
+        .set(comTimestampAtualizacao({ asaasIdAssinaturaBase: null }))
+        .where(eq(organizacao.id, orgBase.id));
+      return;
+    }
+
     const row = await db.query.instancia.findFirst({
       where: and(eq(instancia.asaasIdAssinatura, subId), isNull(instancia.excluidoEm)),
       columns: colunasSomenteId,

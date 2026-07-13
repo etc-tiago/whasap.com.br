@@ -1,7 +1,12 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-import { instanciaSchema, instanceProviderSchema, organizacaoHashSchema } from "../../schemas";
+import {
+  iconeConexaoSchema,
+  instanciaSchema,
+  instanceProviderSchema,
+  organizacaoHashSchema,
+} from "../../schemas";
 
 const evolutionDebugSchema = z
   .object({
@@ -22,8 +27,23 @@ export const instanciaContract = {
       z.object({
         organizacaoHash: organizacaoHashSchema,
         nome: z.string().min(2),
+        icone: iconeConexaoSchema.optional(),
         provider: instanceProviderSchema,
       }),
+    )
+    .output(instanciaSchema),
+
+  atualizar: oc
+    .input(
+      z
+        .object({
+          instanciaId: z.string().uuid(),
+          nome: z.string().min(2).optional(),
+          icone: iconeConexaoSchema.optional(),
+        })
+        .refine((v) => v.nome !== undefined || v.icone !== undefined, {
+          message: "Informe nome e/ou ícone",
+        }),
     )
     .output(instanciaSchema),
 

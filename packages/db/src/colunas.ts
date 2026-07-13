@@ -44,6 +44,8 @@ export const colunasOrganizacaoPublica = {
   tipoDocumento: true,
   razaoSocial: true,
   asaasIdCliente: true,
+  asaasIdAssinaturaBase: true,
+  limiteConversas: true,
   demonstracaoIniciaEm: true,
 } as const;
 
@@ -59,6 +61,7 @@ export const colunasInstanciaPublica = {
   uuid: true,
   organizacaoId: true,
   nome: true,
+  icone: true,
   provedor: true,
   status: true,
   limiteConversas: true,

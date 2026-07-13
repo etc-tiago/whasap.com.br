@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import {
   enviarMensagemInputSchema,
+  iconeConexaoSchema,
   messageTemplateSchema,
   organizacaoHashSchema,
 } from "../../schemas";
@@ -17,6 +18,7 @@ const conversaSchema = z.object({
   id: z.string().uuid(),
   instanciaId: z.string().uuid(),
   instanciaNome: z.string(),
+  instanciaIcone: iconeConexaoSchema,
   contatoId: z.string().uuid(),
   contatoNome: z.string().nullable(),
   contatoTelefone: z.string(),

@@ -12,7 +12,7 @@ Guia para configurar Asaas, Evolution API e Meta Cloud API.
    - Eventos: `CHECKOUT_PAID`, `SUBSCRIPTION_CREATED`, `SUBSCRIPTION_DELETED`, `PAYMENT_OVERDUE`
    - Defina um `authToken` e use o mesmo valor em `ASAAS_WEBHOOK_TOKEN`
 4. Cadastre o domínio do painel em **Configurações da conta → Informações** (necessário para URLs de callback do checkout).
-5. Preços vêm de `mvpDefaults` (R$ 99/mês instância e pacote de conversas). Trial de 3 dias via `nextDueDate` no checkout.
+5. Preços vêm de `mvpDefaults`: taxa base da org R$ 129,90 (1.000 conversas), R$ 20/conexão e R$ 50 por pack +1.000 conversas. Trial de 3 dias via `nextDueDate` no checkout.
 6. Secrets nos workers:
 
    | Tipo | Nome | Workers |

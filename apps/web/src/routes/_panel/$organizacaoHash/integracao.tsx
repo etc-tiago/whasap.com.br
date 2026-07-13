@@ -3,7 +3,7 @@
  */
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { isEvoProvider, type InstanceProvider } from "@whasap/config";
+import { isEvoProvider, type IconeConexao, type InstanceProvider } from "@whasap/config";
 import { useCallback, useEffect, useState } from "react";
 
 import { IntegracaoStepCloudConfig } from "@/components/integracao/integracao-step-cloud-config";
@@ -46,7 +46,6 @@ function IntegracaoPage() {
   const { instance: instanceId, step: searchStep, modo } = Route.useSearch();
   const modoNovo = modo === "novo";
 
-  const NOME_INSTANCIA_PADRAO = "Atendimento";
   const [cloudPhone, setCloudPhone] = useState("");
   const [cloudWaba, setCloudWaba] = useState("");
   const [cloudToken, setCloudToken] = useState("");
@@ -122,11 +121,15 @@ function IntegracaoPage() {
     irPara({ step: "tipo", instance: "", modo: "" });
   }, [irPara, invalidarLista]);
 
-  async function handleSelecionarTipo(provider: InstanceProvider) {
+  async function handleSelecionarTipo(
+    provider: InstanceProvider,
+    identidade: { nome: string; icone: IconeConexao },
+  ) {
     if (!organizacaoHash || criar.isPending) return;
     const created = await criar.mutateAsync({
       organizacaoHash,
-      nome: NOME_INSTANCIA_PADRAO,
+      nome: identidade.nome,
+      icone: identidade.icone,
       provider,
     });
     const step: IntegracaoStep = provider === "evo" ? "evolution_qr" : "cloud_config";
@@ -168,7 +171,7 @@ function IntegracaoPage() {
             instanceId={instanceId}
             criando={criar.isPending}
             temReconectar={listaReconectar.length > 0}
-            onSelecionarProvider={(p) => void handleSelecionarTipo(p)}
+            onSelecionarProvider={(p, identidade) => void handleSelecionarTipo(p, identidade)}
             onVoltarReconectar={() => irPara({ step: "escolher" })}
             onTrocarTipo={irParaTipo}
           />

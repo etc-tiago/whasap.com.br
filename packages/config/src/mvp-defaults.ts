@@ -5,8 +5,17 @@
 export const mvpDefaults = {
   billing: {
     currency: "brl" as const,
-    instancePriceCents: 9_900,
-    conversationPackPriceCents: 9_900,
+    /** Taxa base mensal da organização (inclui `conversationsIncludedBase`). */
+    orgBasePriceCents: 12_990,
+    /** Assinatura mensal por conexão WhatsApp adicional à base. */
+    connectionPriceCents: 2_000,
+    /**
+     * @deprecated Preferir `connectionPriceCents`. Mantido como alias para compat.
+     */
+    instancePriceCents: 2_000,
+    conversationPackPriceCents: 5_000,
+    conversationsIncludedBase: 1_000,
+    /** @deprecated Cota de conversas passou para a org (`conversationsIncludedBase`). */
     conversationsPerInstance: 1_000,
     conversationsPerPack: 1_000,
     warnAtPercent: [80, 90] as const,

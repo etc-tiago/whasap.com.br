@@ -1,4 +1,5 @@
 import type { organizacao, usuario } from "@whasap/db";
+import { ICONE_CONEXAO_PADRAO, isIconeConexao, type IconeConexao } from "@whasap/config";
 
 import type { InstanciaComProvedor } from "./instancia-provedor";
 
@@ -36,11 +37,17 @@ export function toOrganizacaoOutput(
   };
 }
 
+function resolverIconeConexao(icone: string | null | undefined): IconeConexao {
+  if (icone && isIconeConexao(icone)) return icone;
+  return ICONE_CONEXAO_PADRAO;
+}
+
 export function toInstanciaOutput(instance: InstanciaComProvedor, organizacaoUuid: string) {
   return {
     id: instance.uuid,
     organizacaoId: organizacaoUuid,
     nome: instance.nome,
+    icone: resolverIconeConexao(instance.icone),
     provider: instance.provedor,
     status: instance.status,
     limiteConversas: instance.limiteConversas,

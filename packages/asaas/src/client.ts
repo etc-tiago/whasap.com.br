@@ -86,11 +86,11 @@ export function createAsaasClient(config: AsaasConfig) {
     },
 
     checkouts: {
-      createInstanceCheckout(params: {
+      createOrgBaseCheckout(params: {
         customerId: string;
         customerData: { name: string; cpfCnpj: string; email?: string };
-        instanceUuid: string;
-        instanceName: string;
+        organizacaoUuid: string;
+        organizacaoNome: string;
         successUrl: string;
         cancelUrl: string;
         expiredUrl: string;
@@ -98,13 +98,14 @@ export function createAsaasClient(config: AsaasConfig) {
       }) {
         const trialDays = params.trialDays ?? mvpDefaults.billing.trialDays;
         const nextDueDate = formatDate(addDays(new Date(), trialDays));
-        const value = centsToValue(mvpDefaults.billing.instancePriceCents);
+        const value = centsToValue(mvpDefaults.billing.orgBasePriceCents);
+        const externalReference = `org:${params.organizacaoUuid}`;
 
         return request<AsaasCheckout>("POST", "/checkouts", {
           billingTypes: ["PIX", "CREDIT_CARD"],
           chargeTypes: ["RECURRENT"],
           minutesToExpire: 60,
-          externalReference: `instance:${params.instanceUuid}`,
+          externalReference,
           customer: params.customerId,
           callback: {
             successUrl: params.successUrl,
@@ -118,8 +119,8 @@ export function createAsaasClient(config: AsaasConfig) {
           },
           items: [
             {
-              name: `Instância WhatsApp — ${params.instanceName}`,
-              description: "Assinatura mensal Whasap",
+              name: `Plano Whasap — ${params.organizacaoNome}`,
+              description: `${mvpDefaults.billing.conversationsIncludedBase} conversas/mês incluídas`,
               quantity: 1,
               value,
             },
@@ -127,7 +128,54 @@ export function createAsaasClient(config: AsaasConfig) {
           subscription: {
             cycle: "MONTHLY",
             nextDueDate,
-            externalReference: `instance:${params.instanceUuid}`,
+            externalReference,
+          },
+        });
+      },
+
+      createInstanceCheckout(params: {
+        customerId: string;
+        customerData: { name: string; cpfCnpj: string; email?: string };
+        instanceUuid: string;
+        instanceName: string;
+        successUrl: string;
+        cancelUrl: string;
+        expiredUrl: string;
+        trialDays?: number;
+      }) {
+        const trialDays = params.trialDays ?? mvpDefaults.billing.trialDays;
+        const nextDueDate = formatDate(addDays(new Date(), trialDays));
+        const value = centsToValue(mvpDefaults.billing.connectionPriceCents);
+        const externalReference = `instance:${params.instanceUuid}`;
+
+        return request<AsaasCheckout>("POST", "/checkouts", {
+          billingTypes: ["PIX", "CREDIT_CARD"],
+          chargeTypes: ["RECURRENT"],
+          minutesToExpire: 60,
+          externalReference,
+          customer: params.customerId,
+          callback: {
+            successUrl: params.successUrl,
+            cancelUrl: params.cancelUrl,
+            expiredUrl: params.expiredUrl,
+          },
+          customerData: {
+            name: params.customerData.name,
+            cpfCnpj: params.customerData.cpfCnpj.replace(/\D/g, ""),
+            ...(params.customerData.email ? { email: params.customerData.email } : {}),
+          },
+          items: [
+            {
+              name: `Conexão WhatsApp — ${params.instanceName}`,
+              description: "Assinatura mensal por conexão",
+              quantity: 1,
+              value,
+            },
+          ],
+          subscription: {
+            cycle: "MONTHLY",
+            nextDueDate,
+            externalReference,
           },
         });
       },
@@ -141,12 +189,13 @@ export function createAsaasClient(config: AsaasConfig) {
         expiredUrl: string;
       }) {
         const value = centsToValue(mvpDefaults.billing.conversationPackPriceCents);
+        const externalReference = `pack:${params.instanceUuid}`;
 
         return request<AsaasCheckout>("POST", "/checkouts", {
           billingTypes: ["PIX", "CREDIT_CARD"],
           chargeTypes: ["RECURRENT"],
           minutesToExpire: 60,
-          externalReference: `pack:${params.instanceUuid}`,
+          externalReference,
           customer: params.customerId,
           callback: {
             successUrl: params.successUrl,
@@ -169,7 +218,7 @@ export function createAsaasClient(config: AsaasConfig) {
           subscription: {
             cycle: "MONTHLY",
             nextDueDate: formatDate(new Date()),
-            externalReference: `pack:${params.instanceUuid}`,
+            externalReference,
           },
         });
       },

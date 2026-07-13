@@ -82,7 +82,6 @@ export const relatoriosHandlers = {
       .where(
         and(
           inArray(conversa.instanciaId, instanceIds),
-          isNull(conversa.excluidoEm),
           gte(conversa.criadoEm, from),
           lte(conversa.criadoEm, to),
         ),
@@ -100,7 +99,6 @@ export const relatoriosHandlers = {
             .where(
               and(
                 eq(mensagem.conversaId, conv.id),
-                isNull(mensagem.excluidoEm),
                 eq(mensagem.direcao, "outbound"),
                 gte(mensagem.criadoEm, from),
                 lte(mensagem.criadoEm, to),
@@ -112,7 +110,6 @@ export const relatoriosHandlers = {
             .where(
               and(
                 eq(mensagem.conversaId, conv.id),
-                isNull(mensagem.excluidoEm),
                 eq(mensagem.direcao, "inbound"),
                 gte(mensagem.criadoEm, from),
                 lte(mensagem.criadoEm, to),
@@ -148,7 +145,6 @@ export const relatoriosHandlers = {
             .where(
               and(
                 eq(mensagem.enviadoPorUsuarioId, member.usuarioId),
-                isNull(mensagem.excluidoEm),
                 eq(mensagem.direcao, "outbound"),
                 gte(mensagem.criadoEm, from),
                 lte(mensagem.criadoEm, to),

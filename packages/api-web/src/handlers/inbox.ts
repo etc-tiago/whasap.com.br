@@ -1,6 +1,13 @@
 import { criarClienteMeta, forbidden, notFound, preconditionFailed } from "@whasap/api-core";
-import { isEvoProvider, isMetaCloudProvider } from "@whasap/config";
-import { cdnMediaUrl, buildOutboundMediaR2Key, mimeToExtension } from "@whasap/config";
+import {
+  buildOutboundMediaR2Key,
+  cdnMediaUrl,
+  ICONE_CONEXAO_PADRAO,
+  isEvoProvider,
+  isIconeConexao,
+  isMetaCloudProvider,
+  mimeToExtension,
+} from "@whasap/config";
 import type { MetaTemplate } from "@whasap/meta";
 import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import {
@@ -356,6 +363,7 @@ export const caixaEntradaHandlers = {
             id: row.uuid,
             instanciaId: inst.uuid,
             instanciaNome: inst.nome,
+            instanciaIcone: isIconeConexao(inst.icone) ? inst.icone : ICONE_CONEXAO_PADRAO,
             contatoId: contatoRow.uuid,
             contatoNome: contatoRow.nome,
             contatoTelefone: contatoRow.telefone ?? "",

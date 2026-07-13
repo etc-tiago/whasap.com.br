@@ -28,6 +28,32 @@ export async function ensureAsaasCustomer(
   return customer.id;
 }
 
+export async function createOrgBaseCheckout(params: {
+  env: AsaasEnv;
+  customerId: string;
+  customerData: { name: string; cpfCnpj: string; email?: string };
+  organizacaoUuid: string;
+  organizacaoNome: string;
+  successUrl: string;
+  cancelUrl: string;
+  expiredUrl: string;
+  trialDays?: number;
+}): Promise<string> {
+  const asaas = await createAsaasFromEnv(params.env);
+  const checkout = await asaas.checkouts.createOrgBaseCheckout({
+    customerId: params.customerId,
+    customerData: params.customerData,
+    organizacaoUuid: params.organizacaoUuid,
+    organizacaoNome: params.organizacaoNome,
+    successUrl: params.successUrl,
+    cancelUrl: params.cancelUrl,
+    expiredUrl: params.expiredUrl,
+    trialDays: params.trialDays ?? mvpDefaults.billing.trialDays,
+  });
+  if (!checkout.link) throw new Error("Asaas checkout URL missing");
+  return checkout.link;
+}
+
 export async function createInstanceCheckout(params: {
   env: AsaasEnv;
   customerId: string;

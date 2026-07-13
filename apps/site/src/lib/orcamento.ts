@@ -20,7 +20,8 @@ export interface OrcamentoCalculado {
   numerosWhatsapp: number;
   atendentes: number;
   trialDays: number;
-  instancePriceCents: number;
+  orgBasePriceCents: number;
+  connectionPriceCents: number;
   conversationPackPriceCents: number;
 }
 
@@ -32,18 +33,22 @@ export function calcularOrcamento(params: {
 }): OrcamentoCalculado {
   const faixa = FAIXAS_CONVERSAS.find((f) => f.id === params.faixaId) ?? FAIXAS_CONVERSAS[0];
   const {
-    instancePriceCents,
+    orgBasePriceCents,
+    connectionPriceCents,
     conversationPackPriceCents,
-    conversationsPerInstance,
+    conversationsIncludedBase,
     conversationsPerPack,
     trialDays,
   } = mvpDefaults.billing;
 
-  const incluidas = params.numerosWhatsapp * conversationsPerInstance;
-  const extras = Math.max(0, faixa.estimativa - incluidas);
+  const incluidasBase = conversationsIncludedBase;
+  const extras = Math.max(0, faixa.estimativa - incluidasBase);
   const pacotesExtras = Math.ceil(extras / conversationsPerPack);
+  const incluidas = incluidasBase + pacotesExtras * conversationsPerPack;
   const totalCents =
-    params.numerosWhatsapp * instancePriceCents + pacotesExtras * conversationPackPriceCents;
+    orgBasePriceCents +
+    params.numerosWhatsapp * connectionPriceCents +
+    pacotesExtras * conversationPackPriceCents;
 
   return {
     faixaConversas: faixa.label,
@@ -55,7 +60,8 @@ export function calcularOrcamento(params: {
     numerosWhatsapp: params.numerosWhatsapp,
     atendentes: params.atendentes,
     trialDays,
-    instancePriceCents,
+    orgBasePriceCents,
+    connectionPriceCents,
     conversationPackPriceCents,
   };
 }

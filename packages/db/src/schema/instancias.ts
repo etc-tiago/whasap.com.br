@@ -32,10 +32,13 @@ export const instancia = pgTable(
       .notNull()
       .references(() => organizacao.id, { onDelete: "cascade" }),
     nome: text().notNull(),
+    /** Nome do ícone Lucide (allowlist `ICONES_CONEXAO` em `@whasap/config`). */
+    icone: text().notNull().default("MessageCircle"),
     provedor: instanciaProvedorEnum().notNull(),
     status: instanciaStatusEnum().notNull().default("pending_connection"),
     asaasIdAssinatura: text().unique(),
-    limiteConversas: integer().notNull().default(1000),
+    /** Legado; cota de produto vive em `organizacao.limiteConversas`. */
+    limiteConversas: integer().notNull().default(0),
     tentativasProvisionamento: integer().notNull().default(0),
     conectadoEm: timestamp(),
     desconectadoEm: timestamp(),

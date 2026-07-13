@@ -105,10 +105,16 @@ function TabelaPrecos() {
       </TableHeader>
       <TableBody>
         <TableRow>
-          <TableCell className="text-muted-foreground">Número do WhatsApp</TableCell>
+          <TableCell className="text-muted-foreground">Plano base da organização</TableCell>
           <TableCell className="text-right text-sm">
-            {formatarPrecoBrl(billing.instancePriceCents)}/mês ·{" "}
-            {billing.conversationsPerInstance.toLocaleString("pt-BR")} conversas incluídas
+            {formatarPrecoBrl(billing.orgBasePriceCents)}/mês ·{" "}
+            {billing.conversationsIncludedBase.toLocaleString("pt-BR")} conversas incluídas
+          </TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell className="text-muted-foreground">Conexão WhatsApp</TableCell>
+          <TableCell className="text-right text-sm">
+            {formatarPrecoBrl(billing.connectionPriceCents)}/mês por número
           </TableCell>
         </TableRow>
         <TableRow>

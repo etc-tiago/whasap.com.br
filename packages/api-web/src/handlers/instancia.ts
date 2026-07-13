@@ -6,7 +6,12 @@ import {
   notFound,
   preconditionFailed,
 } from "@whasap/api-core";
-import { isEvoProvider, isMetaCloudProvider } from "@whasap/config";
+import {
+  ICONE_CONEXAO_PADRAO,
+  isEvoProvider,
+  isMetaCloudProvider,
+  type IconeConexao,
+} from "@whasap/config";
 import {
   colunasInstanciaPublica,
   colunasInstanciaUso,
@@ -31,14 +36,14 @@ import {
   parseGoQrResponse,
   type EvolutionGoStatusResponse,
 } from "@whasap/evolution";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import {
   createAsaasFromEnv,
   createConversationPackCheckout,
   createInstanceCheckout,
+  createOrgBaseCheckout,
   ensureAsaasCustomer,
-  mvpDefaults,
 } from "../lib/asaas";
 import {
   diasTrialAsaasRestantes,
@@ -164,6 +169,7 @@ export const instanciaHandlers = {
     input: {
       organizacaoHash: string;
       nome: string;
+      icone?: IconeConexao;
       provider: "evo" | "meta_cloud";
     },
   ) => {
@@ -184,14 +190,46 @@ export const instanciaHandlers = {
         comTimestampsCriacao({
           organizacaoId: internalOrgId,
           nome: input.nome,
+          icone: input.icone ?? ICONE_CONEXAO_PADRAO,
           provedor: input.provider,
           status: "pending_connection",
-          limiteConversas: mvpDefaults.billing.conversationsPerInstance,
+          limiteConversas: 0,
         }),
       )
       .returning();
 
     return toInstanciaOutput(instance!, org.uuid);
+  },
+
+  /** Atualiza nome e/ou ícone da conexão (somente admin). */
+  atualizar: async (
+    ctx: WebContext,
+    input: {
+      instanciaId: string;
+      nome?: string;
+      icone?: IconeConexao;
+    },
+  ) => {
+    exigirAutenticacao(ctx);
+    const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
+    await exigirAdminPorIdInterno(ctx, row.organizacaoId);
+    await exigirAcessoDemonstracao(ctx, row.organizacaoId);
+
+    const patch: { nome?: string; icone?: string } = {};
+    if (input.nome !== undefined) patch.nome = input.nome;
+    if (input.icone !== undefined) patch.icone = input.icone;
+    if (Object.keys(patch).length === 0) preconditionFailed("Informe nome e/ou ícone");
+
+    const [updated] = await ctx.db
+      .update(instancia)
+      .set(comTimestampAtualizacao(patch))
+      .where(eq(instancia.id, row.id))
+      .returning();
+
+    return toInstanciaOutput(
+      { ...row, ...updated!, evo: row.evo, metaCloud: row.metaCloud },
+      row.organizacao!.uuid,
+    );
   },
 
   provisionar: async (ctx: WebContext, input: { instanciaId: string }) => {
@@ -657,6 +695,25 @@ export const instanciaHandlers = {
     };
 
     const trialDays = diasTrialAsaasRestantes(org);
+    const urlsBase = {
+      successUrl: `${ctx.env.WEB_URL}/${org.uuid}/ajustes`,
+      cancelUrl: `${ctx.env.WEB_URL}/${org.uuid}/ajustes`,
+      expiredUrl: `${ctx.env.WEB_URL}/${org.uuid}/ajustes`,
+    };
+
+    // Sem taxa base da org: cobra a base primeiro; conexão no próximo checkout.
+    if (!org.asaasIdAssinaturaBase) {
+      const urlCheckout = await createOrgBaseCheckout({
+        env: ctx.env,
+        customerId,
+        customerData,
+        organizacaoUuid: org.uuid,
+        organizacaoNome: org.nome,
+        ...urlsBase,
+        trialDays,
+      });
+      return { urlCheckout };
+    }
 
     const urlCheckout = await createInstanceCheckout({
       env: ctx.env,
@@ -664,9 +721,7 @@ export const instanciaHandlers = {
       customerData,
       instanceUuid: row.uuid,
       instanceName: row.nome,
-      successUrl: `${ctx.env.WEB_URL}/${org.uuid}/ajustes`,
-      cancelUrl: `${ctx.env.WEB_URL}/${org.uuid}/ajustes`,
-      expiredUrl: `${ctx.env.WEB_URL}/${org.uuid}/ajustes`,
+      ...urlsBase,
       trialDays,
     });
 
@@ -846,18 +901,34 @@ export const cobrancaHandlers = {
     await exigirOrganizacaoPorIdInterno(ctx, instance.organizacaoId);
     await exigirAcessoDemonstracao(ctx, instance.organizacaoId);
 
-    const anoMes = new Date().toISOString().slice(0, 7);
-    const usage = await ctx.db.query.usoMensal.findFirst({
-      where: and(eq(usoMensal.instanciaId, instance.id), eq(usoMensal.anoMes, anoMes)),
-      columns: colunasUsoMensal,
+    const org = await ctx.db.query.organizacao.findFirst({
+      where: and(eq(organizacao.id, instance.organizacaoId), isNull(organizacao.excluidoEm)),
+      columns: { limiteConversas: true },
     });
+    if (!org) notFound();
 
-    const count = usage?.contatosUnicosContagem ?? 0;
+    const anoMes = new Date().toISOString().slice(0, 7);
+    const instanciasOrg = await ctx.db.query.instancia.findMany({
+      where: and(eq(instancia.organizacaoId, instance.organizacaoId), isNull(instancia.excluidoEm)),
+      columns: { id: true },
+    });
+    const instanceIds = instanciasOrg.map((i) => i.id);
+
+    let count = 0;
+    if (instanceIds.length > 0) {
+      const usages = await ctx.db.query.usoMensal.findMany({
+        where: and(inArray(usoMensal.instanciaId, instanceIds), eq(usoMensal.anoMes, anoMes)),
+        columns: colunasUsoMensal,
+      });
+      count = usages.reduce((sum, u) => sum + (u.contatosUnicosContagem ?? 0), 0);
+    }
+
+    const limiteConversas = org.limiteConversas;
     return {
       anoMes,
       contatosUnicos: count,
-      limiteConversas: instance.limiteConversas,
-      nivelAlerta: nivelAlerta(count, instance.limiteConversas),
+      limiteConversas,
+      nivelAlerta: nivelAlerta(count, limiteConversas),
     };
   },
 };

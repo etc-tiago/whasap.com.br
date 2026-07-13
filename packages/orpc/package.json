@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@orpc/contract": "^1.9.3",
+    "@whasap/config": "workspace:*",
     "zod": "^3.24.2"
   },
   "devDependencies": {

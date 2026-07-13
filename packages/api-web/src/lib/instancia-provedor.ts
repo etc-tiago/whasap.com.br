@@ -6,6 +6,7 @@ export type InstanciaComProvedor = Pick<
   | "uuid"
   | "organizacaoId"
   | "nome"
+  | "icone"
   | "provedor"
   | "status"
   | "limiteConversas"

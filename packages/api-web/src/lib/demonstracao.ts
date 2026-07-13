@@ -22,7 +22,10 @@ const FUSO_DEMONSTRACAO = "America/Sao_Paulo";
 const DIAS_DEMONSTRACAO = mvpDefaults.billing.trialDays;
 
 type InstanciaAssinatura = { asaasIdAssinatura: string | null };
-type OrgDemonstracao = { demonstracaoIniciaEm: Date | null };
+type OrgDemonstracao = {
+  demonstracaoIniciaEm: Date | null;
+  asaasIdAssinaturaBase?: string | null;
+};
 
 /** Formata data no fuso de São Paulo (YYYY-MM-DD). */
 function formatarDataSaoPaulo(data: Date): string {
@@ -45,8 +48,12 @@ export function diaDemonstracao(iniciaEm: Date, agora = new Date()): number {
   return Math.floor((agoraMs - inicioMs) / 86_400_000) + 1;
 }
 
-/** Org tem ao menos uma instância com assinatura Asaas ativa. */
-export function orgTemAssinaturaAtiva(instancias: InstanciaAssinatura[]): boolean {
+/** Org tem taxa base ativa ou ao menos uma conexão com assinatura Asaas. */
+export function orgTemAssinaturaAtiva(
+  instancias: InstanciaAssinatura[],
+  org?: Pick<OrgDemonstracao, "asaasIdAssinaturaBase"> | null,
+): boolean {
+  if (org?.asaasIdAssinaturaBase) return true;
   return instancias.some((i) => i.asaasIdAssinatura !== null);
 }
 
@@ -58,7 +65,7 @@ export function derivarEstadoDemonstracao(
   org: OrgDemonstracao,
   instancias: InstanciaAssinatura[],
 ): DemonstracaoInfo {
-  if (orgTemAssinaturaAtiva(instancias)) {
+  if (orgTemAssinaturaAtiva(instancias, org)) {
     return { estado: "pago", diasRestantes: null, demonstracaoIniciaEm: null };
   }
 

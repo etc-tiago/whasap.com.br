@@ -7,6 +7,12 @@ export {
   cdnMediaUrlFromDefaults,
   mimeToExtension,
 } from "./cdn";
+export {
+  ICONE_CONEXAO_PADRAO,
+  ICONES_CONEXAO,
+  isIconeConexao,
+  type IconeConexao,
+} from "./icones-conexao";
 export { mvpDefaults } from "./mvp-defaults";
 export { viteVarsProduction, workerVarsDevelopment, workerVarsProduction } from "./public-urls";
 export {
