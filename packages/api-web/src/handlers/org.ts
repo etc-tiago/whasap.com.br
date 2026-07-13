@@ -1,4 +1,11 @@
-import { forbidden, notFound, sendInviteEmail, slugify, verificarOtp } from "@whasap/api-core";
+import { badRequest, forbidden, notFound, sendInviteEmail, slugify, verificarOtp } from "@whasap/api-core";
+import {
+  cnpjValido,
+  mvpDefaults,
+  normalizarTelefoneWhatsappBr,
+  somenteDigitos,
+  telefoneWhatsappBrValido,
+} from "@whasap/config";
 import {
   colunasConviteOrganizacao,
   colunasMembroOrganizacao,
@@ -19,9 +26,7 @@ import {
 } from "@whasap/db";
 import { and, eq, isNull } from "drizzle-orm";
 
-import { mvpDefaults } from "../lib/asaas";
 import { toOrganizacaoOutput } from "../lib/mappers";
-import { obterDemonstracaoPorHash, exigirAcessoDemonstracao } from "../lib/demonstracao";
 import { persistSessionOrganization } from "../lib/session";
 import type { WebContext } from "../types";
 import {
@@ -50,10 +55,25 @@ export const organizacaoHandlers = {
       .map((r) => toOrganizacaoOutput(r.organizacao!));
   },
 
-  /** Cria organização e adiciona o usuário como admin. */
-  criar: async (ctx: WebContext, input: { nome: string }) => {
+  /** Cria organização com cadastro fiscal + aceite do termo e adiciona o usuário como admin. */
+  criar: async (
+    ctx: WebContext,
+    input: {
+      nome: string;
+      documento: string;
+      tipoDocumento: "cnpj";
+      razaoSocial: string;
+      telefoneWhatsapp: string;
+      aceiteAdesao: true;
+    },
+  ) => {
     const current = exigirAutenticacao(ctx);
     const now = new Date();
+
+    const documento = somenteDigitos(input.documento);
+    if (!cnpjValido(documento)) badRequest("CNPJ inválido");
+    if (!telefoneWhatsappBrValido(input.telefoneWhatsapp)) badRequest("WhatsApp inválido");
+    const telefoneWhatsapp = normalizarTelefoneWhatsappBr(input.telefoneWhatsapp);
 
     let slug = slugify(input.nome);
     const slugConflict = await ctx.db.query.organizacao.findFirst({
@@ -64,7 +84,18 @@ export const organizacaoHandlers = {
 
     const [org] = await ctx.db
       .insert(organizacao)
-      .values(comTimestampsCriacao({ nome: input.nome, slug }))
+      .values(
+        comTimestampsCriacao({
+          nome: input.nome,
+          slug,
+          documentoFiscal: documento,
+          tipoDocumento: "cnpj",
+          razaoSocial: input.razaoSocial.trim(),
+          telefoneWhatsapp,
+          aceiteAdesaoEm: now,
+          aceiteAdesaoVersao: mvpDefaults.legal.adesaoVersao,
+        }),
+      )
       .returning();
 
     await ctx.db.insert(organizacaoMembro).values(
@@ -87,8 +118,7 @@ export const organizacaoHandlers = {
       columns: colunasOrganizacaoPublica,
     });
     if (!org) notFound();
-    const demonstracao = await obterDemonstracaoPorHash(ctx, input.organizacaoHash);
-    return { ...toOrganizacaoOutput(org), meuPapel: role, demonstracao };
+    return { ...toOrganizacaoOutput(org), meuPapel: role };
   },
 
   atualizar: async (
@@ -97,22 +127,35 @@ export const organizacaoHandlers = {
       organizacaoHash: string;
       nome?: string;
       documento?: string;
-      tipoDocumento?: "cpf" | "cnpj";
+      tipoDocumento?: "cnpj";
       razaoSocial?: string;
+      telefoneWhatsapp?: string;
     },
   ) => {
     await exigirAdmin(ctx, input.organizacaoHash);
     const internalOrgId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
     if (internalOrgId === null) notFound();
-    await exigirAcessoDemonstracao(ctx, internalOrgId);
+
+    let documentoFiscal: string | undefined;
+    if (input.documento !== undefined) {
+      documentoFiscal = somenteDigitos(input.documento);
+      if (!cnpjValido(documentoFiscal)) badRequest("CNPJ inválido");
+    }
+    let telefoneWhatsapp: string | undefined;
+    if (input.telefoneWhatsapp !== undefined) {
+      if (!telefoneWhatsappBrValido(input.telefoneWhatsapp)) badRequest("WhatsApp inválido");
+      telefoneWhatsapp = normalizarTelefoneWhatsappBr(input.telefoneWhatsapp);
+    }
+
     const [org] = await ctx.db
       .update(organizacao)
       .set(
         comTimestampAtualizacao({
           nome: input.nome,
-          documentoFiscal: input.documento,
+          documentoFiscal,
           tipoDocumento: input.tipoDocumento,
           razaoSocial: input.razaoSocial,
+          telefoneWhatsapp,
         }),
       )
       .where(and(eq(organizacao.uuid, input.organizacaoHash), isNull(organizacao.excluidoEm)))
@@ -150,8 +193,6 @@ export const organizacaoHandlers = {
       const internalOrgId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
       if (internalOrgId === null) notFound();
       await exigirOrganizacaoPorIdInterno(ctx, internalOrgId);
-      await exigirAcessoDemonstracao(ctx, internalOrgId);
-
       const rows = await ctx.db.query.organizacaoMembro.findMany({
         where: and(
           eq(organizacaoMembro.organizacaoId, internalOrgId),
@@ -188,8 +229,6 @@ export const organizacaoHandlers = {
       const internalOrgId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
       if (internalOrgId === null) notFound();
       await exigirAdminPorIdInterno(ctx, internalOrgId);
-      await exigirAcessoDemonstracao(ctx, internalOrgId);
-
       const org = await ctx.db.query.organizacao.findFirst({
         where: and(eq(organizacao.id, internalOrgId), isNull(organizacao.excluidoEm)),
         columns: { id: true, uuid: true, nome: true },
@@ -233,8 +272,6 @@ export const organizacaoHandlers = {
       });
       if (!member) notFound();
       await exigirAdminPorIdInterno(ctx, member.organizacaoId);
-      await exigirAcessoDemonstracao(ctx, member.organizacaoId);
-
       await ctx.db
         .update(organizacaoMembro)
         .set({ papel: input.role })
@@ -253,7 +290,6 @@ export const organizacaoHandlers = {
       });
       if (!member) notFound();
       await exigirAdminPorIdInterno(ctx, member.organizacaoId);
-      await exigirAcessoDemonstracao(ctx, member.organizacaoId);
       if (member.usuarioId === ctx.usuario!.internalId)
         forbidden("Não é possível remover a si mesmo");
 
@@ -270,8 +306,6 @@ export const organizacaoHandlers = {
       const internalOrgId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
       if (internalOrgId === null) notFound();
       await exigirAdminPorIdInterno(ctx, internalOrgId);
-      await exigirAcessoDemonstracao(ctx, internalOrgId);
-
       const rows = await ctx.db.query.organizacaoConvite.findMany({
         where: and(
           eq(organizacaoConvite.organizacaoId, internalOrgId),

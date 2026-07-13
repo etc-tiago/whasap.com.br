@@ -3,7 +3,7 @@ import { relations } from "drizzle-orm";
 import { sessao, usuario } from "./autenticacao";
 import { instanciaEvo } from "./instancia-evo";
 import { instanciaMetaCloud } from "./instancia-meta-cloud";
-import { instancia, instanciaAddon } from "./instancias";
+import { instancia } from "./instancias";
 import {
   contato,
   contatoInstancia,
@@ -91,7 +91,6 @@ export const instanciaRelations = relations(instancia, ({ one, many }) => ({
   }),
   conversas: many(conversa),
   contatoInstancias: many(contatoInstancia),
-  addons: many(instanciaAddon),
   mensagemTemplates: many(mensagemTemplate),
 }));
 
@@ -112,13 +111,6 @@ export const instanciaMetaCloudRelations = relations(instanciaMetaCloud, ({ one 
 export const mensagemTemplateRelations = relations(mensagemTemplate, ({ one }) => ({
   instancia: one(instancia, {
     fields: [mensagemTemplate.instanciaId],
-    references: [instancia.id],
-  }),
-}));
-
-export const instanciaAddonRelations = relations(instanciaAddon, ({ one }) => ({
-  instancia: one(instancia, {
-    fields: [instanciaAddon.instanciaId],
     references: [instancia.id],
   }),
 }));

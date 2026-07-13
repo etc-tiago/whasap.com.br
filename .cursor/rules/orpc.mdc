@@ -7,14 +7,14 @@ alwaysApply: false
 # ORPC
 
 - Contratos em `packages/orpc`: `@whasap/orpc/web` (`webContract`) e `@whasap/orpc/office` (`officeContract`)
-- **Nomes em pt-BR** nos domínios, procedimentos e campos de I/O do contrato (ex.: `autenticacao.entrar`, `organizacaoHash`, `urlCheckout`)
+- **Nomes em pt-BR** nos domínios, procedimentos e campos de I/O do contrato (ex.: `autenticacao.entrar`, `organizacaoHash`, `telefoneWhatsapp`)
 - Mutações com verbos (`enviarOtp`, `cadastrar`, `atualizar`); leituras com substantivos (`lista`, `obter`, `eu`)
 - Implementação: `@whasap/api-web` (painel cliente) e `@whasap/api-office` (admin interno)
 - Router modular: `lib/os.ts` + `procedures/<dominio>/<procedimento>.ts` + `router.ts` fino com `os.router({...})`
 - **Procedures só delegam; handlers têm a lógica** — não mover regra de negócio para `procedures/**`. Cookie de sessão via `ctx.sessionToken` + `createRpcHandler` (não `Set-Cookie` no handler). Detalhes: [`packages/api-web/README.md`](../../packages/api-web/README.md)
 - Utilitários compartilhados (OTP, rate-limit, factory RPC): `@whasap/api-core`
 - Apps montam ORPC em `/rpc` via server routes → `handleRpc()` do pacote API correspondente
-- `apps/webhook` é independente — Asaas, Evolution, Meta
+- `apps/webhook` é independente — Evolution e Meta
 - Never duplicate Zod schemas in frontend apps
 - `organizacaoHash` vem da rota `/$organizacaoHash` no `apps/web`; injetar nas chamadas ORPC com `orgInput(organizacaoHash)` de `@/lib/org-input`
-- Identificadores de integrações externas permanecem técnicos (`asaasCustomerId`, enums de status/provider)
+- Identificadores de integrações externas permanecem técnicos (`cloudPhoneNumberId`, enums de status/provider)

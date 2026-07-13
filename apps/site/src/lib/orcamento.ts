@@ -19,7 +19,8 @@ export interface OrcamentoCalculado {
   aPartirDe: boolean;
   numerosWhatsapp: number;
   atendentes: number;
-  trialDays: number;
+  /** Dias de uso antes do boleto por uso (termo de adesão). */
+  billingAfterUsageDays: number;
   orgBasePriceCents: number;
   connectionPriceCents: number;
   conversationPackPriceCents: number;
@@ -38,7 +39,7 @@ export function calcularOrcamento(params: {
     conversationPackPriceCents,
     conversationsIncludedBase,
     conversationsPerPack,
-    trialDays,
+    billingAfterUsageDays,
   } = mvpDefaults.billing;
 
   const incluidasBase = conversationsIncludedBase;
@@ -59,7 +60,7 @@ export function calcularOrcamento(params: {
     aPartirDe: faixa.aPartirDe,
     numerosWhatsapp: params.numerosWhatsapp,
     atendentes: params.atendentes,
-    trialDays,
+    billingAfterUsageDays,
     orgBasePriceCents,
     connectionPriceCents,
     conversationPackPriceCents,

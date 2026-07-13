@@ -2,7 +2,7 @@
 
 Guia completo de tudo que precisa existir na Cloudflare e em serviços externos antes do primeiro deploy em produção.
 
-Para integrações (Asaas, Evolution, Meta), veja também [SETUP.md](./SETUP.md).
+Para integrações (Evolution, Meta), veja também [SETUP.md](./SETUP.md).
 
 ---
 
@@ -11,9 +11,9 @@ Para integrações (Asaas, Evolution, Meta), veja também [SETUP.md](./SETUP.md)
 | App | Worker (`wrangler.jsonc`) | Domínio | Postgres | R2 | Secrets Store |
 |-----|---------------------------|---------|----------|----|---------------|
 | `site` | `whasap-site` | `whasap.com.br` | — | — | — |
-| `web` | `whasap-web` | `web.whasap.com.br` | Hyperdrive | `whasap` | Asaas |
+| `web` | `whasap-web` | `web.whasap.com.br` | Hyperdrive | `whasap` | Evolution |
 | `office` | `whasap-office` | `office.whasap.com.br` | Hyperdrive | `whasap` | — |
-| `webhook` | `whasap-webhook` | `webhook.whasap.com.br` | Hyperdrive | `whasap` + `whasap-cdn` | Asaas |
+| `webhook` | `whasap-webhook` | `webhook.whasap.com.br` | Hyperdrive | `whasap` + `whasap-cdn` | Evolution |
 | `cdn` | `whasap-cdn` | `cdn.whasap.com.br` | — | `whasap-cdn` | — |
 | `evolution-cleanup` | `whasap-evolution-cleanup` | — (Cron Trigger `*/15`) | Hyperdrive | `whasap` | Evolution |
 
@@ -23,7 +23,6 @@ Rotas do worker **webhook**:
 |--------|------|-----|
 | `POST` | `/evo` | Webhook Evolution API |
 | `GET` / `POST` | `/cloud` | Webhook Meta Cloud API (verify + eventos) |
-| `POST` | `/asaas` | Webhook Asaas (cobrança) |
 
 ---
 
@@ -78,9 +77,10 @@ Crie na Cloudflare Dashboard → R2:
 
 ### 1.5 Secrets Store
 
-Crie o store e o secret da API Asaas:
+O store Cloudflare pode manter o nome histórico `ASSAS_API_KEY_ETC`; hoje só o secret `EVOLUTION_SECRETS_STORE` é necessário.
 
 ```bash
+# Se o store ainda não existir:
 wrangler secrets-store store create ASSAS_API_KEY_ETC
 
 # Liste o UUID do store
@@ -89,16 +89,14 @@ wrangler secrets-store store list
 
 | Store (nome) | Secret no store | Binding no worker | Workers |
 |--------------|-----------------|-------------------|---------|
-| `ASSAS_API_KEY_ETC` | `ASSAS_API_KEY_ETC` | `ASSAS_API_KEY` | `web`, `webhook` |
 | `ASSAS_API_KEY_ETC` | `EVOLUTION_SECRETS_STORE` | `EVOLUTION_SECRETS_STORE` | `web`, `webhook`, `evolution-cleanup` |
 
 Inserir valor:
 
 ```bash
-STORE_ASSAS=76b096bc6b03460dabd7744ba277a1ee
+STORE_ID=76b096bc6b03460dabd7744ba277a1ee
 
-wrangler secrets-store secret put $STORE_ASSAS ASSAS_API_KEY_ETC    # cola a API key do Asaas
-wrangler secrets-store secret put $STORE_ASSAS EVOLUTION_SECRETS_STORE  # JSON {"baseUrl":"...","apiKey":"..."}
+wrangler secrets-store secret put $STORE_ID EVOLUTION_SECRETS_STORE  # JSON {"baseUrl":"...","apiKey":"..."}
 ```
 
 Em cada `wrangler.jsonc`, substitua `store_id` pelo **UUID** real (não o nome do store).
@@ -119,8 +117,8 @@ Crie o namespace no dashboard Cloudflare (Workers → Rate limiting) se `1001` a
 
 | Provedor | Onde fica | Por instância? |
 |----------|-----------|----------------|
-| **Evolution** | Secrets Store `EVOLUTION_SECRETS_STORE` (JSON `{ baseUrl, apiKey }`) | v2: `evolucao_nome_instancia`; GO: `evolucao_instance_id`, `evolucao_token`, `evolucao_nome_instancia` |
-| **Meta Cloud** | Colunas em `instancia` (`nuvem_token_acesso`, `nuvem_id_numero_telefone`, `nuvem_id_waba`) — admin informa no onboarding | Sim |
+| **Evolution** | Secrets Store `EVOLUTION_SECRETS_STORE` (JSON `{ baseUrl, apiKey }`) | `instancia_evo`: `nomeInstancia`, `instanceId`, `token` |
+| **Meta Cloud** | Colunas em `instancia_meta_cloud` — admin informa no onboarding | Sim |
 
 O token Meta é dado coluna `text` no Postgres (não Secrets Store, não exposto na API).
 
@@ -163,7 +161,6 @@ Nenhum.
 | Hyperdrive | `HYPERDRIVE` | ID `c8f9852b6dc748489154722036fb4e48` |
 | R2 | `R2` | bucket `whasap` (logs `acao/...` Evolution/Meta) |
 | Rate Limit | `AUTH_RATE_LIMIT` | namespace `1001` |
-| Secrets Store | `ASSAS_API_KEY` | store `ASSAS_API_KEY_ETC` → secret `ASSAS_API_KEY_ETC` |
 | Secrets Store | `EVOLUTION_SECRETS_STORE` | store `ASSAS_API_KEY_ETC` → secret `EVOLUTION_SECRETS_STORE` |
 | Assets | `./dist/client` | SPA estática |
 
@@ -181,18 +178,6 @@ Fonte canônica: [`packages/config/src/public-urls.ts`](../packages/config/src/p
 | `WORKER_NAME` | `whasap-web` |
 
 **Local:** overrides em `apps/web/.dev.vars` (localhost). Ver [ENV.md](./ENV.md).
-
-#### Vars opcionais (dashboard ou `wrangler.jsonc`)
-
-| Var | Quando usar |
-|-----|-------------|
-| `ASAAS_SANDBOX` | **Não definir** em produção (ou `false`) |
-
-#### Secrets Store (além de Asaas)
-
-| Binding | Descrição |
-|---------|-----------|
-| `EVOLUTION_SECRETS_STORE` | JSON `{ "baseUrl", "apiKey" }` do servidor Evolution |
 
 #### Variáveis de build (SPA — embutidas no bundle)
 
@@ -249,7 +234,6 @@ Inserir ao menos um usuário em `office_usuario` (ver [README.md](../README.md))
 | Hyperdrive | `HYPERDRIVE` | mesmo ID |
 | R2 | `R2` | bucket `whasap` |
 | R2 | `CDN_R2` | bucket `whasap-cdn` |
-| Secrets Store | `ASSAS_API_KEY` | store `ASSAS_API_KEY_ETC` → secret `ASSAS_API_KEY_ETC` |
 | Secrets Store | `EVOLUTION_SECRETS_STORE` | store `ASSAS_API_KEY_ETC` → secret `EVOLUTION_SECRETS_STORE` |
 
 #### Vars — produção no `wrangler.jsonc`
@@ -267,20 +251,12 @@ Requisitos detalhados (formato, entropia, onde cadastrar): **[SECRETS-WEBHOOK.md
 | Secret | Descrição | Quem valida |
 |--------|-----------|-------------|
 | `WHATSAPP_CLOUD_WEBHOOK_SECRET` | Token de verificação Meta (`hub.verify_token`) | `GET /cloud` |
-| `ASAAS_WEBHOOK_TOKEN` | `authToken` configurado no painel Asaas | header `asaas-access-token` em `POST /asaas` |
 
 ```bash
 cd apps/webhook && wrangler secret put WHATSAPP_CLOUD_WEBHOOK_SECRET
-cd apps/webhook && wrangler secret put ASAAS_WEBHOOK_TOKEN
 ```
 
 Use o **mesmo** valor de `WHATSAPP_CLOUD_WEBHOOK_SECRET` no app Meta (Webhook → Verify token).
-
-#### Vars opcionais (apenas dev)
-
-| Var | Uso |
-|-----|-----|
-| `ASAAS_SANDBOX` | `true` em `.dev.vars` — **não definir** em produção |
 
 `EVOLUTION_SECRETS_STORE` no Secrets Store (mesmo valor do `web`). Ver [SECRETS-WEBHOOK.md](./SECRETS-WEBHOOK.md).
 
@@ -308,7 +284,7 @@ URLs públicas: `https://cdn.whasap.com.br/media/{instanciaUuid}/{id}.{ext}`
 
 **Deploy:** `cd apps/evolution-cleanup && bun run deploy`
 
-Worker **sem domínio** — só Cron Trigger `*/15 * * * *`. Dedicado à remoção de sessões Evolution abandonadas.
+Worker **sem domínio** — só Cron Trigger `*/15 * * * *`. Dedicado à liberação de sessões Evolution abandonadas.
 
 #### Bindings
 
@@ -328,7 +304,11 @@ Local: `apps/evolution-cleanup/.dev.vars` (ver `.dev.vars.example`).
 
 #### Job principal
 
-A cada 15 minutos, varre instâncias Evolution (`evo`) em `pending_connection` / `provisioning` / `disconnected` abandonadas há mais de 30 minutos (`mvpDefaults.evolution.abandonedAfterMinutes`): soft-delete + `disconnect`/`deleteInstance` no provedor. Com assinatura Asaas, recria uma `pending_connection` com o mesmo slot pago.
+A cada 15 minutos, varre instâncias Evolution (`evo`) em `pending_connection` / `provisioning` / `disconnected` abandonadas além do timeout (`mvpDefaults.evolution.abandonedAfterMinutes` para never-paired; `abandonedAfterUseDays` para já conectadas):
+
+1. Se a sessão remota ainda está `open`, remarca `connected` e aborta.
+2. Caso contrário: `disconnect` + `deleteInstance` no provedor, zera credenciais operacionais em `instancia_evo`, grava `sessaoRemotaLiberadaEm`.
+3. **Não** soft-delete da row — o painel continua listando a instância para reconectar na mesma uuid. **Não** recria slots pagos (sem Asaas).
 
 ---
 
@@ -338,11 +318,8 @@ Configure **depois** que `webhook` estiver no ar.
 
 | Serviço | URL | Credencial no Whasap |
 |---------|-----|----------------------|
-| **Asaas** webhook | `https://webhook.whasap.com.br/asaas` | `ASAAS_WEBHOOK_TOKEN` |
 | **Meta** webhook | `https://webhook.whasap.com.br/cloud` | `WHATSAPP_CLOUD_WEBHOOK_SECRET` (verify token) |
 | **Evolution** webhook | `https://webhook.whasap.com.br/evo` | — (Evolution envia para URL configurada no provisionamento) |
-
-Asaas: eventos `CHECKOUT_PAID`, `SUBSCRIPTION_CREATED`, `SUBSCRIPTION_DELETED`, `PAYMENT_OVERDUE`.
 
 Meta: campos `messages`, `message_template_status_update`.
 
@@ -380,7 +357,7 @@ Ou na raiz: `bun run validate:env && bun run deploy` (Turbo).
 - [ ] Hyperdrive `c8f9852b6dc748489154722036fb4e48` apontando para Neon produção
 - [ ] R2 `whasap` criado
 - [ ] R2 `whasap-cdn` criado
-- [ ] Secrets Store `ASSAS_API_KEY_ETC` com secrets `ASSAS_API_KEY_ETC` e `EVOLUTION_SECRETS_STORE`
+- [ ] Secrets Store com secret `EVOLUTION_SECRETS_STORE` (store pode ser `ASSAS_API_KEY_ETC`)
 - [ ] Rate limit namespace `1001` existe
 - [ ] `store_id` nos `wrangler.jsonc` atualizados com UUIDs reais
 
@@ -394,17 +371,15 @@ Rodar `bun run validate:env` antes do deploy.
 
 ### Workers — secrets
 
-- [ ] `webhook`: `WHATSAPP_CLOUD_WEBHOOK_SECRET`, `ASAAS_WEBHOOK_TOKEN`
+- [ ] `webhook`: `WHATSAPP_CLOUD_WEBHOOK_SECRET`
 
 ### Build (`.env.production` commitados)
 
 - [ ] `site`: `apps/site/.env.production` → `VITE_WEB_PANEL_URL`
 - [ ] `web`: `apps/web/.env.production` → `VITE_META_*` preenchidos
 
-
 ### Externo
 
-- [ ] Asaas: webhook + domínio do painel cadastrado
 - [ ] Meta: app, webhook, tokens
 - [ ] Evolution GO provisionado, webhook `/evo`
 - [ ] `office_usuario` com pelo menos um admin
@@ -417,12 +392,10 @@ Rodar `bun run validate:env` antes do deploy.
 | Valor | Onde configurar |
 |-------|-----------------|
 | URLs públicas dos apps | `vars` no `wrangler.jsonc` de cada app |
-| API key Asaas | Secrets Store → binding `ASSAS_API_KEY` |
-| Token webhook Asaas | `wrangler secret` → `ASAAS_WEBHOOK_TOKEN` no webhook |
 | Sessão usuário / office | Token opaco em cookie + tabela `sessao` / `office_sessao` no Postgres |
 | Verify token Meta | `wrangler secret` → `WHATSAPP_CLOUD_WEBHOOK_SECRET` no webhook |
 | Connection string DB | Hyperdrive (nunca em var plain) |
-| Credenciais WhatsApp por instância | Meta: `nuvem_*`; Evolution: `evolucao_instance_id` + `evolucao_token` + `evolucao_nome_instancia` |
+| Credenciais WhatsApp por instância | Meta: `instancia_meta_cloud`; Evolution: `instancia_evo` |
 | Servidor Evolution | Secrets Store → binding `EVOLUTION_SECRETS_STORE` (JSON `{ baseUrl, apiKey }`) nos workers `web`, `webhook` e `evolution-cleanup` |
 | Anexos de mensagem | R2 `whasap-cdn` (escrita webhook, leitura cdn) |
 | Logs de webhook | R2 `whasap` |

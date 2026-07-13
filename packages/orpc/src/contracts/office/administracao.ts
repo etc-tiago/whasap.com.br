@@ -95,7 +95,7 @@ export const officeAdministracaoContract = {
       .input(
         paginacaoInput
           .extend({
-            origem: z.enum(["evo", "cloud", "asaas"]).optional(),
+            origem: z.enum(["evo", "cloud"]).optional(),
             instanciaId: z.string().uuid().optional(),
           })
           .optional(),

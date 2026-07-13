@@ -31,12 +31,7 @@ export {
   tooManyRequests,
   unauthorized,
 } from "./lib/rpc-error";
-export {
-  getAsaasApiKey,
-  isAsaasSandbox,
-  type AsaasSecretsEnv,
-  type SecretsStoreSecretBinding,
-} from "./lib/asaas-env";
+export { type SecretsStoreSecretBinding } from "./lib/secrets-store";
 export {
   getEvolutionCredentials,
   type EvolutionCredentials,
@@ -63,10 +58,8 @@ export { criarClienteEvolutionGo, type EvolutionGoEnv } from "./lib/criar-client
 export { criarClienteMeta, type MetaEnv } from "./lib/criar-cliente-meta";
 export { getClientIp } from "./lib/client-ip";
 export {
-  iniciarDemonstracaoSeNecessarioDb,
   marcarInstanciaConectadaEvolution,
   marcarInstanciaDesconectadaEvolution,
-  resolverStatusAposConexaoEvolution,
   type StatusInstanciaAposConexao,
 } from "./lib/instancia-evolution";
 export {

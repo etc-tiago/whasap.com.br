@@ -25,7 +25,7 @@ type Props = {
 
 /**
  * Desconecta WhatsApp com confirmação; opção de excluir conversas/mensagens
- * (e remover a conexão do painel quando não há assinatura).
+ * e remover a conexão do painel.
  */
 export function DesconectarInstanciaButton({ inst, organizacaoHash }: Props) {
   const queryClient = useQueryClient();
@@ -33,7 +33,6 @@ export function DesconectarInstanciaButton({ inst, organizacaoHash }: Props) {
   const [excluirDados, setExcluirDados] = useState(false);
 
   const operacional = instanciaOperacional(inst.status);
-  const temAssinatura = Boolean(inst.asaasSubscriptionId);
   const modoExcluirSomente = !operacional;
 
   const desconectar = useMutation(
@@ -52,7 +51,6 @@ export function DesconectarInstanciaButton({ inst, organizacaoHash }: Props) {
   );
 
   if (inst.status === "deactivated") return null;
-  if (!operacional && temAssinatura) return null;
 
   const titulo = modoExcluirSomente
     ? "Excluir conexão?"
@@ -63,9 +61,7 @@ export function DesconectarInstanciaButton({ inst, organizacaoHash }: Props) {
   const descricao = modoExcluirSomente
     ? `A conexão “${inst.nome}” será removida do painel. Conversas e mensagens deste número serão excluídas.`
     : excluirDados
-      ? temAssinatura
-        ? `O WhatsApp “${inst.nome}” será desconectado e as conversas/mensagens serão excluídas. A conexão permanece no painel por causa da assinatura ativa.`
-        : `O WhatsApp “${inst.nome}” será desconectado, as conversas/mensagens serão excluídas e a conexão sairá do painel.`
+      ? `O WhatsApp “${inst.nome}” será desconectado, as conversas/mensagens serão excluídas e a conexão sairá do painel.`
       : `O WhatsApp “${inst.nome}” será desconectado deste dispositivo. Você poderá reconectar depois; as conversas ficam no painel.`;
 
   const labelAcao = modoExcluirSomente
@@ -119,10 +115,7 @@ export function DesconectarInstanciaButton({ inst, organizacaoHash }: Props) {
                   Excluir dados relacionados a este número
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Remove conversas e mensagens do painel
-                  {temAssinatura
-                    ? ". A conexão permanece por causa da assinatura."
-                    : " e remove a conexão da lista."}
+                  Remove conversas e mensagens do painel e remove a conexão da lista.
                 </p>
               </div>
             </div>

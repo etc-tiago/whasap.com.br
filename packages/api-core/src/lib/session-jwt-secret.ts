@@ -1,4 +1,4 @@
-import type { SecretsStoreSecretBinding } from "./asaas-env";
+import type { SecretsStoreSecretBinding } from "./secrets-store";
 
 /** Resolve secret de JWT de sessão (string em dev ou Secrets Store em produção). */
 export async function resolveSessionJwtSecret(

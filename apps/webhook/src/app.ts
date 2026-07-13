@@ -1,12 +1,9 @@
 import type { RequestLogger } from "@whasap/evlog";
 import type { WorkerExecutionContext } from "@whasap/evlog/workers";
 import { Hono } from "hono";
-import { asaasWebhookRegistro, comCriadoEm, criarDb } from "@whasap/db";
 
-import { handleAsaasWebhook } from "./asaas";
 import type { Env } from "./env";
 import { processarWebhookProvedor } from "./handlers/provedor-webhook";
-import { timingSafeEqual } from "./lib/timing-safe-equal";
 
 export type WebhookHonoEnv = {
   Bindings: Env;
@@ -40,40 +37,6 @@ export function criarWebhookApp(log: RequestLogger, workerCtx: WorkerExecutionCo
       return c.text(challenge);
     }
     return c.text("Forbidden", 403);
-  });
-
-  app.post("/asaas", async (c) => {
-    const body = await c.req.text();
-    const token = c.req.header("asaas-access-token") ?? "";
-    const valid = await timingSafeEqual(token, c.env.ASAAS_WEBHOOK_TOKEN);
-    if (!valid) {
-      c.get("log").set({ webhook: { asaas: { assinaturaInvalida: true } } });
-      return c.text("Invalid signature", 401);
-    }
-
-    const event = JSON.parse(body) as { id: string; event: string };
-    c.get("log").set({ webhook: { asaas: { id: event.id, tipo: event.event } } });
-
-    const { db, sql } = criarDb(c.env.HYPERDRIVE.connectionString);
-    try {
-      try {
-        await db.insert(asaasWebhookRegistro).values(
-          comCriadoEm({
-            asaasIdEvento: event.id,
-            tipo: event.event,
-            payload: body,
-          }),
-        );
-      } catch {
-        c.get("log").set({ webhook: { asaas: { duplicado: true } } });
-        return c.json({ received: true });
-      }
-
-      await handleAsaasWebhook(db, body, c.env);
-      return c.json({ received: true });
-    } finally {
-      await sql.end({ timeout: 5 });
-    }
   });
 
   app.post("/evo", async (c) => {

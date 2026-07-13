@@ -15,8 +15,6 @@ import { and, asc, count, desc, eq, gte, inArray, isNull, lte, min } from "drizz
 
 import type { WebContext } from "../types";
 import { exigirAutenticacao, resolverMembroPorIdInterno } from "./auth";
-import { exigirAcessoDemonstracao } from "../lib/demonstracao";
-
 type DistribuicaoTempoResposta = {
   ate5Min: number;
   de5a15Min: number;
@@ -181,8 +179,6 @@ export const relatoriosHandlers = {
     if (role === "usuario") {
       forbidden("Relatórios não disponíveis para usuario");
     }
-    await exigirAcessoDemonstracao(ctx, internalOrgId);
-
     const from = new Date(input.de);
     const to = new Date(input.ate);
 

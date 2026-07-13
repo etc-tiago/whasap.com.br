@@ -141,9 +141,6 @@ function InstancesPage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                {inst.trialEndsAt && new Date(inst.trialEndsAt) > new Date() && (
-                  <Badge variant="secondary">Trial</Badge>
-                )}
                 <Badge variant={instanciaOperacional(inst.status) ? "default" : "outline"}>
                   {rotulosStatusInstancia[inst.status] ?? inst.status}
                 </Badge>
@@ -167,11 +164,7 @@ function InstancesPage() {
                 </Button>
               )}
               {instanciaOperacional(inst.status) && (
-                <Button
-                  asChild
-                  size="sm"
-                  variant={inst.asaasSubscriptionId ? "default" : "outline"}
-                >
+                <Button asChild size="sm" variant="default">
                   <Link to="/$organizacaoHash/inbox" params={{ organizacaoHash }}>
                     Abrir conversas
                   </Link>

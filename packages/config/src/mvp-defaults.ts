@@ -19,12 +19,8 @@ export const mvpDefaults = {
     conversationsPerInstance: 1_000,
     conversationsPerPack: 1_000,
     warnAtPercent: [80, 90] as const,
-    gracePeriodDays: 7,
-    cancelAtPeriodEnd: true,
-    deactivatedRetentionDays: 90,
-    trialDays: 3,
-    multipleAddonsPerInstance: true,
-    addonMidMonthImmediate: true,
+    /** Após este uso contínuo, rateio manual gera boleto por uso (ver termo de adesão). */
+    billingAfterUsageDays: 3,
   },
   conversations: {
     countOnFirstContactActivity: true,
@@ -79,6 +75,8 @@ export const mvpDefaults = {
   legal: {
     lgpdConsentRequired: true,
     termsPlaceholder: true,
+    /** Versão gravada em `organizacao.aceiteAdesaoVersao` na criação. */
+    adesaoVersao: "2026-07",
   },
   cdn: {
     baseUrl: "https://cdn.whasap.com.br",

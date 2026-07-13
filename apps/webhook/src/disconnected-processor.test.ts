@@ -27,7 +27,6 @@ describe("Disconnected → status disconnected", () => {
       id: 42,
       uuid: "c330073d-6d17-4fa3-a8cb-a7c1f5eaacdf",
       organizacaoId: 7,
-      asaasIdAssinatura: null,
       status: "connected",
       evo: {
         nomeInstancia: "whasap-c330073d",

@@ -55,7 +55,7 @@ export const webhooksHandlers = {
     input?: {
       limite?: number;
       offset?: number;
-      origem?: "evo" | "cloud" | "asaas";
+      origem?: "evo" | "cloud";
       instanciaId?: string;
     },
   ) => {

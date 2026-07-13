@@ -36,9 +36,6 @@ export type WebEnv = BaseEnv & {
   CDN_HMAC_SECRET?: string;
   WHATSAPP_CLOUD_WEBHOOK_SECRET?: string;
   WORKER_NAME?: string;
-  ASSAS_API_KEY?: SecretsStoreSecretBinding | string;
-  ASAAS_SANDBOX?: string;
-  /** Secrets Store (produção) ou string JSON em `.dev.vars`: `{ "baseUrl", "apiKey" }` */
   EVOLUTION_SECRETS_STORE?: SecretsStoreSecretBinding | string;
   /** Quando `EVOLUTION_DEBUG=true`: respostas brutas da Evolution (tokens redigidos). */
   EVOLUTION_DEBUG?: string;

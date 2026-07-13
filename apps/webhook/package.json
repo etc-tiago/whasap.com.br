@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@whasap/api-core": "workspace:*",
-    "@whasap/asaas": "workspace:*",
     "@whasap/config": "workspace:*",
     "@whasap/db": "workspace:*",
     "@whasap/evlog": "workspace:*",

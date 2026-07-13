@@ -1,34 +1,11 @@
-import { comTimestampAtualizacao, instancia, organizacao, type Db } from "@whasap/db";
-import { and, eq, isNull } from "drizzle-orm";
+import { comTimestampAtualizacao, instancia, type Db } from "@whasap/db";
+import { eq } from "drizzle-orm";
 
-export type StatusInstanciaAposConexao = "connected" | "pending_payment";
-
-/** Status pós-conexão Evolution: assinatura ativa → connected; caso contrário pending_payment. */
-export function resolverStatusAposConexaoEvolution(
-  asaasIdAssinatura: string | null | undefined,
-): StatusInstanciaAposConexao {
-  return asaasIdAssinatura ? "connected" : "pending_payment";
-}
-
-/** Inicia contagem da demonstração na 1ª conexão (idempotente). */
-export async function iniciarDemonstracaoSeNecessarioDb(
-  db: Db,
-  orgIdInterno: number,
-): Promise<void> {
-  const org = await db.query.organizacao.findFirst({
-    where: and(eq(organizacao.id, orgIdInterno), isNull(organizacao.excluidoEm)),
-    columns: { id: true, demonstracaoIniciaEm: true },
-  });
-  if (!org || org.demonstracaoIniciaEm) return;
-
-  await db
-    .update(organizacao)
-    .set(comTimestampAtualizacao({ demonstracaoIniciaEm: new Date() }))
-    .where(eq(organizacao.id, orgIdInterno));
-}
+/** Status pós-conexão Evolution — sempre connected (sem gate de pagamento). */
+export type StatusInstanciaAposConexao = "connected";
 
 /**
- * Marca instância Evolution como conectada (ou pending_payment) e inicia demo da org.
+ * Marca instância Evolution como conectada.
  * Usado por polling (api-web) e webhook processor.
  */
 export async function marcarInstanciaConectadaEvolution(
@@ -36,24 +13,19 @@ export async function marcarInstanciaConectadaEvolution(
   params: {
     instanciaIdInterno: number;
     orgIdInterno: number;
-    asaasIdAssinatura: string | null | undefined;
   },
 ): Promise<void> {
-  const status = resolverStatusAposConexaoEvolution(params.asaasIdAssinatura);
-
   await db
     .update(instancia)
     .set(
       comTimestampAtualizacao({
-        status,
+        status: "connected",
         conectadoEm: new Date(),
         desconectadoEm: null,
         sessaoRemotaLiberadaEm: null,
       }),
     )
     .where(eq(instancia.id, params.instanciaIdInterno));
-
-  await iniciarDemonstracaoSeNecessarioDb(db, params.orgIdInterno);
 }
 
 /** Marca instância Evolution como desconectada. */

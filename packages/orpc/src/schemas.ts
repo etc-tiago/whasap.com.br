@@ -41,20 +41,13 @@ export const organizacaoSchema = z.object({
   documento: z.string().nullable(),
   tipoDocumento: z.string().nullable(),
   razaoSocial: z.string().nullable(),
-  asaasCustomerId: z.string().nullable(),
-});
-
-export const estadoDemonstracaoSchema = z.enum(["livre", "aviso", "bloqueado", "pago"]);
-
-export const demonstracaoSchema = z.object({
-  estado: estadoDemonstracaoSchema,
-  diasRestantes: z.number().int().nullable(),
-  demonstracaoIniciaEm: z.string().datetime().nullable(),
+  telefoneWhatsapp: z.string().nullable(),
+  aceiteAdesaoEm: z.string().datetime().nullable(),
+  aceiteAdesaoVersao: z.string().nullable(),
 });
 
 export const organizacaoComPapelSchema = organizacaoSchema.extend({
   meuPapel: memberRoleSchema,
-  demonstracao: demonstracaoSchema,
 });
 
 export const organizacaoMembroSchema = z.object({
@@ -74,9 +67,7 @@ export const instanciaSchema = z.object({
   provider: instanceProviderSchema,
   status: instanceStatusSchema,
   limiteConversas: z.number().int(),
-  asaasSubscriptionId: z.string().nullable(),
   cloudPhoneNumberId: z.string().nullable(),
-  trialEndsAt: z.string().datetime().nullable(),
   connectedAt: z.string().datetime().nullable(),
   /** Cleanup liberou a sessão Evolution; painel mantém a row para reconectar. */
   sessaoRemotaLiberadaEm: z.string().datetime().nullable(),

@@ -129,8 +129,10 @@ function TabelaPrecos() {
           <TableCell className="text-right text-sm">Ilimitados · sem custo</TableCell>
         </TableRow>
         <TableRow>
-          <TableCell className="text-muted-foreground">Trial</TableCell>
-          <TableCell className="text-right text-sm">{billing.trialDays} dias grátis</TableCell>
+          <TableCell className="text-muted-foreground">Cobrança</TableCell>
+          <TableCell className="text-right text-sm">
+            Boleto por uso após {billing.billingAfterUsageDays} dias
+          </TableCell>
         </TableRow>
       </TableBody>
     </Table>

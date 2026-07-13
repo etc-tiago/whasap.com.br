@@ -9,10 +9,35 @@ import {
   organizacaoSchema,
 } from "../../schemas";
 
+const documentoCnpjSchema = z
+  .string()
+  .min(14)
+  .refine((v) => v.replace(/\D/g, "").length === 14, { message: "CNPJ inválido" });
+
+const telefoneWhatsappSchema = z
+  .string()
+  .min(10)
+  .refine((v) => {
+    const d = v.replace(/\D/g, "");
+    if (d.startsWith("55") && (d.length === 12 || d.length === 13)) return true;
+    return d.length === 10 || d.length === 11;
+  }, { message: "WhatsApp inválido" });
+
 export const organizacaoContract = {
   lista: oc.output(z.array(organizacaoSchema)),
 
-  criar: oc.input(z.object({ nome: z.string().min(2) })).output(organizacaoSchema),
+  criar: oc
+    .input(
+      z.object({
+        nome: z.string().min(2),
+        documento: documentoCnpjSchema,
+        tipoDocumento: z.literal("cnpj"),
+        razaoSocial: z.string().min(2),
+        telefoneWhatsapp: telefoneWhatsappSchema,
+        aceiteAdesao: z.literal(true),
+      }),
+    )
+    .output(organizacaoSchema),
 
   obter: oc
     .input(z.object({ organizacaoHash: organizacaoHashSchema }))
@@ -23,9 +48,10 @@ export const organizacaoContract = {
       z.object({
         organizacaoHash: organizacaoHashSchema,
         nome: z.string().min(2).optional(),
-        documento: z.string().optional(),
-        tipoDocumento: z.enum(["cpf", "cnpj"]).optional(),
-        razaoSocial: z.string().optional(),
+        documento: documentoCnpjSchema.optional(),
+        tipoDocumento: z.literal("cnpj").optional(),
+        razaoSocial: z.string().min(2).optional(),
+        telefoneWhatsapp: telefoneWhatsappSchema.optional(),
       }),
     )
     .output(organizacaoSchema),

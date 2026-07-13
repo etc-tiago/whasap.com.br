@@ -35,9 +35,7 @@ export type InstanciaEvolutionAbandonadaRow = {
   organizacaoId: number;
   nome: string;
   status: StatusSweepEvolution;
-  asaasIdAssinatura: string | null;
   limiteConversas: number;
-  trialTerminaEm: Date | null;
   conectadoEm: Date | null;
   desconectadoEm: Date | null;
   criadoEm: Date;
@@ -177,7 +175,6 @@ async function tentarRemarcarSeAindaConectada(
     await marcarInstanciaConectadaEvolution(db, {
       instanciaIdInterno: row.id,
       orgIdInterno: row.organizacaoId,
-      asaasIdAssinatura: row.asaasIdAssinatura,
     });
     return true;
   } catch {
@@ -259,9 +256,7 @@ export async function listarInstanciasEvolutionParaSweep(
       organizacaoId: true,
       nome: true,
       status: true,
-      asaasIdAssinatura: true,
       limiteConversas: true,
-      trialTerminaEm: true,
       conectadoEm: true,
       desconectadoEm: true,
       criadoEm: true,
@@ -278,9 +273,7 @@ export async function listarInstanciasEvolutionParaSweep(
     organizacaoId: row.organizacaoId,
     nome: row.nome,
     status: row.status as StatusSweepEvolution,
-    asaasIdAssinatura: row.asaasIdAssinatura,
     limiteConversas: row.limiteConversas,
-    trialTerminaEm: row.trialTerminaEm,
     conectadoEm: row.conectadoEm,
     desconectadoEm: row.desconectadoEm,
     criadoEm: row.criadoEm,

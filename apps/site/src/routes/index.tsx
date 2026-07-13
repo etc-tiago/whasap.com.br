@@ -362,11 +362,11 @@ function LandingPage() {
           <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 md:flex-row md:items-center">
             <div className="max-w-2xl">
               <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-                Comece com 3 dias grátis
+                Comece agora — boleto por uso após 3 dias
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Experimente o Whasap com investimento transparente — simule acima ou fale com nossa
-                equipe para montar o plano certo para sua operação.
+                Painel liberado desde o início. Após mais de 3 dias de uso, emitimos boleto por
+                uso (rateio mensal). Simule acima ou fale com nossa equipe.
               </p>
             </div>
             <Button asChild size="lg" className="bg-wa-green text-white hover:bg-wa-green-dark">

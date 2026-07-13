@@ -8,6 +8,12 @@ export {
   mimeToExtension,
 } from "./cdn";
 export {
+  cnpjValido,
+  normalizarTelefoneWhatsappBr,
+  somenteDigitos,
+  telefoneWhatsappBrValido,
+} from "./documento-fiscal";
+export {
   ICONE_CONEXAO_PADRAO,
   ICONES_CONEXAO,
   isIconeConexao,

@@ -39,43 +39,29 @@ flowchart TD
   Magic["/~/acesso/token"] --> Verificando
 ```
 
-## Demonstração gratuita (3 dias por org)
+## Cadastro fiscal e cobrança
 
-Trial **por organização**, contado em dias corridos (`America/Sao_Paulo`) a partir de `demonstracao_inicia_em` (1ª conexão WhatsApp).
+Painel **liberado desde o início** — sem banner de trial nem lockout.
 
-| Dia | Estado | Painel |
-|-----|--------|--------|
-| 1 | `livre` | Sem banner; acesso total |
-| 2–3 | `aviso` | Banner verde + CTA pagamento; acesso total |
-| 4+ | `bloqueado` | Banner vermelho + overlay; API bloqueada |
-| Com assinatura | `pago` | Sem banner |
+| Aspecto | Comportamento |
+|---------|---------------|
+| Acesso | Total ao painel após login e criação da org |
+| Cobrança | Manual — boleto por uso após **mais de 3 dias** de uso da org |
+| Referência | Termo de adesão em [whasap.com.br/legal#adesao](https://whasap.com.br/legal#adesao) |
+| Integração Asaas | Removida — sem checkout in-app, sem webhook de pagamento |
 
-**Pagamento:** botão no banner ou em `/{uuid}/ajustes` → `instancia.criarCheckout` → redirect Asaas → webhook ativa assinatura.
+**Webhooks** (`apps/webhook`): Evolution e Meta continuam sem bloqueio.
 
-**Webhooks** (`apps/webhook`): Evolution, Meta e Asaas continuam sem bloqueio.
-
-Estado exposto em `organizacao.obter` → campo `demonstracao`.
-
-### API allowlist quando `bloqueado`
-
-Continua funcionando: `autenticacao.*`, `organizacao.obter`, `organizacao.lista`, `instancia.lista`, `instancia.obter`, `instancia.criarCheckout`, `cobranca.*`.
-
-Bloqueado: inbox, envio, criar/provisionar instância, equipe, relatórios, etc.
-
-### Migration
-
-Campo `demonstracao_inicia_em` em `organizacao` — gerar/aplicar pelo desenvolvedor (`db:generate`, `db:migrate`).
-
-## Onboarding de instância
+## Onboarding de organização e instância
 
 | Rota | Descrição |
 |------|-----------|
-| `/integracao` | Criar organização (primeira ou adicional) |
-| `/{uuid}/integracao` | Tipo de conexão → QR / Cloud API → painel (sem checkout) |
+| `/integracao` | Criar organização — nome, CNPJ, razão social, WhatsApp de contato, aceite do termo de adesão |
+| `/{uuid}/integracao` | Tipo de conexão → QR / Cloud API → painel |
 
-Fluxo: `tipo` → `conexao` → `concluido` → redirect `/{uuid}/`.
+Campos obrigatórios em `/integracao` (`organizacao.criar`): `nome`, `documento` (CNPJ), `razaoSocial`, `telefoneWhatsapp`, `aceiteAdesao: true`. O aceite grava `aceiteAdesaoEm` e `aceiteAdesaoVersao` no banco.
 
-Ao conectar: status `connected` + inicia demonstração da org.
+Fluxo de conexão: `tipo` → `conexao` → `concluido` → redirect `/{uuid}/`. Ao conectar: status `connected` (sem gate de pagamento).
 
 ## Painel autenticado
 
@@ -88,10 +74,11 @@ Ao conectar: status `connected` + inicia demonstração da org.
 | `/{uuid}/inbox/$instanceId` | Inbox por instância |
 | `/{uuid}/relatorios` | BI (admin + analista) |
 | `/{uuid}/equipe` | Membros e convites (admin) |
-| `/{uuid}/ajustes` | Org + cobrança Asaas + configurar pagamento |
+| `/{uuid}/ajustes` | Dados da org (cadastro fiscal, aceite do termo) |
+| `/{uuid}/ajustes/conexao` | Preferências de conexão |
 | `/convite/$token` | Aceitar convite → redirect `/{uuid}/` |
 
-Gate de onboarding: redirect para `/{uuid}/integracao` se **nenhuma instância conectada** (não exige assinatura).
+Gate de onboarding: redirect para `/{uuid}/integracao` se **nenhuma instância conectada**.
 
 | `/rpc`, `/rpc/*` | ORPC embutido (server-only) |
 

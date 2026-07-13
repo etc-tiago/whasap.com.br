@@ -15,12 +15,3 @@ export const webhookEvento = pgTable(
     index("webhook_evento_id_evento_idx").on(t.idEvento),
   ],
 );
-
-export const asaasWebhookRegistro = pgTable("asaas_webhook_registro", {
-  id: serial().primaryKey(),
-  asaasIdEvento: text().notNull().unique(),
-  tipo: text().notNull(),
-  payload: text().notNull(),
-  processadoEm: timestamp(),
-  criadoEm: timestamp().notNull(),
-});

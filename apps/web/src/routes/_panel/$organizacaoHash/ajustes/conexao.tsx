@@ -126,7 +126,7 @@ function ConexaoLinha({
   const podeSync =
     isAdmin &&
     evo &&
-    (inst.status === "connected" || inst.status === "pending_payment") &&
+    (inst.status === "connected") &&
     !syncing &&
     !syncPending;
 

@@ -1,9 +1,5 @@
 /**
- * Worker de webhooks: Evolution (`/evo`), Meta Cloud (`/cloud`) e Asaas (`/asaas`).
- *
- * - Evolution/Meta: persiste em `webhookEvento`, processa, marca `processadoEm`, loga payload no R2.
- * - Asaas: persiste em `asaasWebhookRegistro` (idempotente por `asaasIdEvento`), sem R2 nem `processadoEm`.
- *   Checkout é criado no api-web; ativação de instância/pacote ocorre aqui via `handleAsaasWebhook`.
+ * Worker de webhooks: Evolution (`/evo`) e Meta Cloud (`/cloud`).
  */
 import { envolverWorkerFetch } from "@whasap/evlog/workers";
 

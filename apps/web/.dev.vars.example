@@ -11,8 +11,6 @@ CDN_URL=http://localhost:8789
 
 # Secrets e flags — ver docs/SECRETS-WEBHOOK.md e docs/ENV.md
 # WEB_SESSION_JWT_SECRET: string em .dev.vars (local) ou `wrangler secret put` (produção)
-ASSAS_API_KEY=$aact_placeholder
-ASAAS_SANDBOX=true
 EVOLUTION_SECRETS_STORE={"baseUrl":"http://localhost:8080","apiKey":"dev-key"}
 EVOLUTION_DEBUG=true
 WEB_SESSION_JWT_SECRET=dev-web-session-jwt-secret-change-in-production

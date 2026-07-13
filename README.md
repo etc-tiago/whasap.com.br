@@ -9,9 +9,9 @@ apps/
   site/                 # Marketing whasap.com.br (TanStack Start + Cloudflare)
   web/                  # Painel cliente web.whasap.com.br (SPA + ORPC em /rpc)
   office/               # Painel admin interno (SSR + ORPC em /rpc)
-  webhook/              # Worker de webhooks (Asaas, Evolution, Meta)
+  webhook/              # Worker de webhooks (Evolution, Meta)
   cdn/                  # Worker de mídia (R2 whasap-cdn)
-  evolution-cleanup/    # Cron: remove sessões Evolution abandonadas
+  evolution-cleanup/    # Cron: libera sessões Evolution abandonadas
 packages/
   ui/          # shadcn compartilhado (@whasap/ui)
   orpc/        # Contratos ORPC (@whasap/orpc — exports /web e /office)
@@ -21,7 +21,6 @@ packages/
   db/          # Drizzle + Neon (@whasap/db)
   config/      # Defaults MVP do produto (@whasap/config)
   evolution/   # Schema credenciais Evolution + Secret Store (@whasap/evolution)
-  asaas/       # Cliente HTTP Asaas (@whasap/asaas)
 ```
 
 ## Setup
@@ -75,7 +74,9 @@ bun run dev
 | cdn                | http://localhost:8789 | cdn.whasap.com.br       |
 | evolution-cleanup  | http://localhost:8790 | — (Cron Trigger)        |
 
-`web` expõe ORPC em `/rpc` via `@whasap/api-web` (cookie `whasap_web`, 15 dias). `office` expõe ORPC em `/rpc` via `@whasap/api-office` (cookie `whasap_office`, 3 dias). Webhooks Asaas em `webhook.whasap.com.br/asaas`.
+`web` expõe ORPC em `/rpc` via `@whasap/api-web` (cookie `whasap_web`, 15 dias). `office` expõe ORPC em `/rpc` via `@whasap/api-office` (cookie `whasap_office`, 3 dias). Webhooks WhatsApp em `webhook.whasap.com.br/evo` e `/cloud`.
+
+Cobrança é manual (boleto por uso após mais de 3 dias — ver [termo de adesão](https://whasap.com.br/legal#adesao)). Painel liberado desde o início.
 
 ### Office — seed inicial
 

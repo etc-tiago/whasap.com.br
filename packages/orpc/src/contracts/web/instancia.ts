@@ -97,24 +97,9 @@ export const instanciaContract = {
     )
     .output(z.object({ ok: z.boolean(), templatesCount: z.number().int() })),
 
-  criarCheckout: oc
-    .input(
-      z.object({
-        instanciaId: z.string().uuid(),
-        documento: z.string().min(11),
-        tipoDocumento: z.enum(["cpf", "cnpj"]),
-        razaoSocial: z.string().min(2),
-      }),
-    )
-    .output(z.object({ urlCheckout: z.string().url() })),
-
   obter: oc.input(z.object({ instanciaId: z.string().uuid() })).output(instanciaSchema),
 
   sincronizarHistorico: oc
     .input(z.object({ instanciaId: z.string().uuid() }))
     .output(z.object({ ok: z.boolean() })),
-
-  adicionarPacoteConversas: oc
-    .input(z.object({ instanciaId: z.string().uuid() }))
-    .output(z.object({ urlCheckout: z.string().url() })),
 };

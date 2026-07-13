@@ -1,4 +1,4 @@
-import type { SecretsStoreSecretBinding } from "./asaas-env";
+import type { SecretsStoreSecretBinding } from "./secrets-store";
 
 export type EvolutionSecretsEnv = {
   /** Secrets Store (produção) ou string JSON em `.dev.vars`: `{ "baseUrl", "apiKey" }` */

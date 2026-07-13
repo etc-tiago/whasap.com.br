@@ -7,9 +7,11 @@ Arquivos em `packages/db/src/schema/`:
 | `autenticacao.ts` | `usuario`, `sessao`, `codigo_otp` |
 | `office.ts` | `office_usuario`, `office_sessao` |
 | `organizacoes.ts` | `organizacao`, `organizacao_membro`, `organizacao_convite` |
-| `instancias.ts` | `instancia`, `instancia_addon` |
+| `instancias.ts` | `instancia` |
+| `instancia-evo.ts` | `instancia_evo` |
+| `instancia-meta-cloud.ts` | `instancia_meta_cloud` |
 | `mensageria.ts` | `contato`, `contato_tag`, `contato_tag_atribuicao`, `conversa`, `mensagem`, `mensagem_template`, `conversa_anotacao`, `resposta_rapida`, `uso_mensal`, `uso_mensal_contato` |
-| `webhook.ts` | `webhook_evento`, `asaas_webhook_registro` |
+| `webhook.ts` | `webhook_evento` |
 | `relacoes.ts` | `relations()` Drizzle para `db.query.*` com `with` / filtros relacionais |
 
 ## Convenção de nomes
@@ -30,7 +32,22 @@ Arquivos em `packages/db/src/schema/`:
 - **`criadoEm` / `atualizadoEm`:** preenchidos pelos helpers `comTimestampsCriacao` / `comTimestampAtualizacao`
 - **`excluidoEm`:** exclusão lógica; filtrar com `isNull(excluidoEm)` em reads e usar `marcarExclusaoLogica()` em deletes lógicos
 - Tabelas só com `criadoEm` (`sessao`, `codigo_otp`, `webhook_evento`, etc.): usar `comCriadoEm` ou `criadoEm: new Date()` inline
-- **`instancia_addon.ativo`:** estado do addon Asaas, não é soft-delete
+
+## Organização (`organizacoes.ts`)
+
+Cadastro fiscal e aceite do termo de adesão na criação da org (`/integracao`):
+
+| Coluna TS | Descrição |
+|-----------|-----------|
+| `documentoFiscal` | CNPJ (somente dígitos) |
+| `tipoDocumento` | `"cnpj"` |
+| `razaoSocial` | Razão social |
+| `telefoneWhatsapp` | WhatsApp de contato (faturamento / suporte — não é o número da conexão) |
+| `aceiteAdesaoEm` | Timestamp do aceite do termo |
+| `aceiteAdesaoVersao` | Versão do termo (`mvpDefaults.legal.adesaoVersao`) |
+| `limiteConversas` | Cota mensal de conversas únicas da org |
+
+Cobrança é manual (boleto por uso após mais de 3 dias — ver termo em `whasap.com.br/legal#adesao`). Não há campos Asaas nem trial no schema.
 
 ## Acesso ao banco
 
@@ -45,22 +62,31 @@ Arquivos em `packages/db/src/schema/`:
 
 ## Índices
 
-- Únicos de coluna única: `campo().unique()` (ex.: `email`, `token`, `asaas_id_assinatura`)
+- Únicos de coluna única: `campo().unique()` (ex.: `email`, `token`, `slug`)
 - Compostos via `index()` / `unique().on(...)` no callback de `pgTable`
 - FKs frequentes indexadas: `organizacao_id`, `instancia_id`, `conversa_id`, `usuario_id`, etc.
 
-## Instâncias WhatsApp (`instancias.ts`)
+## Instâncias WhatsApp
 
-| `provedor` | Descrição |
-|------------|-----------|
-| `cloud_api` | Meta Cloud API — credenciais em `nuvem_*` |
-| `evolution` | Evolution GO (whatsmeow) — `evolucao_instance_id`, `evolucao_token`, `evolucao_nome_instancia` |
+| `provedor` | Tabela auxiliar | Descrição |
+|------------|-----------------|-----------|
+| `meta_cloud` | `instancia_meta_cloud` | Meta Cloud API — credenciais em `nuvem_*` |
+| `evo` | `instancia_evo` | Evolution GO (whatsmeow) — `nomeInstancia`, `instanceId`, `token` |
 
-Migração:
+### Status (`instancia.status`)
 
-```sql
-UPDATE instancia SET provedor = 'evolution'
-WHERE provedor IN ('evolution_v2', 'evolution_go', 'evolution');
-```
+| Valor | Uso |
+|-------|-----|
+| `pending_connection` | Criada, aguardando provisionamento |
+| `provisioning` | Provisionamento em andamento |
+| `connected` | Conectada (Evolution sempre grava `connected` ao parear) |
+| `disconnected` | Sessão encerrada |
+| `deactivated` | Desativada |
+| `pending_payment` | **Legado** — permanece no enum Postgres; o app não grava mais |
+
+Colunas operacionais relevantes:
+
+- `sessaoRemotaLiberadaEm` — cleanup Evolution liberou a sessão remota (não é soft-delete; a row permanece para reconectar na mesma uuid)
+- `conectadoEm` / `desconectadoEm` — timestamps de conexão
 
 **Desenvolvedor:** após alterações de schema, rodar `bun run db:generate` e `bun run db:migrate` (renomear tabelas/colunas, enums, índices).

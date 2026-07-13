@@ -58,7 +58,6 @@ import {
 import type { InstanciaComProvedor } from "../lib/instancia-provedor";
 import type { WebContext } from "../types";
 import { exigirAutenticacao, resolverMembro, resolverMembroPorIdInterno } from "./auth";
-import { exigirAcessoDemonstracao } from "../lib/demonstracao";
 import {
   atribuirEtiquetaEvolution,
   criarEtiquetaEvolution,
@@ -125,7 +124,6 @@ async function exigirAcessoConversa(ctx: WebContext, conversaUuid: string) {
   const conv = await buscarConversaPorUuid(ctx, conversaUuid);
   if (!conv) notFound();
   const { role } = await resolverMembroPorIdInterno(ctx, conv.instance.organizacaoId);
-  await exigirAcessoDemonstracao(ctx, conv.instance.organizacaoId);
   return { ...conv, role };
 }
 
@@ -136,7 +134,6 @@ async function exigirAcessoContato(ctx: WebContext, contatoUuid: string) {
   });
   if (!contact) notFound();
   const { role } = await resolverMembroPorIdInterno(ctx, contact.organizacaoId);
-  await exigirAcessoDemonstracao(ctx, contact.organizacaoId);
   return { contact, role, organizacaoId: contact.organizacaoId };
 }
 
@@ -192,7 +189,6 @@ async function exigirAcessoInstancia(ctx: WebContext, instanciaUuid: string) {
   });
   if (!instance) notFound();
   const { role } = await resolverMembroPorIdInterno(ctx, instance.organizacaoId);
-  await exigirAcessoDemonstracao(ctx, instance.organizacaoId);
   return { instance, role };
 }
 
@@ -406,8 +402,6 @@ export const caixaEntradaHandlers = {
       await resolverMembro(ctx, input.organizacaoHash);
       const organizacaoId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
       if (organizacaoId === null) notFound();
-      await exigirAcessoDemonstracao(ctx, organizacaoId);
-
       let instances: InstanciaComProvedor[];
       if (input.instanciaId) {
         const { instance } = await exigirAcessoInstancia(ctx, input.instanciaId);
@@ -690,7 +684,7 @@ export const caixaEntradaHandlers = {
       if (!isEvoProvider(conv.instance.provedor)) {
         preconditionFailed("Sincronização de histórico disponível apenas para WhatsApp Comercial");
       }
-      if (conv.instance.status !== "connected" && conv.instance.status !== "pending_payment") {
+      if (conv.instance.status !== "connected") {
         preconditionFailed("Instância precisa estar conectada para sincronizar histórico");
       }
       const evoToken = conv.instance.evo?.token;
@@ -1297,8 +1291,6 @@ export const caixaEntradaHandlers = {
       await resolverMembro(ctx, input.organizacaoHash);
       const organizacaoId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
       if (organizacaoId === null) notFound();
-      await exigirAcessoDemonstracao(ctx, organizacaoId);
-
       const limite = input.limite ?? 30;
       const offset = input.offset ?? 0;
       const busca = input.busca?.trim();
@@ -1364,8 +1356,6 @@ export const caixaEntradaHandlers = {
 
       const organizacaoId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
       if (organizacaoId === null || instance.organizacaoId !== organizacaoId) notFound();
-      await exigirAcessoDemonstracao(ctx, organizacaoId);
-
       const { phone, idExterno } = normalizarTelefoneContato(input.telefone);
       if (phone.length < 8) preconditionFailed("Telefone inválido");
 

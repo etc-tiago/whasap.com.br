@@ -67,6 +67,38 @@ function LegalPage() {
           </div>
         </section>
 
+        <section id="adesao" className="mt-12 scroll-mt-8">
+          <h2 className="text-2xl font-semibold">Termo de adesão da conta</h2>
+          <p className="mt-2 text-xs text-muted-foreground">Versão 2026-07</p>
+          <div className="mt-4 space-y-4 text-sm leading-relaxed text-muted-foreground">
+            <p>
+              Ao criar uma organização no Whasap, você declara que os dados cadastrais informados
+              (incluindo CNPJ, razão social e WhatsApp de contato) são verdadeiros e que está
+              autorizado a representar a pessoa jurídica perante a plataforma.
+            </p>
+            <p>
+              O acesso ao painel é liberado desde o início da adesão. Não há período grátis
+              garantido nem trial de produto: o uso do serviço está sujeito à cobrança conforme
+              este termo.
+            </p>
+            <p>
+              Após mais de 3 (três) dias de uso da organização, será gerado boleto por uso, com
+              rateio mensal manual com base no consumo do período (conexões, conversas e demais
+              itens contratados). O não pagamento pode resultar em suspensão ou encerramento do
+              acesso.
+            </p>
+            <p>
+              Valores informativos no site (calculadora e páginas comerciais) não substituem o
+              boleto emitido com base no uso efetivo. Alterações de preço ou política de cobrança
+              serão comunicadas com aviso prévio razoável.
+            </p>
+            <p>
+              O aceite deste termo é registrado no momento da criação da organização, com a versão
+              vigente indicada acima.
+            </p>
+          </div>
+        </section>
+
         <section id="privacidade" className="mt-12 scroll-mt-8">
           <h2 className="text-2xl font-semibold">Política de Privacidade (LGPD)</h2>
           <div className="mt-4 space-y-4 text-sm leading-relaxed text-muted-foreground">

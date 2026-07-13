@@ -39,16 +39,10 @@
   },
   "secrets": {
     "required": [
-      "WHATSAPP_CLOUD_WEBHOOK_SECRET",
-      "ASAAS_WEBHOOK_TOKEN"
+      "WHATSAPP_CLOUD_WEBHOOK_SECRET"
     ]
   },
   "secrets_store_secrets": [
-    {
-      "binding": "ASSAS_API_KEY",
-      "store_id": "76b096bc6b03460dabd7744ba277a1ee",
-      "secret_name": "ASSAS_API_KEY_ETC"
-    },
     {
       "binding": "EVOLUTION_SECRETS_STORE",
       "store_id": "76b096bc6b03460dabd7744ba277a1ee",

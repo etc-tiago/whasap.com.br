@@ -28,10 +28,7 @@ export function WaRail({ organizacaoHash }: WaRailProps) {
 
   const instanciaInbox = instancias.data?.find((i) => instanciaOperacional(i.status));
   const instanciaEvo =
-    instancias.data?.find(
-      (i) =>
-        isEvoProvider(i.provider) && (i.status === "connected" || i.status === "pending_payment"),
-    ) ?? null;
+    instancias.data?.find((i) => isEvoProvider(i.provider) && i.status === "connected") ?? null;
 
   return (
     <aside className="hidden w-14 shrink-0 flex-col items-center justify-between border-r border-wa-divider bg-wa-sidebar py-3 md:flex">

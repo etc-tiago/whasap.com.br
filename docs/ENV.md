@@ -20,7 +20,7 @@ bun run validate:env
 
 | Mecanismo | Quando | Onde |
 |-----------|--------|------|
-| **Worker `vars`** | Runtime no servidor (checkouts, convites, CDN) | `wrangler.jsonc` = **produção** |
+| **Worker `vars`** | Runtime no servidor (URLs, convites, CDN) | `wrangler.jsonc` = **produção** |
 | **`VITE_*`** | Embutido no bundle no `vite build` | `.env.production` (prod) / `.env` (dev) |
 | **Secrets** | API keys, tokens webhook | Secrets Store / `wrangler secret put` / `.dev.vars` |
 
@@ -40,13 +40,10 @@ Não usamos `wrangler deploy --env production` — isso criaria workers com sufi
 | `EMAIL_FROM` | var | `wrangler.jsonc` | `.dev.vars` |
 | `VITE_WEB_PANEL_URL` | build | `apps/site/.env.production` | `.env` / `.env.example` |
 | `VITE_META_APP_ID`, `VITE_META_CONFIG_ID` | build | `apps/web/.env.production` | `.env` |
-| `ASAAS_SANDBOX` | flag dev | não definir | `.dev.vars` = `true` |
-| `ASSAS_API_KEY` | secret | Secrets Store | `.dev.vars` |
 | `EVOLUTION_SECRETS_STORE` | secret | Secrets Store (JSON `{ baseUrl, apiKey }`) | `.dev.vars` |
 | `WEB_SESSION_JWT_SECRET` | secret | `wrangler secret put` | `.dev.vars` |
 | `OFFICE_SESSION_JWT_SECRET` | secret | `wrangler secret put` | `.dev.vars` |
 | `WHATSAPP_CLOUD_WEBHOOK_SECRET` | secret | `wrangler secret put` | `.dev.vars` |
-| `ASAAS_WEBHOOK_TOKEN` | secret | `wrangler secret put` | `.dev.vars` |
 
 ## Por app
 
@@ -59,7 +56,7 @@ Não usamos `wrangler deploy --env production` — isso criaria workers com sufi
 ### `apps/web`
 
 - Worker vars: `WEB_URL`, `OFFICE_URL`, `WEBHOOK_URL`, `CDN_URL`, `EMAIL_FROM`
-- Secrets Store: `ASSAS_API_KEY`, `EVOLUTION_SECRETS_STORE`
+- Secrets Store: `EVOLUTION_SECRETS_STORE`
 - Build: `apps/web/.env.production` → `VITE_META_*`
 - Dev: `apps/web/.dev.vars` + `.env` raiz
 
@@ -71,7 +68,7 @@ Não usamos `wrangler deploy --env production` — isso criaria workers com sufi
 ### `apps/webhook`
 
 - Worker vars: `CDN_URL`
-- Secrets Store: `ASSAS_API_KEY`, `EVOLUTION_SECRETS_STORE`
+- Secrets Store: `EVOLUTION_SECRETS_STORE`
 - Secrets: ver [SECRETS-WEBHOOK.md](./SECRETS-WEBHOOK.md)
 - Dev: `apps/webhook/.dev.vars`
 
@@ -79,7 +76,7 @@ Não usamos `wrangler deploy --env production` — isso criaria workers com sufi
 
 - Worker vars: `WORKER_NAME`
 - Secrets Store: `EVOLUTION_SECRETS_STORE`
-- Sem domínio (só Cron Trigger `*/15`) — remoção de instâncias Evolution abandonadas
+- Sem domínio (só Cron Trigger `*/15`) — liberação de sessões Evolution abandonadas
 - Dev: `apps/evolution-cleanup/.dev.vars`
 
 ### `apps/history-sync`

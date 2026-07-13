@@ -19,13 +19,13 @@ export const organizacao = pgTable("organizacao", {
   documentoFiscal: text(),
   tipoDocumento: text(),
   razaoSocial: text(),
-  asaasIdCliente: text().unique(),
-  /** Assinatura Asaas da taxa base da organização (R$ 129,90 / 1.000 conversas). */
-  asaasIdAssinaturaBase: text().unique(),
-  /** Cota mensal de conversas únicas da org (base + packs). */
+  /** WhatsApp de contato da org (faturamento / suporte). */
+  telefoneWhatsapp: text(),
+  /** Aceite do termo de adesão na criação da org. */
+  aceiteAdesaoEm: timestamp(),
+  aceiteAdesaoVersao: text(),
+  /** Cota mensal de conversas únicas da org (base + ajustes manuais). */
   limiteConversas: integer().notNull().default(1000),
-  /** Início do trial de demonstração (3 dias) — set na 1ª conexão WhatsApp da org. */
-  demonstracaoIniciaEm: timestamp(),
   horasAutoFecharInatividade: text().default("72"),
   excluidoEm: timestamp(),
   criadoEm: timestamp().notNull(),

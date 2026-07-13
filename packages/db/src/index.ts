@@ -8,8 +8,6 @@ export {
   colunasConversaLista,
   colunasConviteOrganizacao,
   colunasIdUuid,
-  colunasInstanciaAddon,
-  colunasInstanciaAsaasStatus,
   colunasContatoInstancia,
   colunasInstanciaEvo,
   colunasInstanciaMetaCloud,

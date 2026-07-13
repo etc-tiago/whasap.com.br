@@ -18,7 +18,7 @@ alwaysApply: false
 ## Idioma
 
 - Nomes de funções auxiliares e texto JSDoc em **pt-BR**
-- Identificadores de integração externa permanecem técnicos (`asaasCustomerId`, `cloudPhoneNumberId`)
+- Identificadores de integração externa permanecem técnicos (`cloudPhoneNumberId`, enums de status/provider)
 
 ## O que fazer
 

@@ -16,7 +16,9 @@ export function mapearOrganizacaoParaSaida(org: {
   documentoFiscal: string | null;
   tipoDocumento: string | null;
   razaoSocial: string | null;
-  asaasIdCliente: string | null;
+  telefoneWhatsapp: string | null;
+  aceiteAdesaoEm: Date | null;
+  aceiteAdesaoVersao: string | null;
 }) {
   return {
     id: org.uuid,
@@ -25,7 +27,9 @@ export function mapearOrganizacaoParaSaida(org: {
     documento: org.documentoFiscal,
     tipoDocumento: org.tipoDocumento,
     razaoSocial: org.razaoSocial,
-    asaasCustomerId: org.asaasIdCliente,
+    telefoneWhatsapp: org.telefoneWhatsapp,
+    aceiteAdesaoEm: org.aceiteAdesaoEm?.toISOString() ?? null,
+    aceiteAdesaoVersao: org.aceiteAdesaoVersao,
   };
 }
 
@@ -52,8 +56,6 @@ export function mapearInstanciaParaSaida(
       | "connected"
       | "deactivated";
     limiteConversas: number;
-    asaasIdAssinatura: string | null;
-    trialTerminaEm: Date | null;
     conectadoEm: Date | null;
     sessaoRemotaLiberadaEm: Date | null;
     criadoEm: Date;
@@ -87,9 +89,7 @@ export function mapearInstanciaParaSaida(
     provider: instance.provedor,
     status: instance.status,
     limiteConversas: instance.limiteConversas,
-    asaasSubscriptionId: instance.asaasIdAssinatura,
     cloudPhoneNumberId: instance.metaCloud?.phoneNumberId ?? null,
-    trialEndsAt: instance.trialTerminaEm?.toISOString() ?? null,
     connectedAt: instance.conectadoEm?.toISOString() ?? null,
     sessaoRemotaLiberadaEm: instance.sessaoRemotaLiberadaEm?.toISOString() ?? null,
     criadoEm: instance.criadoEm.toISOString(),

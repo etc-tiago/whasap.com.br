@@ -19,17 +19,11 @@ alwaysApply: false
 
 | Binding | Store (nome) | Secret no store | Uso |
 |---------|--------------|-----------------|-----|
-| `ASSAS_API_KEY` | `ASSAS_API_KEY_ETC` | `ASSAS_API_KEY_ETC` | API key Asaas (`web`, `webhook`) |
-| `EVOLUTION_SECRETS_STORE` | `ASSAS_API_KEY_ETC` | `EVOLUTION_SECRETS_STORE` | JSON `{ baseUrl, apiKey }` Evolution (`web`, `webhook`, `evolution-cleanup`) |
+| `EVOLUTION_SECRETS_STORE` | `ASSAS_API_KEY_ETC` (nome histórico) | `EVOLUTION_SECRETS_STORE` | JSON `{ baseUrl, apiKey }` Evolution (`web`, `webhook`, `evolution-cleanup`) |
 
 
 ```jsonc
 "secrets_store_secrets": [
-  {
-    "binding": "ASSAS_API_KEY",
-    "store_id": "<uuid-do-store-ASSAS_API_KEY_ETC>",
-    "secret_name": "ASSAS_API_KEY_ETC"
-  },
   {
     "binding": "EVOLUTION_SECRETS_STORE",
     "store_id": "<uuid-do-store-ASSAS_API_KEY_ETC>",
@@ -96,7 +90,7 @@ Cada app HTTP tem **um** custom domain em `routes` (`evolution-cleanup` e `histo
 ]
 ```
 
-Não altere domínios por app sem alinhar DNS, Asaas callbacks e vars (`WEB_URL`, `WEBHOOK_URL`, etc.).
+Não altere domínios por app sem alinhar DNS e vars (`WEB_URL`, `WEBHOOK_URL`, etc.).
 
 Documentação completa: `docs/ENV.md`, `docs/PRODUCAO.md`.
 

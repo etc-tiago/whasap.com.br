@@ -1,8 +1,6 @@
-import adicionarPacoteConversas from "./adicionar-pacote-conversas";
 import atualizar from "./atualizar";
 import configurarCloud from "./configurar-cloud";
 import criar from "./criar";
-import criarCheckout from "./criar-checkout";
 import descartar from "./descartar";
 import desconectar from "./desconectar";
 import encerrarPareamento from "./encerrar-pareamento";
@@ -24,8 +22,6 @@ export default {
   obterQr,
   statusConexao,
   configurarCloud,
-  criarCheckout,
   obter,
-  adicionarPacoteConversas,
   sincronizarHistorico,
 };

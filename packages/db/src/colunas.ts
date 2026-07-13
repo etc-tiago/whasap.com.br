@@ -43,10 +43,10 @@ export const colunasOrganizacaoPublica = {
   documentoFiscal: true,
   tipoDocumento: true,
   razaoSocial: true,
-  asaasIdCliente: true,
-  asaasIdAssinaturaBase: true,
+  telefoneWhatsapp: true,
+  aceiteAdesaoEm: true,
+  aceiteAdesaoVersao: true,
   limiteConversas: true,
-  demonstracaoIniciaEm: true,
 } as const;
 
 /** Checagem de slug / existência — retorna só PK interna. */
@@ -65,8 +65,6 @@ export const colunasInstanciaPublica = {
   provedor: true,
   status: true,
   limiteConversas: true,
-  asaasIdAssinatura: true,
-  trialTerminaEm: true,
   conectadoEm: true,
   sessaoRemotaLiberadaEm: true,
   criadoEm: true,
@@ -101,16 +99,14 @@ export const colunasInstanciaOperacao = {
   tentativasProvisionamento: true,
 } as const;
 
-/** Instância no worker de webhooks (evo / meta_cloud / Asaas). */
+/** Instância no worker de webhooks (evo / meta_cloud). */
 export const colunasInstanciaWebhook = {
   id: true,
   uuid: true,
   organizacaoId: true,
   provedor: true,
-  asaasIdAssinatura: true,
   status: true,
   limiteConversas: true,
-  trialTerminaEm: true,
 } as const;
 
 /** Instância para endpoint de uso mensal. */
@@ -119,12 +115,6 @@ export const colunasInstanciaUso = {
   uuid: true,
   organizacaoId: true,
   limiteConversas: true,
-} as const;
-
-/** Updates de status via webhook Asaas. */
-export const colunasInstanciaAsaasStatus = {
-  id: true,
-  trialTerminaEm: true,
 } as const;
 
 /** Membro de organização — auth, equipe e convites. */
@@ -290,9 +280,6 @@ export const colunasUsoMensal = {
 
 /** Contato já contabilizado no mês. */
 export const colunasUsoMensalContato = colunasSomenteId;
-
-/** Addon de pacote de conversas. */
-export const colunasInstanciaAddon = colunasSomenteId;
 
 /** Evento de webhook persistido — PK para marcar processado. */
 export const colunasWebhookEvento = colunasSomenteId;

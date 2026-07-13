@@ -1,6 +1,6 @@
-/** Instância pareada e utilizável no painel (conectada ou em demonstração). */
+/** Instância pareada e utilizável no painel. */
 export function instanciaOperacional(status: string): boolean {
-  return status === "connected" || status === "pending_payment";
+  return status === "connected";
 }
 
 /** Rótulos de status de instância WhatsApp para exibição no painel. */

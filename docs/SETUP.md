@@ -1,38 +1,12 @@
 # Configuração de integrações — Whasap
 
-Guia para configurar Asaas, Evolution API e Meta Cloud API.
+Guia para configurar Evolution API e Meta Cloud API.
 
 **Infraestrutura de produção (vars, R2, Hyperdrive, Secrets Store, deploy):** [PRODUCAO.md](./PRODUCAO.md) · **Vars vs secrets:** [ENV.md](./ENV.md)
 
-## Asaas (PIX + cartão)
+## Cobrança
 
-1. Crie uma conta no [Asaas](https://www.asaas.com/) (use [Sandbox](https://sandbox.asaas.com/) em desenvolvimento).
-2. Gere a **API Key** em Integrações → API.
-3. Configure um **Webhook** apontando para `https://<seu-webhook-worker>/asaas`:
-   - Eventos: `CHECKOUT_PAID`, `SUBSCRIPTION_CREATED`, `SUBSCRIPTION_DELETED`, `PAYMENT_OVERDUE`
-   - Defina um `authToken` e use o mesmo valor em `ASAAS_WEBHOOK_TOKEN`
-4. Cadastre o domínio do painel em **Configurações da conta → Informações** (necessário para URLs de callback do checkout).
-5. Preços vêm de `mvpDefaults`: taxa base da org R$ 129,90 (1.000 conversas), R$ 20/conexão e R$ 50 por pack +1.000 conversas. Trial de 3 dias via `nextDueDate` no checkout.
-6. Secrets nos workers:
-
-   | Tipo | Nome | Workers |
-   |------|------|---------|
-   | Secrets Store | `ASSAS_API_KEY` → secret `ASSAS_API_KEY_ETC` no store `ASSAS_API_KEY_ETC` | `web`, `webhook` |
-   | Secrets Store | `EVOLUTION_SECRETS_STORE` → JSON `{ baseUrl, apiKey }` no mesmo store | `web`, `webhook`, `office` |
-
-   ```bash
-   wrangler secrets-store store list   # anote o store_id do store Asaas
-   ```
-
-   Em `wrangler.jsonc`, substitua `store_id` pelo UUID real. Workers `web` e `webhook` declaram o binding Asaas.
-
-   Secrets Worker clássicos (`wrangler secret put`): ver requisitos em [SECRETS-WEBHOOK.md](./SECRETS-WEBHOOK.md) (`WHATSAPP_CLOUD_WEBHOOK_SECRET`, `ASAAS_WEBHOOK_TOKEN`).
-
-7. Em desenvolvimento local: copie `apps/*/.dev.vars.example` → `.dev.vars` (URLs localhost + secrets). Ver [ENV.md](./ENV.md).
-
-Fluxo no painel: onboarding → QR Code → trial → checkout Asaas (PIX ou cartão).
-
-**PIX recorrente:** o Asaas gera faturas mensais; o cliente paga cada uma via `invoiceUrl`. Cartão de crédito é debitado automaticamente.
+Cobrança **manual** — boleto por uso após mais de 3 dias de uso da organização, conforme [termo de adesão](https://whasap.com.br/legal#adesao). Valores de referência em `mvpDefaults.billing` (taxa base da org, conexão adicional, pack de conversas). Não há integração Asaas nem checkout in-app.
 
 ## Webhooks WhatsApp
 
@@ -40,7 +14,6 @@ Fluxo no painel: onboarding → QR Code → trial → checkout Asaas (PIX ou car
 |------|----------|--------|
 | `POST /evo` | Evolution API | `webhook/evo/{instance}/{date}/{event}-{time}-{id}.json` |
 | `GET/POST /cloud` | Meta Cloud API | `webhook/cloud/{phoneNumberId}/{date}/{field}-{time}-{id}.json` |
-| `POST /asaas` | Asaas | Postgres (`asaas_webhook_log`) |
 
 Bucket R2: `whasap` (binding `R2` no worker webhook).
 
@@ -63,11 +36,11 @@ cd apps/cdn && bun run deploy
 
 ## Evolution API (WhatsApp Business)
 
-Motor único **Evolution GO** (whatsmeow), provedor `evolution` no Neon.
+Motor único **Evolution GO** (whatsmeow), provedor `evo` no Neon.
 
 | Provedor | Motor | Identificação no Neon |
 |----------|-------|------------------------|
-| `evolution` | Evolution GO (whatsmeow) | `evolucao_instance_id`, `evolucao_token`, `evolucao_nome_instancia` |
+| `evo` | Evolution GO (whatsmeow) | `instancia_evo`: `nomeInstancia`, `instanceId`, `token` |
 
 Spec OpenAPI oficial: [`packages/evolution/swagger.json`](../packages/evolution/swagger.json) e [`packages/evolution/README.md`](../packages/evolution/README.md).
 
@@ -82,13 +55,6 @@ Spec OpenAPI oficial: [`packages/evolution/swagger.json`](../packages/evolution/
 Fluxo detalhado (status banco vs Evolution vs webhook): [FLUXO-INSTANCIA-EVOLUTION.md](./FLUXO-INSTANCIA-EVOLUTION.md).
 
 Office: worker com binding R2 `whasap` para consultar logs de webhook e endpoint `administracao.instancias.estadoEvolution`.
-
-Migração de instâncias antigas:
-
-```sql
-UPDATE instancia SET provedor = 'evolution'
-WHERE provedor IN ('evolution_v2', 'evolution_go', 'evolution');
-```
 
 ## Meta Cloud API
 
@@ -125,7 +91,7 @@ No onboarding, aba **Manual**:
 
 ### Credenciais no painel
 
-O admin da organização informa token e IDs no onboarding (`configurarCloud`). Os valores ficam na tabela `instancia` (`nuvem_token_acesso`, `nuvem_id_numero_telefone`, `nuvem_id_waba`) — não são expostos na API pública.
+O admin da organização informa token e IDs no onboarding (`configurarCloud`). Os valores ficam na tabela `instancia_meta_cloud` — não são expostos na API pública.
 
 ## Após alterações de schema
 

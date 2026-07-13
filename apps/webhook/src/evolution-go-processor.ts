@@ -289,7 +289,6 @@ async function marcarConectadaEPedirHistorico(
   await marcarInstanciaConectadaEvolution(db, {
     instanciaIdInterno: instance.id,
     orgIdInterno: instance.organizacaoId,
-    asaasIdAssinatura: instance.asaasIdAssinatura,
   });
   try {
     await solicitarHistoricoSyncSePrimeiraConexao(db, env, instance.id, instance.uuid);

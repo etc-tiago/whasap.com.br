@@ -43,11 +43,6 @@
   // Secrets Store (produção): substitua store_id pelo ID real (`wrangler secrets-store store list`)
   "secrets_store_secrets": [
     {
-      "binding": "ASSAS_API_KEY",
-      "store_id": "76b096bc6b03460dabd7744ba277a1ee",
-      "secret_name": "ASSAS_API_KEY_ETC"
-    },
-    {
       "binding": "EVOLUTION_SECRETS_STORE",
       "store_id": "76b096bc6b03460dabd7744ba277a1ee",
       "secret_name": "EVOLUTION_SECRETS_STORE"

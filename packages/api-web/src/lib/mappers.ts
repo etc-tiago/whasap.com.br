@@ -23,7 +23,9 @@ export function toOrganizacaoOutput(
     | "documentoFiscal"
     | "tipoDocumento"
     | "razaoSocial"
-    | "asaasIdCliente"
+    | "telefoneWhatsapp"
+    | "aceiteAdesaoEm"
+    | "aceiteAdesaoVersao"
   >,
 ) {
   return {
@@ -33,7 +35,9 @@ export function toOrganizacaoOutput(
     documento: org.documentoFiscal,
     tipoDocumento: org.tipoDocumento,
     razaoSocial: org.razaoSocial,
-    asaasCustomerId: org.asaasIdCliente,
+    telefoneWhatsapp: org.telefoneWhatsapp,
+    aceiteAdesaoEm: org.aceiteAdesaoEm?.toISOString() ?? null,
+    aceiteAdesaoVersao: org.aceiteAdesaoVersao,
   };
 }
 
@@ -65,9 +69,7 @@ export function toInstanciaOutput(instance: InstanciaComProvedor, organizacaoUui
     provider: instance.provedor,
     status: instance.status,
     limiteConversas: instance.limiteConversas,
-    asaasSubscriptionId: instance.asaasIdAssinatura,
     cloudPhoneNumberId: instance.metaCloud?.phoneNumberId ?? null,
-    trialEndsAt: instance.trialTerminaEm?.toISOString() ?? null,
     connectedAt: instance.conectadoEm?.toISOString() ?? null,
     sessaoRemotaLiberadaEm: instance.sessaoRemotaLiberadaEm?.toISOString() ?? null,
     criadoEm: instance.criadoEm.toISOString(),

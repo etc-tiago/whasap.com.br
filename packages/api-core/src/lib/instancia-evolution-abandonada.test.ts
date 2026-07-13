@@ -152,9 +152,7 @@ function rowAbandonada(
     organizacaoId: 1,
     nome: "Loja",
     status: "disconnected",
-    asaasIdAssinatura: "sub_123",
     limiteConversas: 1000,
-    trialTerminaEm: null,
     conectadoEm: ha6dias,
     desconectadoEm: ha6dias,
     criadoEm: ha6dias,
@@ -237,7 +235,6 @@ describe("liberarSessaoEvolutionAbandonada", () => {
       rowAbandonada({
         status: "pending_connection",
         conectadoEm: null,
-        asaasIdAssinatura: null,
       }),
     );
 

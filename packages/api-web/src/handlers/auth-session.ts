@@ -131,7 +131,9 @@ export function mapearSessaoParaSaida(
     | "documentoFiscal"
     | "tipoDocumento"
     | "razaoSocial"
-    | "asaasIdCliente"
+    | "telefoneWhatsapp"
+    | "aceiteAdesaoEm"
+    | "aceiteAdesaoVersao"
   > | null,
 ) {
   if (!ctx.usuario) {

@@ -168,7 +168,6 @@
       "name": "webhook",
       "dependencies": {
         "@whasap/api-core": "workspace:*",
-        "@whasap/asaas": "workspace:*",
         "@whasap/config": "workspace:*",
         "@whasap/db": "workspace:*",
         "@whasap/evlog": "workspace:*",
@@ -233,7 +232,6 @@
       "dependencies": {
         "@orpc/server": "^1.9.3",
         "@whasap/api-core": "workspace:*",
-        "@whasap/asaas": "workspace:*",
         "@whasap/config": "workspace:*",
         "@whasap/db": "workspace:*",
         "@whasap/evlog": "workspace:*",
@@ -250,17 +248,6 @@
         "@whasap/typescript-config": "workspace:*",
         "typescript": "^5.8.3",
         "vitest": "^4.1.10",
-      },
-    },
-    "packages/asaas": {
-      "name": "@whasap/asaas",
-      "version": "0.0.0",
-      "dependencies": {
-        "@whasap/config": "workspace:*",
-      },
-      "devDependencies": {
-        "@whasap/typescript-config": "workspace:*",
-        "typescript": "^5.8.3",
       },
     },
     "packages/config": {
@@ -1173,8 +1160,6 @@
     "@whasap/api-office": ["@whasap/api-office@workspace:packages/api-office"],
 
     "@whasap/api-web": ["@whasap/api-web@workspace:packages/api-web"],
-
-    "@whasap/asaas": ["@whasap/asaas@workspace:packages/asaas"],
 
     "@whasap/config": ["@whasap/config@workspace:packages/config"],
 

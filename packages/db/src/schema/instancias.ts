@@ -1,5 +1,4 @@
 import {
-  boolean,
   index,
   integer,
   pgEnum,
@@ -7,13 +6,13 @@ import {
   serial,
   text,
   timestamp,
-  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 
 import { organizacao } from "./organizacoes";
 
 export const instanciaProvedorEnum = pgEnum("instancia_provedor", ["evo", "meta_cloud"]);
+/** `pending_payment` permanece no enum Postgres legado; o app não grava mais esse status. */
 export const instanciaStatusEnum = pgEnum("instancia_status", [
   "pending_connection",
   "pending_payment",
@@ -36,7 +35,6 @@ export const instancia = pgTable(
     icone: text().notNull().default("MessageCircle"),
     provedor: instanciaProvedorEnum().notNull(),
     status: instanciaStatusEnum().notNull().default("pending_connection"),
-    asaasIdAssinatura: text().unique(),
     /** Legado; cota de produto vive em `organizacao.limiteConversas`. */
     limiteConversas: integer().notNull().default(0),
     tentativasProvisionamento: integer().notNull().default(0),
@@ -47,7 +45,6 @@ export const instancia = pgTable(
      * Painel continua listando a row para reconectar na mesma uuid.
      */
     sessaoRemotaLiberadaEm: timestamp(),
-    trialTerminaEm: timestamp(),
     desativadoEm: timestamp(),
     excluidoEm: timestamp(),
     criadoEm: timestamp().notNull(),
@@ -56,23 +53,5 @@ export const instancia = pgTable(
   (t) => [
     index("instancia_organizacao_id_idx").on(t.organizacaoId),
     index("instancia_provedor_status_idx").on(t.provedor, t.status),
-  ],
-);
-
-export const instanciaAddon = pgTable(
-  "instancia_addon",
-  {
-    id: serial().primaryKey(),
-    instanciaId: integer()
-      .notNull()
-      .references(() => instancia.id, { onDelete: "cascade" }),
-    asaasIdAssinatura: text().notNull(),
-    tamanhoPacoteConversas: integer().notNull().default(1000),
-    ativo: boolean().notNull().default(true),
-    criadoEm: timestamp().notNull(),
-  },
-  (t) => [
-    index("instancia_addon_instancia_id_idx").on(t.instanciaId),
-    unique().on(t.instanciaId, t.asaasIdAssinatura),
   ],
 );

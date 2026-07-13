@@ -16,8 +16,6 @@ function instancia(parcial: Partial<InstanciaComProvedor> = {}): InstanciaComPro
     provedor: "evo",
     status: "connected",
     limiteConversas: 1000,
-    asaasIdAssinatura: null,
-    trialTerminaEm: null,
     conectadoEm: new Date("2026-01-01"),
     sessaoRemotaLiberadaEm: null,
     criadoEm: new Date("2026-01-01"),
