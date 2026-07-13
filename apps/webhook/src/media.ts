@@ -37,6 +37,10 @@ export function scheduleInboundMedia(
   );
 }
 
-export async function storeInboundMedia(env: Env, db: Parameters<typeof persistirMidiaInbound>[1], job: InboundMediaJob): Promise<void> {
+export async function storeInboundMedia(
+  env: Env,
+  db: Parameters<typeof persistirMidiaInbound>[1],
+  job: InboundMediaJob,
+): Promise<void> {
   await persistirMidiaInbound(env, db, job);
 }

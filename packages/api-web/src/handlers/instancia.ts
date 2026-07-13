@@ -157,7 +157,10 @@ async function softDeleteDadosRelacionadosInstancia(
     .update(mensagemTemplate)
     .set(comTimestampAtualizacao(marcarExclusaoLogica()))
     .where(
-      and(eq(mensagemTemplate.instanciaId, instanciaIdInterno), isNull(mensagemTemplate.excluidoEm)),
+      and(
+        eq(mensagemTemplate.instanciaId, instanciaIdInterno),
+        isNull(mensagemTemplate.excluidoEm),
+      ),
     );
 }
 
@@ -506,10 +509,7 @@ export const instanciaHandlers = {
    * Desconecta o WhatsApp da instância.
    * Com `excluirDados`, soft-delete conversas/mensagens; sem assinatura, também remove a conexão do painel.
    */
-  desconectar: async (
-    ctx: WebContext,
-    input: { instanciaId: string; excluirDados?: boolean },
-  ) => {
+  desconectar: async (ctx: WebContext, input: { instanciaId: string; excluirDados?: boolean }) => {
     exigirAutenticacao(ctx);
     const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
     await exigirAdminPorIdInterno(ctx, row.organizacaoId);

@@ -1,9 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 
+/** Relatórios ficam na rota da organização; esta rota só redireciona. */
 export const Route = createFileRoute("/_panel/$organizacaoHash/inbox/$instanceId/relatorios/")({
-  component: RouteComponent,
+  component: RelatoriosRedirect,
 });
 
-function RouteComponent() {
-  return <div>Hello "/_panel/$organizacaoHash/relatorios/"!</div>;
+function RelatoriosRedirect() {
+  const { organizacaoHash } = Route.useParams();
+  return <Navigate to="/$organizacaoHash/relatorios" params={{ organizacaoHash }} />;
 }

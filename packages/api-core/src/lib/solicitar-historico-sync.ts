@@ -20,10 +20,7 @@ import { criarClienteEvolutionGo, type EvolutionGoEnv } from "./criar-cliente-ev
 import { getEvolutionCredentials, type EvolutionSecretsEnv } from "./evolution-env";
 
 /** Mensagem amigável quando a Evolution GO falha ao iniciar o history sync. */
-function motivoFalhaHistorySync(
-  err: unknown,
-  opts?: { jaSincronizouAntes?: boolean },
-): string {
+function motivoFalhaHistorySync(err: unknown, opts?: { jaSincronizouAntes?: boolean }): string {
   const msg = err instanceof Error ? err.message : String(err);
   const match = msg.match(/Evolution GO error \((\d+)\)/);
   const status = match ? Number(match[1]) : undefined;
@@ -98,9 +95,9 @@ export async function solicitarHistoricoSyncEvolution(
 
   const jaSincronizouAntes = Boolean(
     instancia.evo.historicoSincronizadoEm ||
-      instancia.evo.historicoSyncStatus === "completed" ||
-      instancia.evo.historicoSyncStatus === "failed" ||
-      instancia.evo.historicoSyncStatus === "running",
+    instancia.evo.historicoSyncStatus === "completed" ||
+    instancia.evo.historicoSyncStatus === "failed" ||
+    instancia.evo.historicoSyncStatus === "running",
   );
 
   const creds = await getEvolutionCredentials(env);

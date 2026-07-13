@@ -72,8 +72,7 @@ export async function persistirMidiaInbound(
 
   if (job.provider === "evo") {
     const inlineBase64 =
-      job.base64 ??
-      (typeof job.waMessage?.base64 === "string" ? job.waMessage.base64 : undefined);
+      job.base64 ?? (typeof job.waMessage?.base64 === "string" ? job.waMessage.base64 : undefined);
 
     if (inlineBase64) {
       mimeType = job.mimeType ?? "application/octet-stream";

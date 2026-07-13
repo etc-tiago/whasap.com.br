@@ -55,25 +55,14 @@ export function WaRail({ organizacaoHash }: WaRailProps) {
             <MessageCircle className="size-5" />
           </WaRailLink>
         )}
-        {instanciaInbox ? (
-          <WaRailLink
-            to="/$organizacaoHash/inbox/$instanceId/relatorios"
-            params={{ organizacaoHash, instanceId: instanciaInbox.id }}
-            title="Relatórios"
-            activeOptions={waRailLinkActiveOptionsExact}
-          >
-            <ChartArea className="size-5" />
-          </WaRailLink>
-        ) : (
-          <WaRailLink
-            to="/$organizacaoHash/relatorios"
-            params={{ organizacaoHash }}
-            title="Relatórios"
-            activeOptions={waRailLinkActiveOptionsExact}
-          >
-            <ChartArea className="size-5" />
-          </WaRailLink>
-        )}
+        <WaRailLink
+          to="/$organizacaoHash/relatorios"
+          params={{ organizacaoHash }}
+          title="Relatórios"
+          activeOptions={waRailLinkActiveOptionsExact}
+        >
+          <ChartArea className="size-5" />
+        </WaRailLink>
 
         <WaRailHistoricoSync organizacaoHash={organizacaoHash} instanciaEvo={instanciaEvo} />
 
