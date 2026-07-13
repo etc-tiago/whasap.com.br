@@ -1,4 +1,7 @@
-import { varrerInstanciasEvolutionAbandonadas } from "@whasap/api-core";
+import {
+  fecharConversasInativasGlobal,
+  varrerInstanciasEvolutionAbandonadas,
+} from "@whasap/api-core";
 import { criarDb } from "@whasap/db";
 import { garantirWorkersLogger } from "@whasap/evlog/workers";
 
@@ -8,8 +11,12 @@ async function executarVarredura(env: Env): Promise<void> {
   garantirWorkersLogger("evolutionCleanup");
   const { db, sql } = criarDb(env.HYPERDRIVE.connectionString);
   try {
-    const resultado = await varrerInstanciasEvolutionAbandonadas(db, env);
-    console.info("[whasap-evolution-cleanup] varredura abandonadas", resultado);
+    const [abandonadas, inativas] = await Promise.all([
+      varrerInstanciasEvolutionAbandonadas(db, env),
+      fecharConversasInativasGlobal(db),
+    ]);
+    console.info("[whasap-evolution-cleanup] varredura abandonadas", abandonadas);
+    console.info("[whasap-evolution-cleanup] auto-fechar inativas", inativas);
   } finally {
     await sql.end({ timeout: 5 });
   }

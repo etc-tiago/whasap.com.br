@@ -78,8 +78,8 @@ function LegalPage() {
             </p>
             <p>
               O acesso ao painel é liberado desde o início da adesão. Não há período grátis
-              garantido nem trial de produto: o uso do serviço está sujeito à cobrança conforme
-              este termo.
+              garantido nem trial de produto: o uso do serviço está sujeito à cobrança conforme este
+              termo.
             </p>
             <p>
               Após mais de 3 (três) dias de uso da organização, será gerado boleto por uso, com

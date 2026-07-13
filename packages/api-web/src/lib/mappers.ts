@@ -26,6 +26,7 @@ export function toOrganizacaoOutput(
     | "telefoneWhatsapp"
     | "aceiteAdesaoEm"
     | "aceiteAdesaoVersao"
+    | "horasAutoFecharInatividade"
   >,
 ) {
   return {
@@ -38,6 +39,7 @@ export function toOrganizacaoOutput(
     telefoneWhatsapp: org.telefoneWhatsapp,
     aceiteAdesaoEm: org.aceiteAdesaoEm?.toISOString() ?? null,
     aceiteAdesaoVersao: org.aceiteAdesaoVersao,
+    horasAutoFecharInatividade: org.horasAutoFecharInatividade ?? "72",
   };
 }
 

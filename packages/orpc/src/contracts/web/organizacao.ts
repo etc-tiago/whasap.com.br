@@ -17,11 +17,14 @@ const documentoCnpjSchema = z
 const telefoneWhatsappSchema = z
   .string()
   .min(10)
-  .refine((v) => {
-    const d = v.replace(/\D/g, "");
-    if (d.startsWith("55") && (d.length === 12 || d.length === 13)) return true;
-    return d.length === 10 || d.length === 11;
-  }, { message: "WhatsApp inválido" });
+  .refine(
+    (v) => {
+      const d = v.replace(/\D/g, "");
+      if (d.startsWith("55") && (d.length === 12 || d.length === 13)) return true;
+      return d.length === 10 || d.length === 11;
+    },
+    { message: "WhatsApp inválido" },
+  );
 
 export const organizacaoContract = {
   lista: oc.output(z.array(organizacaoSchema)),
@@ -52,6 +55,10 @@ export const organizacaoContract = {
         tipoDocumento: z.literal("cnpj").optional(),
         razaoSocial: z.string().min(2).optional(),
         telefoneWhatsapp: telefoneWhatsappSchema.optional(),
+        horasAutoFecharInatividade: z
+          .string()
+          .regex(/^\d+$/, "Informe um número inteiro de horas")
+          .optional(),
       }),
     )
     .output(organizacaoSchema),

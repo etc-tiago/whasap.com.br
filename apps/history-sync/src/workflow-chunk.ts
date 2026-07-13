@@ -23,11 +23,7 @@ import { colunasInstanciaEvo, colunasInstanciaWebhook, criarDb, instancia } from
 import { and, eq, isNull } from "drizzle-orm";
 
 import type { Env, HistorySyncQueueMessage } from "./env";
-import {
-  chaveR2MidiaJobsLote,
-  marcarFalha,
-  persistirMidiasLoteUnico,
-} from "./helpers";
+import { chaveR2MidiaJobsLote, marcarFalha, persistirMidiasLoteUnico } from "./helpers";
 
 type InstanciaWorkflow = {
   id: number;
@@ -155,42 +151,38 @@ export class HistorySyncChunkWorkflow extends WorkflowEntrypoint<Env, HistorySyn
       let midiasFalhas = 0;
 
       while (offset < plano.totalMensagens) {
-        const ingest = await step.do(
-          `ingerir-lote-${loteIdx}`,
-          RETRY_INGEST,
-          async () => {
-            const object = await this.env.R2.get(r2Key);
-            if (!object) throw new NonRetryableError(`Chunk R2 ausente: ${r2Key}`);
-            const data = (await object.json()) as Record<string, unknown>;
-            const { db, sql } = criarDb(this.env.HYPERDRIVE.connectionString);
-            try {
-              const lote = await processarHistorySyncChunkLote(db, instanciaCtx, data, {
-                offset,
-                limit: HISTORY_SYNC_INGEST_LOTE_TAMANHO,
+        const ingest = await step.do(`ingerir-lote-${loteIdx}`, RETRY_INGEST, async () => {
+          const object = await this.env.R2.get(r2Key);
+          if (!object) throw new NonRetryableError(`Chunk R2 ausente: ${r2Key}`);
+          const data = (await object.json()) as Record<string, unknown>;
+          const { db, sql } = criarDb(this.env.HYPERDRIVE.connectionString);
+          try {
+            const lote = await processarHistorySyncChunkLote(db, instanciaCtx, data, {
+              offset,
+              limit: HISTORY_SYNC_INGEST_LOTE_TAMANHO,
+            });
+
+            let midiaJobsKey: string | null = null;
+            const midiaLotes = contarLotesMidia(lote.midiaJobs.length);
+            if (lote.midiaJobs.length > 0) {
+              midiaJobsKey = chaveR2MidiaJobsLote(r2Key, loteIdx);
+              await this.env.R2.put(midiaJobsKey, JSON.stringify(lote.midiaJobs), {
+                httpMetadata: { contentType: "application/json" },
               });
-
-              let midiaJobsKey: string | null = null;
-              const midiaLotes = contarLotesMidia(lote.midiaJobs.length);
-              if (lote.midiaJobs.length > 0) {
-                midiaJobsKey = chaveR2MidiaJobsLote(r2Key, loteIdx);
-                await this.env.R2.put(midiaJobsKey, JSON.stringify(lote.midiaJobs), {
-                  httpMetadata: { contentType: "application/json" },
-                });
-              }
-
-              return {
-                processadas: lote.processadas,
-                offsetProximo: lote.offsetProximo,
-                esgotado: lote.esgotado,
-                midiaJobsCount: lote.midiaJobs.length,
-                midiaJobsKey,
-                midiaLotes,
-              };
-            } finally {
-              await sql.end({ timeout: 5 });
             }
-          },
-        );
+
+            return {
+              processadas: lote.processadas,
+              offsetProximo: lote.offsetProximo,
+              esgotado: lote.esgotado,
+              midiaJobsCount: lote.midiaJobs.length,
+              midiaJobsKey,
+              midiaLotes,
+            };
+          } finally {
+            await sql.end({ timeout: 5 });
+          }
+        });
 
         midiaJobsCount += ingest.midiaJobsCount;
 

@@ -89,6 +89,11 @@ export {
   type IngerirMensagemParams,
 } from "./lib/ingestao-mensagem";
 export {
+  fecharConversasInativasGlobal,
+  filtroConversasInativas,
+  limiteInatividadeConversa,
+} from "./lib/fechar-conversas-inativas";
+export {
   atualizarProgressoHistoricoSync,
   concluirHistoricosSyncOciosos,
   contarLotesMidia,

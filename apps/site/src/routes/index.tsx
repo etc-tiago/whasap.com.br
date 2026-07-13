@@ -365,8 +365,8 @@ function LandingPage() {
                 Comece agora — boleto por uso após 3 dias
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Painel liberado desde o início. Após mais de 3 dias de uso, emitimos boleto por
-                uso (rateio mensal). Simule acima ou fale com nossa equipe.
+                Painel liberado desde o início. Após mais de 3 dias de uso, emitimos boleto por uso
+                (rateio mensal). Simule acima ou fale com nossa equipe.
               </p>
             </div>
             <Button asChild size="lg" className="bg-wa-green text-white hover:bg-wa-green-dark">

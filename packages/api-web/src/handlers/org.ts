@@ -1,4 +1,11 @@
-import { badRequest, forbidden, notFound, sendInviteEmail, slugify, verificarOtp } from "@whasap/api-core";
+import {
+  badRequest,
+  forbidden,
+  notFound,
+  sendInviteEmail,
+  slugify,
+  verificarOtp,
+} from "@whasap/api-core";
 import {
   cnpjValido,
   mvpDefaults,
@@ -130,6 +137,7 @@ export const organizacaoHandlers = {
       tipoDocumento?: "cnpj";
       razaoSocial?: string;
       telefoneWhatsapp?: string;
+      horasAutoFecharInatividade?: string;
     },
   ) => {
     await exigirAdmin(ctx, input.organizacaoHash);
@@ -146,6 +154,12 @@ export const organizacaoHandlers = {
       if (!telefoneWhatsappBrValido(input.telefoneWhatsapp)) badRequest("WhatsApp inválido");
       telefoneWhatsapp = normalizarTelefoneWhatsappBr(input.telefoneWhatsapp);
     }
+    if (input.horasAutoFecharInatividade !== undefined) {
+      const horas = Number.parseInt(input.horasAutoFecharInatividade, 10);
+      if (!Number.isFinite(horas) || horas < 1 || horas > 8760) {
+        badRequest("Horas de auto-fechar deve ser entre 1 e 8760");
+      }
+    }
 
     const [org] = await ctx.db
       .update(organizacao)
@@ -156,6 +170,7 @@ export const organizacaoHandlers = {
           tipoDocumento: input.tipoDocumento,
           razaoSocial: input.razaoSocial,
           telefoneWhatsapp,
+          horasAutoFecharInatividade: input.horasAutoFecharInatividade,
         }),
       )
       .where(and(eq(organizacao.uuid, input.organizacaoHash), isNull(organizacao.excluidoEm)))

@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { isEvoProvider } from "@whasap/config";
-import { cn } from "@whasap/ui/lib/utils";
-import { ChartArea, MessageCircle, Settings, Users } from "lucide-react";
-import type { ReactNode } from "react";
+import { ChartArea, MessageCircle, Settings, Users, Zap } from "lucide-react";
 
 import { WaRailHistoricoSync } from "@/components/inbox/wa-rail-historico-sync";
 import { WaRailLink, waRailLinkActiveOptionsExact } from "@/components/inbox/wa-rail-link";
@@ -28,7 +26,10 @@ export function WaRail({ organizacaoHash }: WaRailProps) {
 
   const instanciaInbox = instancias.data?.find((i) => instanciaOperacional(i.status));
   const instanciaEvo =
-    instancias.data?.find((i) => isEvoProvider(i.provider) && i.status === "connected") ?? null;
+    instancias.data?.find(
+      (i) =>
+        isEvoProvider(i.provider) && (i.status === "connected" || i.status === "pending_payment"),
+    ) ?? null;
 
   return (
     <aside className="hidden w-14 shrink-0 flex-col items-center justify-between border-r border-wa-divider bg-wa-sidebar py-3 md:flex">
@@ -72,13 +73,9 @@ export function WaRail({ organizacaoHash }: WaRailProps) {
           <Users className="size-5" />
         </WaRailLink>
 
-        <RailButton
-          icon={
-            <div className="size-5 rounded-full bg-linear-to-br from-[oklch(0.7_0.2_300)] to-[oklch(0.6_0.2_260)]" />
-          }
-          disabled
-          label="Canais"
-        />
+        <WaRailLink to="/$organizacaoHash/acoes" params={{ organizacaoHash }} title="Ações">
+          <Zap className="size-5" />
+        </WaRailLink>
       </div>
       <div className="flex flex-col items-center gap-1">
         <WaRailTheme />
@@ -88,40 +85,5 @@ export function WaRail({ organizacaoHash }: WaRailProps) {
         <WaRailProfile />
       </div>
     </aside>
-  );
-}
-
-function RailButton({
-  icon,
-  active,
-  badge,
-  disabled,
-  label,
-}: {
-  icon: ReactNode;
-  active?: boolean;
-  badge?: string;
-  disabled?: boolean;
-  label?: string;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      aria-label={label}
-      className={cn(
-        "relative flex h-11 w-11 items-center justify-center rounded-lg transition-colors",
-        active
-          ? "bg-wa-chip-active text-wa-green-dark"
-          : "text-wa-icon hover:bg-wa-hover disabled:cursor-not-allowed disabled:opacity-50",
-      )}
-    >
-      {icon}
-      {badge ? (
-        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-wa-badge px-1 text-[10px] font-bold text-white">
-          {badge}
-        </span>
-      ) : null}
-    </button>
   );
 }

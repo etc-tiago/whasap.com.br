@@ -134,6 +134,7 @@ export function mapearSessaoParaSaida(
     | "telefoneWhatsapp"
     | "aceiteAdesaoEm"
     | "aceiteAdesaoVersao"
+    | "horasAutoFecharInatividade"
   > | null,
 ) {
   if (!ctx.usuario) {

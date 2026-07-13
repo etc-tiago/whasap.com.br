@@ -53,18 +53,10 @@ import {
 } from "../lib/evolution-debug";
 import { toInstanciaOutput } from "../lib/mappers";
 import type { WebContext, WebEnv } from "../types";
-import {
-  exigirAdminPorIdInterno,
-  exigirAutenticacao,
-  exigirOrganizacaoPorIdInterno,
-} from "./auth";
+import { exigirAdminPorIdInterno, exigirAutenticacao, exigirOrganizacaoPorIdInterno } from "./auth";
 
 /** Marca instância como conectada após pareamento ou configuração Cloud. */
-async function marcarConectada(
-  ctx: WebContext,
-  instanciaIdInterno: number,
-  orgIdInterno: number,
-) {
+async function marcarConectada(ctx: WebContext, instanciaIdInterno: number, orgIdInterno: number) {
   await marcarInstanciaConectadaEvolution(ctx.db, { instanciaIdInterno, orgIdInterno });
 }
 

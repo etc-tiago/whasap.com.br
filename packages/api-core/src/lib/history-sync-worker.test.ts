@@ -11,7 +11,11 @@ import {
 
 /** Espelha apps/history-sync/src/helpers.ts — evita importar Worker no vitest do pacote. */
 function idWorkflowHistorySyncChunk(r2Key: string): string {
-  const base = r2Key.split("/").pop()?.replace(/\.json$/i, "") ?? "x";
+  const base =
+    r2Key
+      .split("/")
+      .pop()
+      ?.replace(/\.json$/i, "") ?? "x";
   return `hs-${base}`.slice(0, 100);
 }
 
@@ -72,8 +76,7 @@ async function simularPersistirMidiasEmLotes(
 
 describe("worker history-sync — fila → workflow", () => {
   it("1) ID do workflow e estavel a partir do r2Key", () => {
-    const key =
-      "historico-sync/847c01d8-e12b-421d-8e81-7ab8c8844072/2026-07-13/abc-def.json";
+    const key = "historico-sync/847c01d8-e12b-421d-8e81-7ab8c8844072/2026-07-13/abc-def.json";
     expect(idWorkflowHistorySyncChunk(key)).toBe("hs-abc-def");
     expect(idWorkflowHistorySyncChunk(key)).toBe(idWorkflowHistorySyncChunk(key));
   });

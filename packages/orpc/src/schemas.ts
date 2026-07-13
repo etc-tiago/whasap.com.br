@@ -44,6 +44,8 @@ export const organizacaoSchema = z.object({
   telefoneWhatsapp: z.string().nullable(),
   aceiteAdesaoEm: z.string().datetime().nullable(),
   aceiteAdesaoVersao: z.string().nullable(),
+  /** Horas sem mensagem antes do auto-fechar (texto numérico, default "72"). */
+  horasAutoFecharInatividade: z.string(),
 });
 
 export const organizacaoComPapelSchema = organizacaoSchema.extend({
