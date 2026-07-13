@@ -79,44 +79,41 @@ function AjustesIndexPage() {
           )}
         </CardContent>
       </Card>
-      {org.data?.meuPapel === "admin" && organizacaoHash && instanciasSemAssinatura.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Configurar pagamento</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <p className="text-muted-foreground">
-              Cadastre PIX ou cartão para continuar após os 3 dias de demonstração gratuita.
-            </p>
-            {instanciasSemAssinatura.map((inst) => (
-              <div
-                key={inst.id}
-                className="flex items-center justify-between gap-2 rounded-lg border p-3"
-              >
-                <span className="font-medium">{inst.nome}</span>
-                <Button
-                  size="sm"
-                  onClick={() => setPagamentoInstancia({ id: inst.id, nome: inst.nome })}
-                >
-                  Configurar
-                </Button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
       {org.data?.meuPapel === "admin" && organizacaoHash && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Cobrança (Asaas)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
+            {instanciasSemAssinatura.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-muted-foreground">
+                  Cadastre PIX ou cartão para continuar após os 3 dias de demonstração gratuita.
+                </p>
+                {instanciasSemAssinatura.map((inst) => (
+                  <div
+                    key={inst.id}
+                    className="flex items-center justify-between gap-2 rounded-lg border p-3"
+                  >
+                    <span className="font-medium">{inst.nome}</span>
+                    <Button
+                      size="sm"
+                      onClick={() => setPagamentoInstancia({ id: inst.id, nome: inst.nome })}
+                    >
+                      Configurar pagamento
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
             {assinaturas.isLoading && (
               <p className="text-muted-foreground">Carregando assinaturas...</p>
             )}
-            {assinaturas.data?.assinaturas.length === 0 && (
-              <p className="text-muted-foreground">Nenhuma assinatura ativa.</p>
-            )}
+            {!assinaturas.isLoading &&
+              (assinaturas.data?.assinaturas.length ?? 0) === 0 &&
+              instanciasSemAssinatura.length === 0 && (
+                <p className="text-muted-foreground">Nenhuma assinatura ativa.</p>
+              )}
             {assinaturas.data?.assinaturas.map((item) => (
               <div key={item.instanciaId} className="space-y-2 rounded-lg border p-3">
                 <div className="flex items-start justify-between gap-2">

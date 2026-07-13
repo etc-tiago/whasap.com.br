@@ -31,7 +31,7 @@ export function DemonstracaoBanner({ demonstracao, isAdmin, instanciaId, instanc
     <>
       <div
         className={cn(
-          "flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 text-sm",
+          "flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-sm",
           isBloqueado
             ? "border-destructive/30 bg-destructive/10 text-destructive"
             : "border-wa-green/30 bg-wa-green/10 text-wa-green-dark",

@@ -34,12 +34,6 @@ export function PanelShell({
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden bg-wa-bg">
       {comWallpaper && <WaBackdrop />}
-      <DemonstracaoBanner
-        demonstracao={organizacao.demonstracao}
-        isAdmin={organizacao.meuPapel === "admin"}
-        instanciaId={instanciaPagamento?.id ?? null}
-        instanciaNome={instanciaPagamento?.nome ?? null}
-      />
       <main className="relative min-h-0 flex-1 overflow-hidden">
         {children ?? <Outlet />}
         <DemonstracaoLockout
@@ -47,6 +41,12 @@ export function PanelShell({
           isAdmin={organizacao.meuPapel === "admin"}
         />
       </main>
+      <DemonstracaoBanner
+        demonstracao={organizacao.demonstracao}
+        isAdmin={organizacao.meuPapel === "admin"}
+        instanciaId={instanciaPagamento?.id ?? null}
+        instanciaNome={instanciaPagamento?.nome ?? null}
+      />
     </div>
   );
 }

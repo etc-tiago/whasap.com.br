@@ -31,7 +31,7 @@ export function DemonstracaoLockout({ demonstracao, isAdmin }: Props) {
         </p>
         {isAdmin && (
           <p className="text-xs text-muted-foreground">
-            Use o botão &quot;Configurar pagamento&quot; na faixa vermelha acima.
+            Use o botão &quot;Configurar pagamento&quot; na faixa vermelha no rodapé.
           </p>
         )}
       </div>
