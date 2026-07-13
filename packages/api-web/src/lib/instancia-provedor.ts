@@ -13,6 +13,7 @@ export type InstanciaComProvedor = Pick<
   | "asaasIdAssinatura"
   | "trialTerminaEm"
   | "conectadoEm"
+  | "sessaoRemotaLiberadaEm"
   | "criadoEm"
   | "tentativasProvisionamento"
 > & {

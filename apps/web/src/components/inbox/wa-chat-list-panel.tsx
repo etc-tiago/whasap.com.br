@@ -11,6 +11,8 @@ import {
 const FILTROS = ["Tudo", "Não lidas", "Favoritas", "Grupos"] as const;
 export type FiltroConversa = (typeof FILTROS)[number];
 
+const INSTANCIAS_VAZIAS: InstanciaNovaConversa[] = [];
+
 type WaChatListPanelProps = {
   busca: string;
   onBuscaChange: (value: string) => void;
@@ -34,7 +36,7 @@ export function WaChatListPanel({
   onFiltroChange,
   children,
   mobileHidden,
-  instancias = [],
+  instancias = INSTANCIAS_VAZIAS,
   instanciaPadraoId,
   organizacaoHash,
   podeIniciarConversa,

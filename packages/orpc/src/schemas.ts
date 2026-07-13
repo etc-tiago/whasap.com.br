@@ -78,6 +78,8 @@ export const instanciaSchema = z.object({
   cloudPhoneNumberId: z.string().nullable(),
   trialEndsAt: z.string().datetime().nullable(),
   connectedAt: z.string().datetime().nullable(),
+  /** Cleanup liberou a sessão Evolution; painel mantém a row para reconectar. */
+  sessaoRemotaLiberadaEm: z.string().datetime().nullable(),
   criadoEm: z.string().datetime(),
   evoHistoricoSincronizadoEm: z.string().datetime().nullable().optional(),
   evoHistoricoSincronizandoEm: z.string().datetime().nullable().optional(),

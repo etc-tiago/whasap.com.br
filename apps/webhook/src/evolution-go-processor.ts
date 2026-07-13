@@ -29,8 +29,8 @@ import {
   indiceWhatsappParaCorPainel,
   jidParaIdExterno,
   jidParaTelefone,
-  parseConnectionUpdateWebhook,
   parseGoButtonClick,
+  parseGoConnectionLifecycleEvent,
   parseGoHistorySyncChunk,
   parseGoLabelAssociation,
   parseGoMessageEvent,
@@ -521,9 +521,13 @@ export async function processEvolutionGoWebhook(
     return;
   }
 
-  if (event === "connection.update" || event === "Disconnected") {
-    const estado =
-      event === "Disconnected" ? "close" : parseConnectionUpdateWebhook(payload as never);
+  if (
+    event === "connection.update" ||
+    event === "Disconnected" ||
+    event === "Connected" ||
+    event === "LoggedOut"
+  ) {
+    const estado = parseGoConnectionLifecycleEvent(payload as never);
     if (estado === "open") {
       await marcarConectadaEPedirHistorico(db, env, instance);
     } else if (estado === "close") {

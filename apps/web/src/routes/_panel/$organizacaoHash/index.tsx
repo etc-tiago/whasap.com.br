@@ -168,7 +168,7 @@ function HomePage() {
                           params={{ organizacaoHash }}
                           search={{ instance: inst.id, step: "", modo: "" }}
                         >
-                          Reconectar
+                          {inst.sessaoRemotaLiberadaEm ? "Configurar novamente" : "Reconectar"}
                         </Link>
                       </Button>
                     </CardContent>

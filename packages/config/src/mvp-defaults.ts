@@ -42,8 +42,13 @@ export const mvpDefaults = {
     redisPerContainer: true,
     provisionMaxRetries: 3,
     webhookPath: "/evo",
-    /** Instância não operacional há mais que isto entra no sweep do evolution-cleanup. */
+    /** Never-paired (`conectadoEm` null): timeout para liberar sessão remota no cleanup. */
     abandonedAfterMinutes: 30,
+    /**
+     * Já usou e caiu (`conectadoEm` setado): dias com sessão Evolution intacta
+     * antes de `deleteInstance` + `sessaoRemotaLiberadaEm` (sem soft-delete do painel).
+     */
+    abandonedAfterUseDays: 5,
   },
   inbox: {
     autoCloseInactivityHours: 72,

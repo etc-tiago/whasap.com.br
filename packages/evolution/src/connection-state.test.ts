@@ -1,12 +1,24 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import {
   parseConnectionUpdateWebhook,
+  parseGoConnectedEvent,
+  parseGoConnectionLifecycleEvent,
   parseGoConnectionState,
   parseGoDisconnectedEvent,
+  parseGoLoggedOutEvent,
   parseGoQrResponse,
   type EvolutionGoStatusResponse,
 } from "./connection-state";
+
+function payloadDeFixture(nome: string): Record<string, unknown> {
+  const envelope = JSON.parse(
+    readFileSync(join(import.meta.dirname, "fixtures/webhooks/evo", nome), "utf8"),
+  ) as { raw: string };
+  return JSON.parse(envelope.raw) as Record<string, unknown>;
+}
 
 describe("parseGoConnectionState", () => {
   it("mantém strings Baileys", () => {
@@ -88,6 +100,36 @@ describe("parseGoDisconnectedEvent", () => {
   it("ignora outros eventos", () => {
     expect(parseGoDisconnectedEvent({ event: "PairSuccess" })).toBeNull();
     expect(parseGoDisconnectedEvent({ event: "connection.update" })).toBeNull();
+  });
+});
+
+describe("parseGoConnectedEvent / LoggedOut / lifecycle (fixtures R2)", () => {
+  it("Connected fixture → open", () => {
+    const payload = payloadDeFixture("connected.json");
+    expect(parseGoConnectedEvent(payload as never)).toBe("open");
+    expect(parseGoConnectionLifecycleEvent(payload as never)).toBe("open");
+  });
+
+  it("LoggedOut fixture → close", () => {
+    const payload = payloadDeFixture("logged-out.json");
+    expect(parseGoLoggedOutEvent(payload)).toBe("close");
+    expect(parseGoConnectionLifecycleEvent(payload as never)).toBe("close");
+  });
+
+  it("Disconnected fixture → close", () => {
+    const payload = payloadDeFixture("disconnected.json");
+    expect(parseGoDisconnectedEvent(payload)).toBe("close");
+    expect(parseGoConnectionLifecycleEvent(payload as never)).toBe("close");
+  });
+
+  it("flap Disconnected→Connected restaura open", () => {
+    expect(parseGoConnectionLifecycleEvent({ event: "Disconnected", data: {} })).toBe("close");
+    expect(
+      parseGoConnectionLifecycleEvent({
+        event: "Connected",
+        data: { status: "open", jid: "554688043494:73@s.whatsapp.net" },
+      }),
+    ).toBe("open");
   });
 });
 

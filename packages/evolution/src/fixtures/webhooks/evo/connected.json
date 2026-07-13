@@ -1,0 +1,7 @@
+{
+  "receivedAt": "2026-07-13T07:05:26.298Z",
+  "meta": {
+    "source": "evo"
+  },
+  "raw": "{\"data\":{\"jid\":\"554688043494:73@s.whatsapp.net\",\"pushName\":\"Tiago\",\"status\":\"open\"},\"event\":\"Connected\",\"instanceId\":\"1def62f8-e639-4a99-b439-706295f61a1d\",\"instanceName\":\"whasap-1def62f8\",\"instanceToken\":\"redacted\"}"
+}

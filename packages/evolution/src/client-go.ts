@@ -362,7 +362,11 @@ export function parseGoCreateResponse(res: EvolutionGoCreateResponse) {
 
 export {
   parseConnectionUpdateWebhook,
+  parseGoConnectedEvent,
+  parseGoConnectionLifecycleEvent,
   parseGoConnectionState,
+  parseGoDisconnectedEvent,
+  parseGoLoggedOutEvent,
   parseGoQrResponse,
 } from "./connection-state";
 

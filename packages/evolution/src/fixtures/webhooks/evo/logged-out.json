@@ -1,0 +1,7 @@
+{
+  "receivedAt": "2026-07-13T07:45:08.958Z",
+  "meta": {
+    "source": "evo"
+  },
+  "raw": "{\"data\":{\"reason\":\"Logged out\"},\"event\":\"LoggedOut\",\"instanceId\":\"1def62f8-e639-4a99-b439-706295f61a1d\",\"instanceName\":\"whasap-1def62f8\",\"instanceToken\":\"redacted\"}"
+}

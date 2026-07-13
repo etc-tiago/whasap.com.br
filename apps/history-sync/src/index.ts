@@ -20,9 +20,18 @@ import type { Env, HistorySyncQueueMessage } from "./env";
 
 const CONCORRENCIA_MIDIA = 4;
 
-async function persistirMidiasEmLotes(env: Env, db: ReturnType<typeof criarDb>["db"], jobs: JobMidiaInbound[]) {
+async function persistirMidiasEmLotes(
+  env: Env,
+  db: ReturnType<typeof criarDb>["db"],
+  jobs: JobMidiaInbound[],
+) {
+  const lotes: JobMidiaInbound[][] = [];
   for (let i = 0; i < jobs.length; i += CONCORRENCIA_MIDIA) {
-    const lote = jobs.slice(i, i + CONCORRENCIA_MIDIA);
+    lotes.push(jobs.slice(i, i + CONCORRENCIA_MIDIA));
+  }
+
+  await lotes.reduce<Promise<void>>(async (prev, lote) => {
+    await prev;
     const resultados = await Promise.allSettled(
       lote.map((job) => persistirMidiaInbound(env, db, job)),
     );
@@ -35,7 +44,7 @@ async function persistirMidiasEmLotes(env: Env, db: ReturnType<typeof criarDb>["
         });
       }
     }
-  }
+  }, Promise.resolve());
 }
 
 async function processarMensagem(env: Env, msg: HistorySyncQueueMessage): Promise<void> {

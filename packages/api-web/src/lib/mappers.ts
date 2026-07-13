@@ -69,6 +69,7 @@ export function toInstanciaOutput(instance: InstanciaComProvedor, organizacaoUui
     cloudPhoneNumberId: instance.metaCloud?.phoneNumberId ?? null,
     trialEndsAt: instance.trialTerminaEm?.toISOString() ?? null,
     connectedAt: instance.conectadoEm?.toISOString() ?? null,
+    sessaoRemotaLiberadaEm: instance.sessaoRemotaLiberadaEm?.toISOString() ?? null,
     criadoEm: instance.criadoEm.toISOString(),
     evoHistoricoSincronizadoEm: instance.evo?.historicoSincronizadoEm?.toISOString() ?? null,
     evoHistoricoSincronizandoEm: instance.evo?.historicoSincronizandoEm?.toISOString() ?? null,

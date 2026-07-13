@@ -2,17 +2,16 @@ import { mvpDefaults } from "@whasap/config";
 import {
   colunasInstanciaEvo,
   comTimestampAtualizacao,
-  comTimestampsCriacao,
   instancia,
-  instanciaAddon,
   instanciaEvo,
-  marcarExclusaoLogica,
   type Db,
 } from "@whasap/db";
+import { parseGoConnectionState } from "@whasap/evolution";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import { criarClienteEvolutionGo, type EvolutionGoEnv } from "./criar-cliente-evolution-go";
 import { getEvolutionCredentials, type EvolutionSecretsEnv } from "./evolution-env";
+import { marcarInstanciaConectadaEvolution } from "./instancia-evolution";
 
 export const STATUS_SWEEP_EVOLUTION = [
   "pending_connection",
@@ -52,45 +51,77 @@ export type InstanciaEvolutionAbandonadaRow = {
 
 export type EnvDescarteEvolution = EvolutionSecretsEnv & EvolutionGoEnv;
 
-export type ResultadoDescarteEvolution = {
+/** @deprecated Preferir `ResultadoLiberacaoEvolution`. */
+export type ResultadoDescarteEvolution = ResultadoLiberacaoEvolution;
+
+export type ResultadoLiberacaoEvolution = {
   instanciaId: number;
   uuid: string;
-  reincarnadaId: number | null;
+  /** True quando getStatus remoto ainda estava open e a row foi remarcada connected. */
+  remarcadaConnected: boolean;
 };
 
 export type ResultadoVarreduraEvolution = {
   candidatas: number;
-  descartadas: number;
+  liberadas: number;
   falhas: number;
+  remarcadasConnected: number;
 };
 
 /**
  * Momento de referência para o timeout de abandono.
- * - `disconnected`: `desconectadoEm` (fallback `atualizadoEm` para rows legados)
- * - `pending_connection` / `provisioning` sem conexão: `criadoEm`
- * - mesmos status após ter conectado (ex.: pós-encerrarPareamento): `atualizadoEm`
+ * - never-paired (`conectadoEm` null): `criadoEm` (pending/provisioning) ou `desconectadoEm`/`atualizadoEm` (disconnected)
+ * - já usou + `disconnected`: `desconectadoEm` (fallback `atualizadoEm`)
+ * - já usou + pending/provisioning (ex. pós-encerrarPareamento): `atualizadoEm`
  */
 export function resolverReferenciaAbandonoEvolution(
   row: InstanciaParaCriterioAbandono,
 ): Date | null {
+  if (row.conectadoEm == null) {
+    if (row.status === "pending_connection" || row.status === "provisioning") {
+      return row.criadoEm;
+    }
+    if (row.status === "disconnected") {
+      return row.desconectadoEm ?? row.atualizadoEm;
+    }
+    return null;
+  }
+
   if (row.status === "disconnected") {
     return row.desconectadoEm ?? row.atualizadoEm;
   }
   if (row.status === "pending_connection" || row.status === "provisioning") {
-    return row.conectadoEm == null ? row.criadoEm : row.atualizadoEm;
+    return row.atualizadoEm;
   }
   return null;
 }
 
-/** True se a instância está fora do status operacional há pelo menos `abandonedAfterMinutes`. */
+/**
+ * Timeout em ms: never-paired → `abandonedAfterMinutes`; já usou → `abandonedAfterUseDays`.
+ */
+export function resolverTimeoutAbandonoMs(
+  row: InstanciaParaCriterioAbandono,
+  abandonedAfterMinutes: number = mvpDefaults.evolution.abandonedAfterMinutes,
+  abandonedAfterUseDays: number = mvpDefaults.evolution.abandonedAfterUseDays,
+): number | null {
+  if (resolverReferenciaAbandonoEvolution(row) == null) return null;
+  if (row.conectadoEm == null) {
+    return abandonedAfterMinutes * 60_000;
+  }
+  return abandonedAfterUseDays * 24 * 60 * 60_000;
+}
+
+/** True se a instância está fora do status operacional além do timeout da política aplicável. */
 export function instanciaEvolutionEstaAbandonada(
   row: InstanciaParaCriterioAbandono,
   agora: Date,
   abandonedAfterMinutes: number = mvpDefaults.evolution.abandonedAfterMinutes,
+  abandonedAfterUseDays: number = mvpDefaults.evolution.abandonedAfterUseDays,
 ): boolean {
   const referencia = resolverReferenciaAbandonoEvolution(row);
-  if (!referencia) return false;
-  return agora.getTime() - referencia.getTime() >= abandonedAfterMinutes * 60_000;
+  const timeoutMs = resolverTimeoutAbandonoMs(row, abandonedAfterMinutes, abandonedAfterUseDays);
+  if (!referencia || timeoutMs == null) return false;
+  return agora.getTime() - referencia.getTime() >= timeoutMs;
 }
 
 async function limparSessaoEvolutionRemota(
@@ -122,16 +153,56 @@ async function limparSessaoEvolutionRemota(
 }
 
 /**
- * Soft-delete da instância Evolution abandonada + limpeza no provedor.
- * Com assinatura Asaas: transfere o slot para uma nova `pending_connection` (e move addons).
+ * Se a sessão remota ainda está open, remarca connected e aborta a liberação.
+ * @returns true se remarcou (não liberar).
  */
-export async function descartarInstanciaEvolutionAbandonada(
+async function tentarRemarcarSeAindaConectada(
   db: Db,
   env: EnvDescarteEvolution,
   row: InstanciaEvolutionAbandonadaRow,
-): Promise<ResultadoDescarteEvolution> {
+): Promise<boolean> {
+  if (!row.evo?.token) return false;
+
+  try {
+    const creds = await getEvolutionCredentials(env);
+    const client = criarClienteEvolutionGo(
+      env,
+      creds,
+      { instanceToken: row.evo.token },
+      { origem: "evolution_cleanup", instanciaUuid: row.uuid },
+    );
+    const statusBruto = await client.getStatus();
+    if (parseGoConnectionState(statusBruto) !== "open") return false;
+
+    await marcarInstanciaConectadaEvolution(db, {
+      instanciaIdInterno: row.id,
+      orgIdInterno: row.organizacaoId,
+      asaasIdAssinatura: row.asaasIdAssinatura,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Libera sessão Evolution abandonada: delete remoto + zera creds operacionais +
+ * `sessaoRemotaLiberadaEm`. Não soft-delete e não reincarna row.
+ * Preserva `historicoSincronizadoEm` e demais metadados de sync em `instancia_evo`.
+ */
+export async function liberarSessaoEvolutionAbandonada(
+  db: Db,
+  env: EnvDescarteEvolution,
+  row: InstanciaEvolutionAbandonadaRow,
+): Promise<ResultadoLiberacaoEvolution> {
+  const remarcada = await tentarRemarcarSeAindaConectada(db, env, row);
+  if (remarcada) {
+    return { instanciaId: row.id, uuid: row.uuid, remarcadaConnected: true };
+  }
+
   await limparSessaoEvolutionRemota(env, row);
 
+  // Só zera credenciais operacionais — não toca historicoSincronizadoEm / sync status.
   await db
     .update(instanciaEvo)
     .set(
@@ -143,48 +214,35 @@ export async function descartarInstanciaEvolutionAbandonada(
     )
     .where(eq(instanciaEvo.instanciaId, row.id));
 
-  const asaasIdAssinatura = row.asaasIdAssinatura;
-  let reincarnadaId: number | null = null;
+  const statusPainel =
+    row.conectadoEm == null ? ("pending_connection" as const) : ("disconnected" as const);
 
-  if (asaasIdAssinatura) {
-    await db
-      .update(instancia)
-      .set(comTimestampAtualizacao({ asaasIdAssinatura: null }))
-      .where(eq(instancia.id, row.id));
+  await db
+    .update(instancia)
+    .set(
+      comTimestampAtualizacao({
+        status: statusPainel,
+        sessaoRemotaLiberadaEm: new Date(),
+      }),
+    )
+    .where(eq(instancia.id, row.id));
 
-    await db.update(instancia).set(marcarExclusaoLogica()).where(eq(instancia.id, row.id));
-
-    const [nova] = await db
-      .insert(instancia)
-      .values(
-        comTimestampsCriacao({
-          organizacaoId: row.organizacaoId,
-          nome: row.nome,
-          provedor: "evo" as const,
-          status: "pending_connection" as const,
-          asaasIdAssinatura,
-          limiteConversas: row.limiteConversas,
-          trialTerminaEm: row.trialTerminaEm,
-        }),
-      )
-      .returning({ id: instancia.id });
-
-    reincarnadaId = nova?.id ?? null;
-
-    if (reincarnadaId != null) {
-      await db
-        .update(instanciaAddon)
-        .set({ instanciaId: reincarnadaId })
-        .where(eq(instanciaAddon.instanciaId, row.id));
-    }
-  } else {
-    await db.update(instancia).set(marcarExclusaoLogica()).where(eq(instancia.id, row.id));
-  }
-
-  return { instanciaId: row.id, uuid: row.uuid, reincarnadaId };
+  return { instanciaId: row.id, uuid: row.uuid, remarcadaConnected: false };
 }
 
-/** Lista candidatas evo não excluídas nos status do sweep. */
+/**
+ * @deprecated Use `liberarSessaoEvolutionAbandonada`.
+ * Mantido para compat de imports; mesmo comportamento (sem soft-delete).
+ */
+export async function descartarInstanciaEvolutionAbandonada(
+  db: Db,
+  env: EnvDescarteEvolution,
+  row: InstanciaEvolutionAbandonadaRow,
+): Promise<ResultadoLiberacaoEvolution> {
+  return liberarSessaoEvolutionAbandonada(db, env, row);
+}
+
+/** Lista candidatas evo não excluídas, ainda sem sessão liberada, nos status do sweep. */
 export async function listarInstanciasEvolutionParaSweep(
   db: Db,
 ): Promise<InstanciaEvolutionAbandonadaRow[]> {
@@ -192,6 +250,7 @@ export async function listarInstanciasEvolutionParaSweep(
     where: and(
       eq(instancia.provedor, "evo"),
       isNull(instancia.excluidoEm),
+      isNull(instancia.sessaoRemotaLiberadaEm),
       inArray(instancia.status, [...STATUS_SWEEP_EVOLUTION]),
     ),
     columns: {
@@ -237,29 +296,35 @@ export async function listarInstanciasEvolutionParaSweep(
 }
 
 /**
- * Varre instâncias Evolution abandonadas e descarta cada uma (erros por item não abortam o lote).
- * @returns Contadores do lote para log do evolution-cleanup.
+ * Varre instâncias Evolution abandonadas e libera a sessão remota de cada uma
+ * (erros por item não abortam o lote). Soft-delete só via ação do usuário.
  */
 export async function varrerInstanciasEvolutionAbandonadas(
   db: Db,
   env: EnvDescarteEvolution,
   agora: Date = new Date(),
   abandonedAfterMinutes: number = mvpDefaults.evolution.abandonedAfterMinutes,
+  abandonedAfterUseDays: number = mvpDefaults.evolution.abandonedAfterUseDays,
 ): Promise<ResultadoVarreduraEvolution> {
   const candidatas = await listarInstanciasEvolutionParaSweep(db);
   const abandonadas = candidatas.filter((row) =>
-    instanciaEvolutionEstaAbandonada(row, agora, abandonedAfterMinutes),
+    instanciaEvolutionEstaAbandonada(row, agora, abandonedAfterMinutes, abandonedAfterUseDays),
   );
 
   const resultados = await Promise.allSettled(
-    abandonadas.map((row) => descartarInstanciaEvolutionAbandonada(db, env, row)),
+    abandonadas.map((row) => liberarSessaoEvolutionAbandonada(db, env, row)),
   );
-  let descartadas = 0;
+  let liberadas = 0;
   let falhas = 0;
+  let remarcadasConnected = 0;
   for (const r of resultados) {
-    if (r.status === "fulfilled") descartadas += 1;
-    else falhas += 1;
+    if (r.status === "rejected") {
+      falhas += 1;
+      continue;
+    }
+    if (r.value.remarcadaConnected) remarcadasConnected += 1;
+    else liberadas += 1;
   }
 
-  return { candidatas: abandonadas.length, descartadas, falhas };
+  return { candidatas: abandonadas.length, liberadas, falhas, remarcadasConnected };
 }

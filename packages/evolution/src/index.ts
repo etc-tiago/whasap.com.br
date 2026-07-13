@@ -6,8 +6,11 @@ export {
 } from "./credentials";
 export {
   parseConnectionUpdateWebhook,
+  parseGoConnectedEvent,
+  parseGoConnectionLifecycleEvent,
   parseGoConnectionState,
   parseGoDisconnectedEvent,
+  parseGoLoggedOutEvent,
   parseGoQrResponse,
   type EvolutionConnectionUpdatePayload,
   type EvolutionGoStatusResponse,

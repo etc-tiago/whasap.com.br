@@ -29,6 +29,13 @@
       "when": 1783914066639,
       "tag": "0003_fresh_sunfire",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783942959635,
+      "tag": "0004_curious_santa_claus",
+      "breakpoints": true
     }
   ]
 }

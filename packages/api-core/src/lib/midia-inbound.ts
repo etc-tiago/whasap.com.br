@@ -47,7 +47,8 @@ export type JobMidiaInbound =
 /** Converte base64 (com ou sem data-URL) em ArrayBuffer. */
 export function base64ParaArrayBuffer(base64: string): ArrayBuffer {
   const normalized = base64.replace(/^data:[^;]+;base64,/, "");
-  const fromBase64 = (Uint8Array as unknown as { fromBase64?: (s: string) => Uint8Array }).fromBase64;
+  const fromBase64 = (Uint8Array as unknown as { fromBase64?: (s: string) => Uint8Array })
+    .fromBase64;
   if (typeof fromBase64 === "function") {
     return fromBase64(normalized).buffer as ArrayBuffer;
   }

@@ -63,8 +63,7 @@ function InboxOrgPage() {
     () => (instancias.data ?? []).filter((i) => instanciaOperacional(i.status)),
     [instancias.data],
   );
-  const instanciaAtivaId =
-    selected?.instanciaId ?? instanciasOperacionais[0]?.id;
+  const instanciaAtivaId = selected?.instanciaId ?? instanciasOperacionais[0]?.id;
   const instanciaPadraoNovaConversa = useMemo(() => {
     if (
       selected?.instanciaId &&
@@ -106,8 +105,7 @@ function InboxOrgPage() {
       const itens = query.state.data;
       if (!itens) return false;
       const midiaPendente = itens.some(
-        (m) =>
-          ["image", "video", "audio", "document", "sticker"].includes(m.type) && !m.mediaUrl,
+        (m) => ["image", "video", "audio", "document", "sticker"].includes(m.type) && !m.mediaUrl,
       );
       if (!midiaPendente) {
         midiaRefetchTentativas.current.delete(selectedId);
@@ -128,8 +126,7 @@ function InboxOrgPage() {
     if (!instanciaRow || !isEvoProvider(instanciaRow.provider)) return;
 
     const midiaPendente = messages.data.some(
-      (m) =>
-        ["image", "video", "audio", "document", "sticker"].includes(m.type) && !m.mediaUrl,
+      (m) => ["image", "video", "audio", "document", "sticker"].includes(m.type) && !m.mediaUrl,
     );
     if (!midiaPendente) return;
     if (midiaSyncDisparado.current.has(selectedId)) return;

@@ -42,6 +42,11 @@ export const instancia = pgTable(
     tentativasProvisionamento: integer().notNull().default(0),
     conectadoEm: timestamp(),
     desconectadoEm: timestamp(),
+    /**
+     * Sessão remota Evolution liberada pelo cleanup (não é soft-delete).
+     * Painel continua listando a row para reconectar na mesma uuid.
+     */
+    sessaoRemotaLiberadaEm: timestamp(),
     trialTerminaEm: timestamp(),
     desativadoEm: timestamp(),
     excluidoEm: timestamp(),

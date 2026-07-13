@@ -48,6 +48,7 @@ export async function marcarInstanciaConectadaEvolution(
         status,
         conectadoEm: new Date(),
         desconectadoEm: null,
+        sessaoRemotaLiberadaEm: null,
       }),
     )
     .where(eq(instancia.id, params.instanciaIdInterno));

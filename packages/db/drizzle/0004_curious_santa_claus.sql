@@ -1,0 +1,1 @@
+ALTER TABLE "instancia" ADD COLUMN "sessao_remota_liberada_em" timestamp;

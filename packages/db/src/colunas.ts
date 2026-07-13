@@ -68,6 +68,7 @@ export const colunasInstanciaPublica = {
   asaasIdAssinatura: true,
   trialTerminaEm: true,
   conectadoEm: true,
+  sessaoRemotaLiberadaEm: true,
   criadoEm: true,
 } as const;
 

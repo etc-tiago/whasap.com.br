@@ -7,11 +7,7 @@ import {
   type JobMidiaInbound,
 } from "@whasap/api-core";
 import { isEvoProvider } from "@whasap/config";
-import {
-  colunasContatoInstancia,
-  contatoInstancia,
-  mensagem,
-} from "@whasap/db";
+import { colunasContatoInstancia, contatoInstancia, mensagem } from "@whasap/db";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import type { InstanciaComProvedor } from "./instancia-provedor";
@@ -182,6 +178,9 @@ export async function garantirMidiasDaConversa(
 }
 
 /** Indica se a mensagem ainda precisa de arquivo no CDN. */
-export function mensagemPrecisaMidia(tipo: string, midiaR2Chave: string | null | undefined): boolean {
+export function mensagemPrecisaMidia(
+  tipo: string,
+  midiaR2Chave: string | null | undefined,
+): boolean {
   return TIPOS_MIDIA.has(tipo) && !midiaR2Chave;
 }

@@ -8,6 +8,8 @@ export type EvolutionGoStatusData = {
   connected?: boolean;
   loggedIn?: boolean;
   Name?: string;
+  jid?: string;
+  pushName?: string;
 };
 
 export type EvolutionGoStatusResponse = {
@@ -22,10 +24,15 @@ export type EvolutionConnectionUpdatePayload = {
   event?: string;
   data?: {
     state?: string;
+    status?: string;
     Connected?: boolean;
     LoggedIn?: boolean;
     connected?: boolean;
     loggedIn?: boolean;
+    jid?: string;
+    pushName?: string;
+    reason?: string;
+    Reason?: number | string;
   };
 };
 
@@ -82,6 +89,41 @@ export function parseConnectionUpdateWebhook(
  */
 export function parseGoDisconnectedEvent(payload: { event?: string }): "close" | null {
   return payload.event === "Disconnected" ? "close" : null;
+}
+
+/**
+ * Evento GO `Connected` — sessão aberta (`data.status: "open"` + jid).
+ * @returns `"open"` quando o evento é Connected; senão `null`.
+ */
+export function parseGoConnectedEvent(payload: EvolutionConnectionUpdatePayload): "open" | null {
+  if (payload.event !== "Connected") return null;
+  const status = payload.data?.status ?? payload.data?.state;
+  if (status === "close") return null;
+  return "open";
+}
+
+/**
+ * Evento GO `LoggedOut` — logout / sessão invalidada.
+ * @returns `"close"` quando o evento é LoggedOut; senão `null`.
+ */
+export function parseGoLoggedOutEvent(payload: { event?: string }): "close" | null {
+  return payload.event === "LoggedOut" ? "close" : null;
+}
+
+/**
+ * Normaliza eventos de ciclo de vida de conexão do Evolution GO + Baileys.
+ * Cobre `Connected`, `Disconnected`, `LoggedOut` e `connection.update`.
+ */
+export function parseGoConnectionLifecycleEvent(
+  payload: EvolutionConnectionUpdatePayload,
+): EvolutionConnectionState | null {
+  const connected = parseGoConnectedEvent(payload);
+  if (connected) return connected;
+  if (parseGoDisconnectedEvent(payload) || parseGoLoggedOutEvent(payload)) return "close";
+  if (payload.event === "connection.update" || payload.event === undefined) {
+    return parseConnectionUpdateWebhook(payload);
+  }
+  return null;
 }
 
 /** Normaliza resposta de `/instance/qr` (GO: `qr` pipe, `data.qrcode`, `base64`, `code`). */
