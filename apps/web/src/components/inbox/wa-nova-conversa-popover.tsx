@@ -26,6 +26,11 @@ type WaNovaConversaPopoverProps = {
   provedor: string;
   disabled?: boolean;
   onConversaIniciada: (conversaId: string) => void;
+  /** Controle externo do popover (compartilhado com o chip da busca). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Prefill ao abrir (ex.: telefone digitado na busca). */
+  telefoneInicial?: string;
 };
 
 export function WaNovaConversaPopover({
@@ -34,9 +39,14 @@ export function WaNovaConversaPopover({
   provedor,
   disabled,
   onConversaIniciada,
+  open: openControlado,
+  onOpenChange: onOpenChangeControlado,
+  telefoneInicial,
 }: WaNovaConversaPopoverProps) {
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [openInterno, setOpenInterno] = useState(false);
+  const open = openControlado ?? openInterno;
+  const setOpen = onOpenChangeControlado ?? setOpenInterno;
   const [telefone, setTelefone] = useState("");
   const [nome, setNome] = useState("");
   const [corpo, setCorpo] = useState("");
@@ -45,6 +55,12 @@ export function WaNovaConversaPopover({
 
   const isMetaCloud = isMetaCloudProvider(provedor);
   const isEvo = isEvoProvider(provedor);
+
+  useEffect(() => {
+    if (open && telefoneInicial) {
+      setTelefone(telefoneInicial);
+    }
+  }, [open, telefoneInicial]);
 
   const templates = useQuery(
     orpc.caixaEntrada.templates.lista.queryOptions({

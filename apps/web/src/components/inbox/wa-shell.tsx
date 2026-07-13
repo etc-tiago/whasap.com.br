@@ -17,6 +17,7 @@ type WaShellProps = {
   provedor?: string;
   podeIniciarConversa?: boolean;
   onConversaIniciada?: (conversaId: string) => void;
+  telefoneIniciarBusca?: string | null;
   chatHeader?: ReactNode;
   chatBody?: ReactNode;
   composer?: ReactNode;
@@ -34,6 +35,7 @@ export function WaShell({
   provedor,
   podeIniciarConversa,
   onConversaIniciada,
+  telefoneIniciarBusca,
   chatHeader,
   chatBody,
   composer,
@@ -51,6 +53,7 @@ export function WaShell({
         provedor={provedor}
         podeIniciarConversa={podeIniciarConversa}
         onConversaIniciada={onConversaIniciada}
+        telefoneIniciarBusca={telefoneIniciarBusca}
       >
         {listaConversas}
       </WaChatListPanel>

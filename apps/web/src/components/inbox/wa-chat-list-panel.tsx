@@ -1,5 +1,5 @@
 import { Archive, MessageSquarePlus, MoreVertical, Plus, Search } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { cn } from "@whasap/ui/lib/utils";
 
 import { WaIconButton } from "@/components/inbox/wa-icon-button";
@@ -20,6 +20,8 @@ type WaChatListPanelProps = {
   provedor?: string;
   podeIniciarConversa?: boolean;
   onConversaIniciada?: (conversaId: string) => void;
+  /** Telefone normalizado da busca sem match exato — exibe chip "Iniciar conversa". */
+  telefoneIniciarBusca?: string | null;
 };
 
 export function WaChatListPanel({
@@ -34,7 +36,31 @@ export function WaChatListPanel({
   provedor,
   podeIniciarConversa,
   onConversaIniciada,
+  telefoneIniciarBusca,
 }: WaChatListPanelProps) {
+  const [novaConversaOpen, setNovaConversaOpen] = useState(false);
+  const [telefoneInicial, setTelefoneInicial] = useState<string | undefined>();
+
+  const podeAbrirNovaConversa =
+    Boolean(instanciaId && organizacaoHash && provedor && onConversaIniciada) &&
+    Boolean(podeIniciarConversa);
+
+  function abrirNovaConversa(telefone?: string) {
+    setTelefoneInicial(telefone);
+    setNovaConversaOpen(true);
+  }
+
+  function handleNovaConversaOpenChange(next: boolean) {
+    if (!next) {
+      setNovaConversaOpen(false);
+      setTelefoneInicial(undefined);
+      return;
+    }
+    // Abertura pelo ícone do header — formulário em branco
+    setTelefoneInicial(undefined);
+    setNovaConversaOpen(true);
+  }
+
   return (
     <section
       className={cn(
@@ -52,6 +78,9 @@ export function WaChatListPanel({
               provedor={provedor}
               disabled={!podeIniciarConversa}
               onConversaIniciada={onConversaIniciada}
+              open={novaConversaOpen}
+              onOpenChange={handleNovaConversaOpenChange}
+              telefoneInicial={telefoneInicial}
             />
           ) : (
             <WaIconButton disabled label="Nova conversa">
@@ -96,6 +125,15 @@ export function WaChatListPanel({
             </button>
           );
         })}
+        {telefoneIniciarBusca && podeAbrirNovaConversa ? (
+          <button
+            type="button"
+            onClick={() => abrirNovaConversa(telefoneIniciarBusca)}
+            className="shrink-0 rounded-full bg-wa-chip-active px-3 py-1 text-xs font-medium text-wa-green-dark transition-colors hover:opacity-90"
+          >
+            Iniciar conversa
+          </button>
+        ) : null}
         <button
           type="button"
           disabled

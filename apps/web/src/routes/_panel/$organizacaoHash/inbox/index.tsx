@@ -20,6 +20,7 @@ import { formatarHorarioConversa, formatarPreviewMensagem } from "@/lib/inbox-ut
 import { instanciaOperacional } from "@/lib/instancia-status";
 import { orgInput } from "@/lib/org-input";
 import { orpc, type ConversaItem } from "@/lib/orpc";
+import { eCandidatoTelefoneBr, normalizarTelefoneBr, telefonesBrIguais } from "@/lib/telefone-br";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
 export const Route = createFileRoute("/_panel/$organizacaoHash/inbox/")({
@@ -144,6 +145,16 @@ function InboxOrgPage() {
     });
   }, [conversations.data, busca, filtroAtivo]);
 
+  const telefoneIniciarBusca = useMemo(() => {
+    if (!eCandidatoTelefoneBr(busca)) return null;
+    const normalizado = normalizarTelefoneBr(busca);
+    const temMatchExato = (conversations.data ?? []).some((c: ConversaItem) =>
+      telefonesBrIguais(c.contatoTelefone, normalizado),
+    );
+    if (temMatchExato) return null;
+    return normalizado;
+  }, [busca, conversations.data]);
+
   const isMetaCloud = isMetaCloudProvider(instance.data?.provider ?? "");
   const cloudWindowOpen = janelaCloudAberta(selected?.metaCloudJanelaExpiraEm);
 
@@ -254,6 +265,7 @@ function InboxOrgPage() {
       provedor={instance.data?.provider}
       podeIniciarConversa={podeIniciarConversa && Boolean(instanciaAtivaId)}
       onConversaIniciada={setSelectedId}
+      telefoneIniciarBusca={podeIniciarConversa && instanciaAtivaId ? telefoneIniciarBusca : null}
       listaConversas={listaConversas}
       chatHeader={
         selected && instanciaAtivaId ? (
