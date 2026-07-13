@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@whasap/ui/components/button";
 import { Input } from "@whasap/ui/components/input";
 import { Label } from "@whasap/ui/components/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@whasap/ui/components/popover";
 import {
   Select,
   SelectContent,
@@ -18,10 +19,15 @@ import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
 type Papel = "admin" | "usuario" | "analista";
 
+type ConvidarMembroProps = {
+  /** Aberto quando search param `convidar=1`. */
+  open: boolean;
+};
+
 /**
- * Formulário de convite de membro — ativado via `?convidar=1` na rota de usuários.
+ * Botão + formulário de convite em popover — aberto via `?convidar=1`.
  */
-export function ConvidarMembro() {
+export function ConvidarMembro({ open }: ConvidarMembroProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const organizacaoHash = useOrganizacaoHash();
@@ -29,6 +35,15 @@ export function ConvidarMembro() {
   const [email, setEmail] = useState("");
   const [nome, setNome] = useState("");
   const [role, setRole] = useState<Papel>("usuario");
+
+  const setAberto = (proximo: boolean) => {
+    if (!organizacaoHash) return;
+    void navigate({
+      to: "/$organizacaoHash/ajustes/usuarios",
+      params: { organizacaoHash },
+      search: { convidar: proximo ? "1" : "" },
+    });
+  };
 
   const invalidarConvites = () => {
     if (!organizacaoHash) return;
@@ -39,15 +54,6 @@ export function ConvidarMembro() {
     });
   };
 
-  const fechar = () => {
-    if (!organizacaoHash) return;
-    void navigate({
-      to: "/$organizacaoHash/ajustes/usuarios",
-      params: { organizacaoHash },
-      search: { convidar: "" },
-    });
-  };
-
   const convidar = useMutation(
     orpc.organizacao.membros.convidar.mutationOptions({
       onSuccess: () => {
@@ -55,7 +61,7 @@ export function ConvidarMembro() {
         setNome("");
         setRole("usuario");
         invalidarConvites();
-        fechar();
+        setAberto(false);
       },
     }),
   );
@@ -63,63 +69,64 @@ export function ConvidarMembro() {
   if (!organizacaoHash) return null;
 
   return (
-    <section className="max-w-md space-y-3 rounded-lg border border-wa-divider p-4">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-medium text-wa-text">Convidar membro</h3>
-        <Button variant="ghost" size="sm" onClick={fechar}>
-          Fechar
+    <Popover open={open} onOpenChange={setAberto}>
+      <PopoverTrigger asChild>
+        <Button size="sm">Convidar membro</Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 space-y-3 p-4">
+        <p className="text-sm font-medium text-wa-text">Convidar membro</p>
+        <div className="space-y-2">
+          <Label htmlFor="convite-email">Email</Label>
+          <Input
+            id="convite-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="off"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="convite-nome">Nome</Label>
+          <Input
+            id="convite-nome"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            autoComplete="off"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Papel</Label>
+          <Select value={role} onValueChange={(v) => setRole(v as Papel)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="usuario">Usuário</SelectItem>
+              <SelectItem value="analista">Analista</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          className="w-full"
+          disabled={!email || convidar.isPending}
+          onClick={() =>
+            convidar.mutate({
+              organizacaoHash,
+              email,
+              nome: nome || undefined,
+              role,
+            })
+          }
+        >
+          Enviar convite
         </Button>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="convite-email">Email</Label>
-        <Input
-          id="convite-email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="off"
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="convite-nome">Nome</Label>
-        <Input
-          id="convite-nome"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-          autoComplete="off"
-        />
-      </div>
-      <div className="space-y-2">
-        <Label>Papel</Label>
-        <Select value={role} onValueChange={(v) => setRole(v as Papel)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="admin">Admin</SelectItem>
-            <SelectItem value="usuario">Usuário</SelectItem>
-            <SelectItem value="analista">Analista</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <Button
-        disabled={!email || convidar.isPending}
-        onClick={() =>
-          convidar.mutate({
-            organizacaoHash,
-            email,
-            nome: nome || undefined,
-            role,
-          })
-        }
-      >
-        Enviar convite
-      </Button>
-      {convidar.isError ? (
-        <p className="text-sm text-destructive">
-          {getOrpcErrorMessage(convidar.error, "Não foi possível enviar o convite.")}
-        </p>
-      ) : null}
-    </section>
+        {convidar.isError ? (
+          <p className="text-sm text-destructive">
+            {getOrpcErrorMessage(convidar.error, "Não foi possível enviar o convite.")}
+          </p>
+        ) : null}
+      </PopoverContent>
+    </Popover>
   );
 }
