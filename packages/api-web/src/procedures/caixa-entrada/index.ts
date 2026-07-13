@@ -4,6 +4,7 @@ import conversas from "./conversas";
 import etiquetas from "./etiquetas";
 import mensagens from "./mensagens";
 import midia from "./midia";
+import respostasRapidas from "./respostas-rapidas";
 import templates from "./templates";
 
 export default {
@@ -14,4 +15,5 @@ export default {
   anotacoes,
   etiquetas,
   contatos,
+  respostasRapidas,
 };

@@ -180,6 +180,61 @@ export const messageTemplateSchema = z.object({
   componentes: z.unknown().nullable(),
 });
 
+export const respostaRapidaItemTipoSchema = z.enum(["text", "image", "document"]);
+
+export const respostaRapidaItemSchema = z.object({
+  id: z.string().uuid(),
+  ordem: z.number().int().nonnegative(),
+  tipo: respostaRapidaItemTipoSchema,
+  corpo: z.string().nullable(),
+  mediaR2Key: z.string().nullable(),
+  mediaUrl: z.string().url().nullable(),
+  nomeArquivo: z.string().nullable(),
+});
+
+export const respostaRapidaItemInputSchema = z
+  .object({
+    tipo: respostaRapidaItemTipoSchema,
+    corpo: z.string().trim().max(4096).nullable().optional(),
+    mediaR2Key: z.string().min(1).nullable().optional(),
+    nomeArquivo: z.string().trim().max(255).nullable().optional(),
+  })
+  .superRefine((item, ctx) => {
+    if (item.tipo === "text") {
+      if (!item.corpo?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Texto obrigatório",
+          path: ["corpo"],
+        });
+      }
+    } else if (!item.mediaR2Key?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Mídia obrigatória",
+        path: ["mediaR2Key"],
+      });
+    }
+  });
+
+export const respostaRapidaListaItemSchema = z.object({
+  id: z.string().uuid(),
+  titulo: z.string(),
+  quantidadeItens: z.number().int().nonnegative(),
+  preview: z.string().nullable(),
+  tipos: z.array(respostaRapidaItemTipoSchema),
+  criadoEm: z.string().datetime(),
+  atualizadoEm: z.string().datetime(),
+});
+
+export const respostaRapidaDetalheSchema = z.object({
+  id: z.string().uuid(),
+  titulo: z.string(),
+  itens: z.array(respostaRapidaItemSchema),
+  criadoEm: z.string().datetime(),
+  atualizadoEm: z.string().datetime(),
+});
+
 export const sessaoSchema = z.object({
   usuario: usuarioSchema,
   organizacao: organizacaoSchema.nullable(),

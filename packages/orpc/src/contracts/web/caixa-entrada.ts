@@ -6,6 +6,9 @@ import {
   iconeConexaoSchema,
   messageTemplateSchema,
   organizacaoHashSchema,
+  respostaRapidaDetalheSchema,
+  respostaRapidaItemInputSchema,
+  respostaRapidaListaItemSchema,
 } from "../../schemas";
 
 const etiquetaSchema = z.object({
@@ -289,5 +292,69 @@ export const caixaEntradaContract = {
     remover: oc
       .input(z.object({ contatoId: z.string().uuid() }))
       .output(z.object({ ok: z.boolean() })),
+  },
+
+  respostasRapidas: {
+    lista: oc
+      .input(z.object({ organizacaoHash: organizacaoHashSchema }))
+      .output(z.array(respostaRapidaListaItemSchema)),
+
+    obter: oc
+      .input(
+        z.object({
+          organizacaoHash: organizacaoHashSchema,
+          id: z.string().uuid(),
+        }),
+      )
+      .output(respostaRapidaDetalheSchema),
+
+    criar: oc
+      .input(
+        z.object({
+          organizacaoHash: organizacaoHashSchema,
+          titulo: z.string().trim().min(1).max(120),
+          itens: z.array(respostaRapidaItemInputSchema).min(1).max(20),
+        }),
+      )
+      .output(respostaRapidaDetalheSchema),
+
+    atualizar: oc
+      .input(
+        z.object({
+          organizacaoHash: organizacaoHashSchema,
+          id: z.string().uuid(),
+          titulo: z.string().trim().min(1).max(120),
+          itens: z.array(respostaRapidaItemInputSchema).min(1).max(20),
+        }),
+      )
+      .output(respostaRapidaDetalheSchema),
+
+    excluir: oc
+      .input(
+        z.object({
+          organizacaoHash: organizacaoHashSchema,
+          id: z.string().uuid(),
+        }),
+      )
+      .output(z.object({ ok: z.boolean() })),
+
+    midia: {
+      upload: oc
+        .input(
+          z.object({
+            organizacaoHash: organizacaoHashSchema,
+            tipo: z.enum(["image", "document"]),
+            nomeArquivo: z.string().min(1).max(255),
+            tipoConteudo: z.string().min(1).max(120),
+            dados: z.string().min(1),
+          }),
+        )
+        .output(
+          z.object({
+            mediaR2Key: z.string(),
+            mediaUrl: z.string().url(),
+          }),
+        ),
+    },
   },
 };

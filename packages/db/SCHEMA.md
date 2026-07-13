@@ -10,7 +10,7 @@ Arquivos em `packages/db/src/schema/`:
 | `instancias.ts` | `instancia` |
 | `instancia-evo.ts` | `instancia_evo` |
 | `instancia-meta-cloud.ts` | `instancia_meta_cloud` |
-| `mensageria.ts` | `contato`, `contato_tag`, `contato_tag_atribuicao`, `conversa`, `mensagem`, `mensagem_template`, `conversa_anotacao`, `resposta_rapida`, `uso_mensal`, `uso_mensal_contato` |
+| `mensageria.ts` | `contato`, `contato_tag`, `contato_tag_atribuicao`, `conversa`, `mensagem`, `mensagem_template`, `conversa_anotacao`, `resposta_rapida`, `resposta_rapida_item`, `uso_mensal`, `uso_mensal_contato` |
 | `webhook.ts` | `webhook_evento` |
 | `relacoes.ts` | `relations()` Drizzle para `db.query.*` com `with` / filtros relacionais |
 

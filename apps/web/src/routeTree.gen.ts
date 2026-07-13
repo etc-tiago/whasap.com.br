@@ -31,6 +31,7 @@ import { Route as PanelOrganizacaoHashAjustesIndexRouteImport } from './routes/_
 import { Route as PanelOrganizacaoHashAcoesIndexRouteImport } from './routes/_panel/$organizacaoHash/acoes/index'
 import { Route as Char126EmailEmailHashBloqueadoRouteImport } from './routes/~/email/$emailHash/bloqueado'
 import { Route as PanelOrganizacaoHashAjustesUsuariosRouteImport } from './routes/_panel/$organizacaoHash/ajustes/usuarios'
+import { Route as PanelOrganizacaoHashAjustesRespostasRapidasRouteImport } from './routes/_panel/$organizacaoHash/ajustes/respostas-rapidas'
 import { Route as PanelOrganizacaoHashAjustesEtiquetasRouteImport } from './routes/_panel/$organizacaoHash/ajustes/etiquetas'
 import { Route as PanelOrganizacaoHashAjustesConexaoRouteImport } from './routes/_panel/$organizacaoHash/ajustes/conexao'
 import { Route as PanelOrganizacaoHashAcoesEtiquetasRouteImport } from './routes/_panel/$organizacaoHash/acoes/etiquetas'
@@ -163,6 +164,12 @@ const PanelOrganizacaoHashAjustesUsuariosRoute =
     path: '/usuarios',
     getParentRoute: () => PanelOrganizacaoHashAjustesRouteRoute,
   } as any)
+const PanelOrganizacaoHashAjustesRespostasRapidasRoute =
+  PanelOrganizacaoHashAjustesRespostasRapidasRouteImport.update({
+    id: '/respostas-rapidas',
+    path: '/respostas-rapidas',
+    getParentRoute: () => PanelOrganizacaoHashAjustesRouteRoute,
+  } as any)
 const PanelOrganizacaoHashAjustesEtiquetasRoute =
   PanelOrganizacaoHashAjustesEtiquetasRouteImport.update({
     id: '/etiquetas',
@@ -235,6 +242,7 @@ export interface FileRoutesByFullPath {
   '/$organizacaoHash/acoes/etiquetas': typeof PanelOrganizacaoHashAcoesEtiquetasRoute
   '/$organizacaoHash/ajustes/conexao': typeof PanelOrganizacaoHashAjustesConexaoRoute
   '/$organizacaoHash/ajustes/etiquetas': typeof PanelOrganizacaoHashAjustesEtiquetasRoute
+  '/$organizacaoHash/ajustes/respostas-rapidas': typeof PanelOrganizacaoHashAjustesRespostasRapidasRoute
   '/$organizacaoHash/ajustes/usuarios': typeof PanelOrganizacaoHashAjustesUsuariosRoute
   '/~/email/$emailHash/bloqueado': typeof Char126EmailEmailHashBloqueadoRoute
   '/$organizacaoHash/acoes/': typeof PanelOrganizacaoHashAcoesIndexRoute
@@ -263,6 +271,7 @@ export interface FileRoutesByTo {
   '/$organizacaoHash/acoes/etiquetas': typeof PanelOrganizacaoHashAcoesEtiquetasRoute
   '/$organizacaoHash/ajustes/conexao': typeof PanelOrganizacaoHashAjustesConexaoRoute
   '/$organizacaoHash/ajustes/etiquetas': typeof PanelOrganizacaoHashAjustesEtiquetasRoute
+  '/$organizacaoHash/ajustes/respostas-rapidas': typeof PanelOrganizacaoHashAjustesRespostasRapidasRoute
   '/$organizacaoHash/ajustes/usuarios': typeof PanelOrganizacaoHashAjustesUsuariosRoute
   '/~/email/$emailHash/bloqueado': typeof Char126EmailEmailHashBloqueadoRoute
   '/$organizacaoHash/acoes': typeof PanelOrganizacaoHashAcoesIndexRoute
@@ -296,6 +305,7 @@ export interface FileRoutesById {
   '/_panel/$organizacaoHash/acoes/etiquetas': typeof PanelOrganizacaoHashAcoesEtiquetasRoute
   '/_panel/$organizacaoHash/ajustes/conexao': typeof PanelOrganizacaoHashAjustesConexaoRoute
   '/_panel/$organizacaoHash/ajustes/etiquetas': typeof PanelOrganizacaoHashAjustesEtiquetasRoute
+  '/_panel/$organizacaoHash/ajustes/respostas-rapidas': typeof PanelOrganizacaoHashAjustesRespostasRapidasRoute
   '/_panel/$organizacaoHash/ajustes/usuarios': typeof PanelOrganizacaoHashAjustesUsuariosRoute
   '/~/email/$emailHash/bloqueado': typeof Char126EmailEmailHashBloqueadoRoute
   '/_panel/$organizacaoHash/acoes/': typeof PanelOrganizacaoHashAcoesIndexRoute
@@ -329,6 +339,7 @@ export interface FileRouteTypes {
     | '/$organizacaoHash/acoes/etiquetas'
     | '/$organizacaoHash/ajustes/conexao'
     | '/$organizacaoHash/ajustes/etiquetas'
+    | '/$organizacaoHash/ajustes/respostas-rapidas'
     | '/$organizacaoHash/ajustes/usuarios'
     | '/~/email/$emailHash/bloqueado'
     | '/$organizacaoHash/acoes/'
@@ -357,6 +368,7 @@ export interface FileRouteTypes {
     | '/$organizacaoHash/acoes/etiquetas'
     | '/$organizacaoHash/ajustes/conexao'
     | '/$organizacaoHash/ajustes/etiquetas'
+    | '/$organizacaoHash/ajustes/respostas-rapidas'
     | '/$organizacaoHash/ajustes/usuarios'
     | '/~/email/$emailHash/bloqueado'
     | '/$organizacaoHash/acoes'
@@ -389,6 +401,7 @@ export interface FileRouteTypes {
     | '/_panel/$organizacaoHash/acoes/etiquetas'
     | '/_panel/$organizacaoHash/ajustes/conexao'
     | '/_panel/$organizacaoHash/ajustes/etiquetas'
+    | '/_panel/$organizacaoHash/ajustes/respostas-rapidas'
     | '/_panel/$organizacaoHash/ajustes/usuarios'
     | '/~/email/$emailHash/bloqueado'
     | '/_panel/$organizacaoHash/acoes/'
@@ -565,6 +578,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelOrganizacaoHashAjustesUsuariosRouteImport
       parentRoute: typeof PanelOrganizacaoHashAjustesRouteRoute
     }
+    '/_panel/$organizacaoHash/ajustes/respostas-rapidas': {
+      id: '/_panel/$organizacaoHash/ajustes/respostas-rapidas'
+      path: '/respostas-rapidas'
+      fullPath: '/$organizacaoHash/ajustes/respostas-rapidas'
+      preLoaderRoute: typeof PanelOrganizacaoHashAjustesRespostasRapidasRouteImport
+      parentRoute: typeof PanelOrganizacaoHashAjustesRouteRoute
+    }
     '/_panel/$organizacaoHash/ajustes/etiquetas': {
       id: '/_panel/$organizacaoHash/ajustes/etiquetas'
       path: '/etiquetas'
@@ -652,6 +672,7 @@ const PanelOrganizacaoHashAcoesRouteRouteWithChildren =
 interface PanelOrganizacaoHashAjustesRouteRouteChildren {
   PanelOrganizacaoHashAjustesConexaoRoute: typeof PanelOrganizacaoHashAjustesConexaoRoute
   PanelOrganizacaoHashAjustesEtiquetasRoute: typeof PanelOrganizacaoHashAjustesEtiquetasRoute
+  PanelOrganizacaoHashAjustesRespostasRapidasRoute: typeof PanelOrganizacaoHashAjustesRespostasRapidasRoute
   PanelOrganizacaoHashAjustesUsuariosRoute: typeof PanelOrganizacaoHashAjustesUsuariosRoute
   PanelOrganizacaoHashAjustesIndexRoute: typeof PanelOrganizacaoHashAjustesIndexRoute
 }
@@ -662,6 +683,8 @@ const PanelOrganizacaoHashAjustesRouteRouteChildren: PanelOrganizacaoHashAjustes
       PanelOrganizacaoHashAjustesConexaoRoute,
     PanelOrganizacaoHashAjustesEtiquetasRoute:
       PanelOrganizacaoHashAjustesEtiquetasRoute,
+    PanelOrganizacaoHashAjustesRespostasRapidasRoute:
+      PanelOrganizacaoHashAjustesRespostasRapidasRoute,
     PanelOrganizacaoHashAjustesUsuariosRoute:
       PanelOrganizacaoHashAjustesUsuariosRoute,
     PanelOrganizacaoHashAjustesIndexRoute:

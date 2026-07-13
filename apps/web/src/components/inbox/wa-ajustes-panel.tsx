@@ -1,10 +1,15 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Plug, Tag, Users } from "lucide-react";
+import { MessageSquareText, Plug, Tag, Users } from "lucide-react";
 
 import { cn } from "@whasap/ui/lib/utils";
 
 const ITENS = [
   { rotulo: "Usuários", icone: Users, to: "/$organizacaoHash/ajustes/usuarios" as const },
+  {
+    rotulo: "Respostas rápidas",
+    icone: MessageSquareText,
+    to: "/$organizacaoHash/ajustes/respostas-rapidas" as const,
+  },
   { rotulo: "Etiquetas", icone: Tag, to: "/$organizacaoHash/ajustes/etiquetas" as const },
   { rotulo: "Conexões", icone: Plug, to: "/$organizacaoHash/ajustes/conexao" as const },
 ] as const;

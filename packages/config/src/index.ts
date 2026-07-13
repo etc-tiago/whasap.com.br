@@ -2,6 +2,7 @@ export { APP_NAME, appIcons } from "./app-icons";
 export {
   buildMediaR2Key,
   buildOutboundMediaR2Key,
+  buildRespostaRapidaMediaR2Key,
   buildSecureInboundMediaR2Key,
   cdnMediaUrl,
   cdnMediaUrlFromDefaults,

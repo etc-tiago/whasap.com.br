@@ -69,7 +69,8 @@ export function classificarErroDownloadMedia(
 export function normalizarDownloadMediaBody(body: unknown): EvolutionGoDownloadMediaResult | null {
   if (!body || typeof body !== "object") return null;
   const row = body as Record<string, unknown>;
-  const data = row.data && typeof row.data === "object" ? (row.data as Record<string, unknown>) : null;
+  const data =
+    row.data && typeof row.data === "object" ? (row.data as Record<string, unknown>) : null;
   const b64 =
     (typeof row.base64 === "string" ? row.base64 : null) ??
     (typeof data?.base64 === "string" ? data.base64 : null) ??
@@ -490,21 +491,23 @@ export {
   parseGoQrResponse,
 } from "./connection-state";
 
+function messageIdFromGoInfo(
+  info: { ID?: string; Id?: string; id?: string } | undefined,
+): string | null {
+  const raw = info?.ID ?? info?.Id ?? info?.id;
+  if (typeof raw !== "string") return null;
+  const id = raw.trim();
+  return id.length > 0 ? id : null;
+}
+
 /**
  * Extrai o ID WhatsApp da resposta de `/send/*`.
  * GO: `data.Info.ID`; legado Baileys: `key.id` / `id` / `messageId`.
  */
 export function extractGoMessageId(res: EvolutionSendResponse): string | null {
-  const fromInfo = (info: { ID?: string; Id?: string; id?: string } | undefined) => {
-    const raw = info?.ID ?? info?.Id ?? info?.id;
-    if (typeof raw !== "string") return null;
-    const id = raw.trim();
-    return id.length > 0 ? id : null;
-  };
-
   return (
-    fromInfo(res.data?.Info) ??
-    fromInfo(res.Info) ??
+    messageIdFromGoInfo(res.data?.Info) ??
+    messageIdFromGoInfo(res.Info) ??
     (typeof res.key?.id === "string" && res.key.id.trim() ? res.key.id.trim() : null) ??
     (typeof res.id === "string" && res.id.trim() ? res.id.trim() : null) ??
     (typeof res.messageId === "string" && res.messageId.trim() ? res.messageId.trim() : null)

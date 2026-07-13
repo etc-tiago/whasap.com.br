@@ -204,14 +204,36 @@ export const respostaRapida = pgTable(
   "resposta_rapida",
   {
     id: serial().primaryKey(),
+    uuid: uuid().notNull().unique().defaultRandom(),
     organizacaoId: integer()
       .notNull()
       .references(() => organizacao.id, { onDelete: "cascade" }),
     titulo: text().notNull(),
-    corpo: text().notNull(),
+    excluidoEm: timestamp(),
     criadoEm: timestamp().notNull(),
+    atualizadoEm: timestamp().notNull(),
   },
   (t) => [index("resposta_rapida_organizacao_id_idx").on(t.organizacaoId)],
+);
+
+/** Item de uma resposta rápida (texto, imagem ou documento); sequência ordenada. */
+export const respostaRapidaItem = pgTable(
+  "resposta_rapida_item",
+  {
+    id: serial().primaryKey(),
+    uuid: uuid().notNull().unique().defaultRandom(),
+    respostaRapidaId: integer()
+      .notNull()
+      .references(() => respostaRapida.id, { onDelete: "cascade" }),
+    ordem: integer().notNull().default(0),
+    /** text | image | document */
+    tipo: text().notNull(),
+    corpo: text(),
+    midiaR2Chave: text(),
+    nomeArquivo: text(),
+    criadoEm: timestamp().notNull(),
+  },
+  (t) => [index("resposta_rapida_item_resposta_rapida_id_idx").on(t.respostaRapidaId)],
 );
 
 export const usoMensal = pgTable(

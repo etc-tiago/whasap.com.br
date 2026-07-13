@@ -24,6 +24,8 @@ export {
   colunasOfficeUsuarioSessao,
   colunasOrganizacaoPublica,
   colunasOrganizacaoSomenteId,
+  colunasRespostaRapida,
+  colunasRespostaRapidaItem,
   colunasSessaoOffice,
   colunasSessaoWeb,
   colunasSomenteId,

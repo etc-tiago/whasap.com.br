@@ -105,6 +105,7 @@ export async function persistirMidiaInbound(
           if (err.codigo === "unauthorized" || err.codigo === "forbidden") {
             throw new Error(
               `Evolution downloadmedia ${err.codigo} (${err.status}) (${job.externalId})`,
+              { cause: err },
             );
           }
         }

@@ -271,6 +271,28 @@ export const colunasConversaAnotacao = {
   criadoEm: true,
 } as const;
 
+/** Resposta rápida (cabeçalho org-scoped). */
+export const colunasRespostaRapida = {
+  id: true,
+  uuid: true,
+  organizacaoId: true,
+  titulo: true,
+  criadoEm: true,
+  atualizadoEm: true,
+} as const;
+
+/** Item de resposta rápida (texto / imagem / documento). */
+export const colunasRespostaRapidaItem = {
+  id: true,
+  uuid: true,
+  respostaRapidaId: true,
+  ordem: true,
+  tipo: true,
+  corpo: true,
+  midiaR2Chave: true,
+  nomeArquivo: true,
+} as const;
+
 /** OTP válido — só PK para marcar como usado. */
 export const colunasCodigoOtpVerificacao = colunasSomenteId;
 

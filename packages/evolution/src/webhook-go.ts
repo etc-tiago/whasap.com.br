@@ -283,20 +283,18 @@ function textoTemplateMessage(part: Record<string, unknown>): string {
   if (hydrated) {
     const hydratedContent = hydrated.hydratedContentText;
     const hydratedTitle = hydrated.hydratedTitleText;
-    return (
-      textoNaoVazio(hydratedContent) ??
-      textoNaoVazio(hydratedTitle) ??
-      "[template]"
-    );
+    return textoNaoVazio(hydratedContent) ?? textoNaoVazio(hydratedTitle) ?? "[template]";
   }
 
   const format = part.Format as Record<string, unknown> | undefined;
   const interactive =
-    (format?.InteractiveMessageTemplate as Record<string, unknown> | undefined)?.InteractiveMessage ??
+    (format?.InteractiveMessageTemplate as Record<string, unknown> | undefined)
+      ?.InteractiveMessage ??
     (part.interactiveMessageTemplate as Record<string, unknown> | undefined)?.interactiveMessage;
   if (interactive && typeof interactive === "object") {
-    const body = (interactive as { Body?: { Text?: string }; body?: { text?: string } }).Body?.Text
-      ?? (interactive as { body?: { text?: string } }).body?.text;
+    const body =
+      (interactive as { Body?: { Text?: string }; body?: { text?: string } }).Body?.Text ??
+      (interactive as { body?: { text?: string } }).body?.text;
     if (textoNaoVazio(body)) return body!;
   }
 
@@ -389,7 +387,10 @@ function parseGoMessageBody(
       contacts?: Array<{ displayName?: string }>;
     };
     const nomes =
-      part.contacts?.map((c) => c.displayName).filter(Boolean).join(", ") ?? "";
+      part.contacts
+        ?.map((c) => c.displayName)
+        .filter(Boolean)
+        .join(", ") ?? "";
     return {
       body: textoNaoVazio(part.displayName) ?? textoNaoVazio(nomes) ?? "[contatos]",
       type: "contacts",

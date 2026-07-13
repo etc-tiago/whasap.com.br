@@ -104,13 +104,14 @@ function montarSerieDiaria(
   },
 ): SerieDiariaDia[] {
   const mapa = new Map<string, SerieDiariaDia>();
-  const cursor = new Date(Date.UTC(de.getUTCFullYear(), de.getUTCMonth(), de.getUTCDate()));
-  const fim = new Date(Date.UTC(ate.getUTCFullYear(), ate.getUTCMonth(), ate.getUTCDate()));
+  let diaMs = Date.UTC(de.getUTCFullYear(), de.getUTCMonth(), de.getUTCDate());
+  const fimMs = Date.UTC(ate.getUTCFullYear(), ate.getUTCMonth(), ate.getUTCDate());
 
-  while (cursor <= fim) {
+  while (diaMs <= fimMs) {
+    const cursor = new Date(diaMs);
     const key = chaveDia(cursor);
     mapa.set(key, { data: key, conversas: 0, enviadas: 0, recebidas: 0 });
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
+    diaMs += 24 * 60 * 60 * 1000;
   }
 
   for (const em of eventos.conversas) {
@@ -328,12 +329,12 @@ export const relatoriosHandlers = {
     const conversasSemAtribuicao = convRows.filter((c) => c.atribuidoUsuarioId == null).length;
     const totalContatos = new Set(convRows.map((c) => c.contatoId)).size;
     const taxaFechamento =
-      convRows.length === 0
-        ? 0
-        : Math.round((conversasFechadas / convRows.length) * 1000) / 10;
+      convRows.length === 0 ? 0 : Math.round((conversasFechadas / convRows.length) * 1000) / 10;
 
     const deltasFechamento = convRows
-      .filter((c): c is typeof c & { fechadoEm: Date } => c.status === "closed" && c.fechadoEm != null)
+      .filter(
+        (c): c is typeof c & { fechadoEm: Date } => c.status === "closed" && c.fechadoEm != null,
+      )
       .map((c) => (c.fechadoEm.getTime() - c.criadoEm.getTime()) / 60_000)
       .filter((m) => m >= 0);
     const tempoMedioAteFechamentoMinutos = mediaArredondada(deltasFechamento);

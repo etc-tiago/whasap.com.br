@@ -42,6 +42,11 @@ export function buildOutboundMediaR2Key(instanceUuid: string, ext: string): stri
   return `${mvpDefaults.cdn.mediaPrefix}/${instanceUuid}/outbound/${crypto.randomUUID()}.${ext}`;
 }
 
+/** Chave R2 para mídia de respostas rápidas (escopo organização, sem conversa). */
+export function buildRespostaRapidaMediaR2Key(organizacaoUuid: string, ext: string): string {
+  return `${mvpDefaults.cdn.mediaPrefix}/${organizacaoUuid}/respostas-rapidas/${crypto.randomUUID()}.${ext}`;
+}
+
 /**
  * Chave R2 não adivinhável para mídia inbound (HMAC-SHA256).
  * `seed` deve ser estável por mensagem (ex.: id externo ou hash do payload).

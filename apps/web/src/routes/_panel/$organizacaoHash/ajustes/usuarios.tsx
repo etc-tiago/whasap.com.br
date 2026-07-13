@@ -13,7 +13,5 @@ export const Route = createFileRoute("/_panel/$organizacaoHash/ajustes/usuarios"
 function AjustesUsuariosPage() {
   const { convidar } = Route.useSearch();
 
-  return (
-    <GestaoUsuarios acaoConvidar={<ConvidarMembro open={convidar === "1"} />} />
-  );
+  return <GestaoUsuarios acaoConvidar={<ConvidarMembro open={convidar === "1"} />} />;
 }

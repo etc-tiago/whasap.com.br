@@ -12,7 +12,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { WaChatHeader } from "@/components/inbox/wa-chat-header";
 import type { FiltroConversa } from "@/components/inbox/wa-chat-list-panel";
 import { WaChatRow } from "@/components/inbox/wa-chat-row";
-import { WaComposer, type MidiaAnexada } from "@/components/inbox/wa-composer";
+import {
+  WaComposer,
+  type ItemFilaRespostaRapida,
+  type MidiaAnexada,
+} from "@/components/inbox/wa-composer";
 import { WaMessageArea } from "@/components/inbox/wa-message-area";
 import { WaShell } from "@/components/inbox/wa-shell";
 import { useSession } from "@/lib/auth";
@@ -50,6 +54,9 @@ function InboxOrgPage() {
   const [filtroAtivo, setFiltroAtivo] = useState<FiltroConversa>("Tudo");
   const [message, setMessage] = useState("");
   const [midia, setMidia] = useState<MidiaAnexada | null>(null);
+  const [filaRespostaRapida, setFilaRespostaRapida] = useState<ItemFilaRespostaRapida[] | null>(
+    null,
+  );
   const [iniciarConversaExterna, setIniciarConversaExterna] = useState<{
     telefone: string;
     instanciaId?: string;
@@ -281,6 +288,7 @@ function InboxOrgPage() {
       return null;
     });
     setMessage("");
+    setFilaRespostaRapida(null);
   }, [selectedId]);
 
   useEffect(() => {
@@ -298,6 +306,34 @@ function InboxOrgPage() {
 
   async function handleSend() {
     if (!selectedId) return;
+
+    if (filaRespostaRapida && filaRespostaRapida.length > 0) {
+      // Sequência deve ir em ordem no WhatsApp — não paralelizar.
+      for (const item of filaRespostaRapida) {
+        if (item.tipo === "text") {
+          // oxlint-disable-next-line eslint/no-await-in-loop -- envio sequencial da fila
+          await sendMessage.mutateAsync({
+            conversaId: selectedId,
+            tipo: "text",
+            body: item.corpo,
+          });
+        } else {
+          // oxlint-disable-next-line eslint/no-await-in-loop -- envio sequencial da fila
+          await sendMessage.mutateAsync({
+            conversaId: selectedId,
+            tipo: item.tipo,
+            mediaR2Key: item.mediaR2Key!,
+            filename: item.nomeArquivo ?? undefined,
+            body: item.corpo || undefined,
+          });
+        }
+      }
+      setFilaRespostaRapida(null);
+      setMessage("");
+      setMidia(null);
+      return;
+    }
+
     if (midia) {
       await sendMessage.mutateAsync({
         conversaId: selectedId,
@@ -406,12 +442,16 @@ function InboxOrgPage() {
           ) : (
             <WaComposer
               conversaId={selected.id}
+              organizacaoHash={organizacaoHash}
               message={message}
               midia={midia}
+              fila={filaRespostaRapida}
               disabled={!canSend}
               pending={sendMessage.isPending}
+              podeUsarRespostasRapidas={podeEscrever}
               onChange={setMessage}
               onMidiaChange={setMidia}
+              onFilaChange={setFilaRespostaRapida}
               onSend={handleSend}
             />
           )

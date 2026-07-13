@@ -2,10 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import {
-  classificarErroDownloadMedia,
-  normalizarDownloadMediaBody,
-} from "./client-go";
+import { classificarErroDownloadMedia, normalizarDownloadMediaBody } from "./client-go";
 
 const PASTA = join(import.meta.dirname, "fixtures/acao");
 

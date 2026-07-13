@@ -5,6 +5,7 @@ export const Route = createFileRoute("/_panel/$organizacaoHash/equipe")({
     throw redirect({
       to: "/$organizacaoHash/ajustes/usuarios",
       params: { organizacaoHash: params.organizacaoHash },
+      search: { convidar: "" },
       replace: true,
     });
   },

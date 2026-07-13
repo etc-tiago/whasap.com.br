@@ -4,10 +4,7 @@
 import { describe, expect, it } from "vitest";
 
 import { parseGoDisconnectedEvent, parseConnectionUpdateWebhook } from "./connection-state";
-import {
-  carregarWebhooksR2,
-  corpusWebhookR2Disponivel,
-} from "./fixtures/carregar-webhooks-r2";
+import { carregarWebhooksR2, corpusWebhookR2Disponivel } from "./fixtures/carregar-webhooks-r2";
 import {
   parseGoContact,
   parseGoGroupInfo,
@@ -67,10 +64,7 @@ describe.skipIf(!ok)("matriz R2 evo (corpus local)", () => {
     let delivered = 0;
     let read = 0;
     for (const fixture of receipts) {
-      const parsed = parseGoReceipt(
-        fixture.data,
-        fixture.payload.state as string | undefined,
-      );
+      const parsed = parseGoReceipt(fixture.data, fixture.payload.state as string | undefined);
       if (!parsed) continue;
       parseados += 1;
       expect(parsed.messageIds.length).toBeGreaterThan(0);
@@ -91,7 +85,9 @@ describe.skipIf(!ok)("matriz R2 evo (corpus local)", () => {
   it("4) PushName / LabelAssociation / Disconnected / QRTimeout", () => {
     const push = fixtures.find((f) => f.event === "PushName");
     if (push) {
-      expect(parseGoPushName(push.data)?.newPushName || parseGoPushName(push.data)?.jid).toBeTruthy();
+      expect(
+        parseGoPushName(push.data)?.newPushName || parseGoPushName(push.data)?.jid,
+      ).toBeTruthy();
     }
 
     const labels = fixtures.filter((f) => f.event === "LabelAssociationChat");

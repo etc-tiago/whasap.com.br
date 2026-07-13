@@ -505,7 +505,10 @@ function ReportsPage() {
                     Sem movimento no período.
                   </p>
                 ) : (
-                  <ChartContainer config={serieConfig} className="aspect-video min-h-[220px] w-full">
+                  <ChartContainer
+                    config={serieConfig}
+                    className="aspect-video min-h-[220px] w-full"
+                  >
                     <AreaChart accessibilityLayer data={serieData}>
                       <CartesianGrid vertical={false} />
                       <XAxis

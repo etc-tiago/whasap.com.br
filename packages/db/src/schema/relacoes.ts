@@ -13,6 +13,8 @@ import {
   conversaAnotacao,
   mensagem,
   mensagemTemplate,
+  respostaRapida,
+  respostaRapidaItem,
 } from "./mensageria";
 import { officeSessao, officeUsuario } from "./office";
 import { organizacao, organizacaoConvite, organizacaoMembro } from "./organizacoes";
@@ -52,6 +54,7 @@ export const organizacaoRelations = relations(organizacao, ({ many }) => ({
   convites: many(organizacaoConvite),
   instancias: many(instancia),
   contatos: many(contato),
+  respostasRapidas: many(respostaRapida),
 }));
 
 export const organizacaoMembroRelations = relations(organizacaoMembro, ({ one }) => ({
@@ -191,5 +194,20 @@ export const conversaAnotacaoRelations = relations(conversaAnotacao, ({ one }) =
   autorUsuario: one(usuario, {
     fields: [conversaAnotacao.autorUsuarioId],
     references: [usuario.id],
+  }),
+}));
+
+export const respostaRapidaRelations = relations(respostaRapida, ({ one, many }) => ({
+  organizacao: one(organizacao, {
+    fields: [respostaRapida.organizacaoId],
+    references: [organizacao.id],
+  }),
+  itens: many(respostaRapidaItem),
+}));
+
+export const respostaRapidaItemRelations = relations(respostaRapidaItem, ({ one }) => ({
+  respostaRapida: one(respostaRapida, {
+    fields: [respostaRapidaItem.respostaRapidaId],
+    references: [respostaRapida.id],
   }),
 }));
