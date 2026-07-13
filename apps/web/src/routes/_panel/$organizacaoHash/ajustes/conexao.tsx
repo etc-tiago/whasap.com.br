@@ -138,12 +138,7 @@ function ConexaoLinha({
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-wa-text">{inst.nome}</p>
-          {evo ? (
-            <p className="text-xs text-wa-text-muted">
-              {rotuloHistoricoSync(inst)}
-              {inst.evoHistoricoSyncErro ? ` — ${inst.evoHistoricoSyncErro}` : null}
-            </p>
-          ) : null}
+          {evo ? <p className="text-xs text-wa-text-muted">{rotuloHistoricoSync(inst)}</p> : null}
           {syncError ? (
             <p className="text-xs text-destructive">
               {getOrpcErrorMessage(syncError, "Erro ao sincronizar histórico")}

@@ -66,21 +66,11 @@ export function historicoSyncEmAndamento(
   evo: { historicoSincronizandoEm: Date | null; historicoSyncStatus?: string | null } | null,
 ): boolean {
   if (!evo) return false;
-  if (evo.historicoSyncStatus === "requested" || evo.historicoSyncStatus === "running") {
-    if (
-      evo.historicoSincronizandoEm &&
-      Date.now() - evo.historicoSincronizandoEm.getTime() < LOCK_MS
-    ) {
-      return true;
-    }
+  if (evo.historicoSyncStatus !== "requested" && evo.historicoSyncStatus !== "running") {
+    return false;
   }
-  if (
-    evo.historicoSincronizandoEm &&
-    Date.now() - evo.historicoSincronizandoEm.getTime() < LOCK_MS
-  ) {
-    return true;
-  }
-  return false;
+  if (!evo.historicoSincronizandoEm) return true;
+  return Date.now() - evo.historicoSincronizandoEm.getTime() < LOCK_MS;
 }
 
 /**

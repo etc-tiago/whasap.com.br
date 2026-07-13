@@ -32,8 +32,10 @@ export function rotuloHistoricoSync(inst: InstanciaItem): string {
       return "Sincronizando histórico…";
     case "completed":
       return "Histórico sincronizado";
-    case "failed":
-      return "Falha na sincronização";
+    case "failed": {
+      const erro = inst.evoHistoricoSyncErro?.trim();
+      return erro ? `Falha na sincronização: ${erro}` : "Falha na sincronização";
+    }
     default:
       return "Histórico não sincronizado";
   }
