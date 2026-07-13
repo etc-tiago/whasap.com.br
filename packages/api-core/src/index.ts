@@ -98,17 +98,23 @@ export {
 export {
   atualizarProgressoHistoricoSync,
   concluirHistoricosSyncOciosos,
+  contarLotesMidia,
   decidirAcaoHistorySyncEnqueue,
   deveMarcarFalhaAposTentativasFila,
   HISTORICO_SYNC_IDLE_MS,
   HISTORY_SYNC_FILA_MAX_TENTATIVAS,
+  HISTORY_SYNC_INGEST_LOTE_TAMANHO,
   HISTORY_SYNC_MIDIA_CONCORRENCIA,
   montarChaveR2HistoricoSync,
   montarPatchProgressoHistoricoSync,
   particionarEmLotes,
+  planejarHistorySyncChunk,
   processarHistorySyncChunk,
+  processarHistorySyncChunkLote,
   type AcaoHistorySyncEnqueue,
   type InstanciaParaHistorySync,
+  type PlanoHistorySyncChunk,
+  type ResultadoHistorySyncLote,
 } from "./lib/history-sync";
 export {
   base64ParaArrayBuffer,

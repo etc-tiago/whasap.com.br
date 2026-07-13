@@ -128,13 +128,17 @@ Chunks HistorySync: R2 `historico-sync/{instanciaUuid}/…` + mensagem de fila `
 
 O consumer **não processa inline**: cria instância do Workflow `whasap-history-sync-chunk` (`HISTORY_SYNC_CHUNK_WORKFLOW` / `HistorySyncChunkWorkflow`) com ID estável `hs-{uuid-do-chunk}` para idempotência em redelivery.
 
-Passos no dashboard (Workers → Workflows):
+Passos no dashboard (Workers → Workflows), fragmentados para steps curtos:
 
 1. `carregar-chunk-r2`
 2. `resolver-instancia`
-3. `ingerir-mensagens` (jobs de mídia em `{r2Key}.midia-jobs.json` se houver)
-4. `persistir-midias` (opcional)
-5. `marcar-falha` (só se o Workflow falhar após retries do step)
+3. `planejar-chunk` (conta msgs / decide ignore / conclusão)
+4. `marcar-running` (se aplicável)
+5. `ingerir-lote-N` — até **25** msgs por step (`HISTORY_SYNC_INGEST_LOTE_TAMANHO`)
+6. `persistir-midia-N-M` — até **4** downloads em paralelo por step
+7. `limpar-midia-N` — remove staging R2 do lote
+8. `marcar-concluido` (só RECENT @ 100)
+9. `marcar-falha` (só se o Workflow falhar após retries do step)
 
 Cron `*/2` no mesmo worker marca sync ocioso (5 min sem chunk) como `completed` — não concluir no `progress=100` do bootstrap (`syncType` 0).
 

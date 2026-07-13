@@ -86,7 +86,7 @@ Não usamos `wrangler deploy --env production` — isso criaria workers com sufi
 
 - Worker vars: `WORKER_NAME`
 - Sem domínio — consumer da fila `whasap-history-sync` (chunks HistorySync enfileirados pelo `webhook`)
-- Cada mensagem da fila cria uma instância do Workflow `whasap-history-sync-chunk` (passos no dashboard: R2 → instância → ingestão → mídias)
+- Cada mensagem da fila cria uma instância do Workflow `whasap-history-sync-chunk` com steps curtos: planejar → `ingerir-lote-N` (25 msgs) → `persistir-midia-N-M` (4 mídias) → concluir
 - Cron `*/2` — conclui syncs ociosos (sem chunk há 5 min; cobre RECENT incompleto)
 - Hyperdrive + R2 (`whasap` + `whasap-cdn` para mídia)
 - Criar a fila na Cloudflare: `wrangler queues create whasap-history-sync`

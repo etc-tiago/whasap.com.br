@@ -23,15 +23,42 @@ export function idWorkflowHistorySyncChunk(r2Key: string): string {
   return `hs-${base}`.slice(0, 100);
 }
 
-/** Chave R2 temporária dos jobs de mídia gerados após ingestão. */
-export function chaveR2MidiaJobs(r2KeyChunk: string): string {
-  return `${r2KeyChunk}.midia-jobs.json`;
+/** Staging de jobs de mídia de um lote de ingestão (`ingerir-lote-N`). */
+export function chaveR2MidiaJobsLote(r2KeyChunk: string, loteIngestao: number): string {
+  return `${r2KeyChunk}.midia-lote-${loteIngestao}.json`;
 }
 
 export function truncarErroWorker(erro: string): string {
   return erro.slice(0, 500);
 }
 
+/** Persiste um único lote de mídia (já fatiado — um step do Workflow). */
+export async function persistirMidiasLoteUnico(
+  env: Env,
+  db: ReturnType<typeof criarDb>["db"],
+  jobs: JobMidiaInbound[],
+): Promise<{ ok: number; falhas: number }> {
+  const resultados = await Promise.allSettled(
+    jobs.map((job) => persistirMidiaInbound(env, db, job)),
+  );
+  let ok = 0;
+  let falhas = 0;
+  for (let j = 0; j < resultados.length; j++) {
+    const r = resultados[j]!;
+    if (r.status === "rejected") {
+      falhas += 1;
+      console.error("[whasap-history-sync] falha mídia", {
+        externalId: jobs[j]!.externalId,
+        erro: r.reason instanceof Error ? r.reason.message : String(r.reason),
+      });
+    } else {
+      ok += 1;
+    }
+  }
+  return { ok, falhas };
+}
+
+/** @deprecated Preferir steps por lote via {@link persistirMidiasLoteUnico}. */
 export async function persistirMidiasEmLotes(
   env: Env,
   db: ReturnType<typeof criarDb>["db"],
@@ -40,26 +67,11 @@ export async function persistirMidiasEmLotes(
   const lotes = particionarEmLotes(jobs, HISTORY_SYNC_MIDIA_CONCORRENCIA);
   let ok = 0;
   let falhas = 0;
-
-  await lotes.reduce<Promise<void>>(async (prev, lote) => {
-    await prev;
-    const resultados = await Promise.allSettled(
-      lote.map((job) => persistirMidiaInbound(env, db, job)),
-    );
-    for (let j = 0; j < resultados.length; j++) {
-      const r = resultados[j]!;
-      if (r.status === "rejected") {
-        falhas += 1;
-        console.error("[whasap-history-sync] falha mídia", {
-          externalId: lote[j]!.externalId,
-          erro: r.reason instanceof Error ? r.reason.message : String(r.reason),
-        });
-      } else {
-        ok += 1;
-      }
-    }
-  }, Promise.resolve());
-
+  for (const lote of lotes) {
+    const r = await persistirMidiasLoteUnico(env, db, lote);
+    ok += r.ok;
+    falhas += r.falhas;
+  }
   return { ok, falhas };
 }
 

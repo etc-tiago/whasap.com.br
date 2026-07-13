@@ -33,6 +33,12 @@ export const HISTORICO_SYNC_IDLE_MS = 5 * 60 * 1000;
 /** Concorrência padrão ao baixar mídias de um chunk no worker. */
 export const HISTORY_SYNC_MIDIA_CONCORRENCIA = 4;
 
+/**
+ * Mensagens por step do Workflow (`ingerir-lote-N`).
+ * Mantém cada step curto (CPU/retries) e visível no dashboard.
+ */
+export const HISTORY_SYNC_INGEST_LOTE_TAMANHO = 25;
+
 /** Particiona jobs de mídia em lotes de tamanho fixo. */
 export function particionarEmLotes<T>(items: readonly T[], tamanho: number): T[][] {
   if (tamanho <= 0) return items.length ? [[...items]] : [];
@@ -41,6 +47,12 @@ export function particionarEmLotes<T>(items: readonly T[], tamanho: number): T[]
     lotes.push(items.slice(i, i + tamanho));
   }
   return lotes;
+}
+
+/** Quantos steps `persistir-midia-*` um array de jobs gera. */
+export function contarLotesMidia(totalJobs: number): number {
+  if (totalJobs <= 0) return 0;
+  return Math.ceil(totalJobs / HISTORY_SYNC_MIDIA_CONCORRENCIA);
 }
 
 export type AcaoHistorySyncEnqueue =
@@ -184,6 +196,211 @@ function fileNameDeMessageObj(messageObj: Record<string, unknown>): string | und
   return doc?.fileName;
 }
 
+type ItemHistorySyncPlano = {
+  contactName: string | null;
+  unreadCount: number | null | undefined;
+  idExternoLinha: string;
+  idExternoCanonico: string;
+  phone: string;
+  syncType: number;
+  msg: {
+    messageId: string;
+    body: string;
+    type: string;
+    fromMe: boolean;
+    chatJid: string;
+    timestamp: Date | null;
+    status: string | null;
+    messageObj: Record<string, unknown>;
+  };
+};
+
+function listarItensHistorySyncOrdenados(
+  chunk: ReturnType<typeof parseGoHistorySyncChunk>,
+): ItemHistorySyncPlano[] {
+  const lidParaPn = mapaLidParaPn(chunk.phoneLidMappings);
+  const itens: ItemHistorySyncPlano[] = [];
+
+  for (const conv of chunk.conversations) {
+    const { idExternoLinha, idExternoCanonico, phone } = resolverJidHistoricoSync(
+      conv.jid,
+      lidParaPn,
+    );
+    const mensagensOrdenadas = [...conv.messages].toSorted((a, b) => {
+      const ta = a.timestamp?.getTime() ?? 0;
+      const tb = b.timestamp?.getTime() ?? 0;
+      return ta - tb;
+    });
+
+    for (const msg of mensagensOrdenadas) {
+      itens.push({
+        contactName: conv.nome,
+        unreadCount: conv.unreadCount,
+        idExternoLinha,
+        idExternoCanonico,
+        phone,
+        syncType: chunk.syncType,
+        msg: {
+          messageId: msg.messageId,
+          body: msg.body,
+          type: msg.type,
+          fromMe: msg.fromMe,
+          chatJid: msg.chatJid,
+          timestamp: msg.timestamp,
+          status: msg.status,
+          messageObj: msg.messageObj,
+        },
+      });
+    }
+  }
+
+  return itens;
+}
+
+export type PlanoHistorySyncChunk = {
+  ignorado: boolean;
+  progress: number;
+  syncType: number;
+  totalMensagens: number;
+  onDemand: boolean;
+  /** Atualiza status da instância (não on-demand). */
+  atualizarProgresso: boolean;
+  /** RECENT @ 100 → marcar completed após o último lote. */
+  marcarConcluidoAoFinal: boolean;
+};
+
+/** Plano puro do chunk (sem DB) — define quantos `ingerir-lote-N` o Workflow cria. */
+export function planejarHistorySyncChunk(data: Record<string, unknown>): PlanoHistorySyncChunk {
+  const chunk = parseGoHistorySyncChunk(data);
+  const onDemand = chunk.syncType === HISTORY_SYNC_TYPE.ON_DEMAND;
+
+  if (deveIgnorarHistorySyncChunk(chunk)) {
+    return {
+      ignorado: true,
+      progress: chunk.progress ?? 0,
+      syncType: chunk.syncType,
+      totalMensagens: 0,
+      onDemand,
+      atualizarProgresso: !onDemand,
+      marcarConcluidoAoFinal: false,
+    };
+  }
+
+  const totalMensagens = listarItensHistorySyncOrdenados(chunk).length;
+  return {
+    ignorado: false,
+    progress: chunk.progress ?? 0,
+    syncType: chunk.syncType,
+    totalMensagens,
+    onDemand,
+    atualizarProgresso: !onDemand,
+    marcarConcluidoAoFinal: !onDemand && historySyncConcluido(chunk),
+  };
+}
+
+export type ResultadoHistorySyncLote = {
+  ignorado: boolean;
+  processadas: number;
+  total: number;
+  progress: number;
+  midiaJobs: JobMidiaInbound[];
+  esgotado: boolean;
+  offsetProximo: number;
+};
+
+/**
+ * Ingere um fatia de mensagens do chunk (`offset`/`limit`).
+ * Ordem = conversa a conversa, timestamps crescentes (igual ao processar completo).
+ */
+export async function processarHistorySyncChunkLote(
+  db: Db,
+  instance: InstanciaParaHistorySync,
+  data: Record<string, unknown>,
+  opts: { offset: number; limit: number },
+): Promise<ResultadoHistorySyncLote> {
+  const chunk = parseGoHistorySyncChunk(data);
+  const progress = chunk.progress ?? 0;
+
+  if (deveIgnorarHistorySyncChunk(chunk)) {
+    return {
+      ignorado: true,
+      processadas: 0,
+      total: 0,
+      progress,
+      midiaJobs: [],
+      esgotado: true,
+      offsetProximo: 0,
+    };
+  }
+
+  const itens = listarItensHistorySyncOrdenados(chunk);
+  const limit = opts.limit > 0 ? opts.limit : HISTORY_SYNC_INGEST_LOTE_TAMANHO;
+  const fatia = itens.slice(opts.offset, opts.offset + limit);
+  const midiaJobs: JobMidiaInbound[] = [];
+  const evoToken = instance.evoToken;
+
+  for (const item of fatia) {
+    const { msg } = item;
+    const direcao = msg.fromMe ? "outbound" : "inbound";
+    const isMidia = TIPOS_MIDIA.has(msg.type);
+
+    const result = await ingerirMensagem(db, {
+      instanciaId: instance.id,
+      organizacaoId: instance.organizacaoId,
+      phone: item.phone,
+      contactName: item.contactName,
+      idExternoLinha: item.idExternoLinha,
+      idExternoCanonico: item.idExternoCanonico,
+      body: msg.body,
+      type: msg.type,
+      externalId: msg.messageId,
+      provedor: "evo",
+      direcao,
+      criadoEm: msg.timestamp ?? undefined,
+      ultimaMensagemEm: msg.timestamp ?? undefined,
+      naoLidasInicial: item.unreadCount ?? undefined,
+      metadados: {
+        origemHistorico: true,
+        syncType: item.syncType,
+        syncFase: rotuloHistorySyncType(item.syncType),
+        ...(isMidia ? { waMessage: msg.messageObj } : {}),
+      },
+      status: msg.status ?? (direcao === "outbound" ? "sent" : "delivered"),
+    });
+
+    if (!result || !isMidia || !evoToken) continue;
+    if (result.midiaR2Chave) continue;
+
+    midiaJobs.push({
+      provider: "evo",
+      instanceUuid: instance.uuid,
+      messageId: result.messageId,
+      externalId: msg.messageId,
+      type: msg.type,
+      instanceToken: evoToken,
+      messageKey: {
+        remoteJid: msg.chatJid,
+        fromMe: msg.fromMe,
+        id: msg.messageId,
+      },
+      waMessage: msg.messageObj,
+      mimeType: mimeDeMessageObj(msg.messageObj),
+      fileName: fileNameDeMessageObj(msg.messageObj),
+    });
+  }
+
+  const offsetProximo = opts.offset + fatia.length;
+  return {
+    ignorado: false,
+    processadas: fatia.length,
+    total: itens.length,
+    progress,
+    midiaJobs,
+    esgotado: offsetProximo >= itens.length,
+    offsetProximo,
+  };
+}
+
 /**
  * Ingere um chunk HistorySync já parseado (ou raw).
  * Mensagens de cada conversa são processadas em ordem cronológica, em série.
@@ -199,97 +416,41 @@ export async function processarHistorySyncChunk(
   progress: number;
   midiaJobs: JobMidiaInbound[];
 }> {
-  const chunk = parseGoHistorySyncChunk(data);
+  const plano = planejarHistorySyncChunk(data);
 
-  if (deveIgnorarHistorySyncChunk(chunk)) {
-    return { ignorado: true, concluido: false, progress: chunk.progress ?? 0, midiaJobs: [] };
+  if (plano.ignorado) {
+    return { ignorado: true, concluido: false, progress: plano.progress, midiaJobs: [] };
   }
 
-  const onDemand = chunk.syncType === HISTORY_SYNC_TYPE.ON_DEMAND;
-  if (!onDemand) {
+  if (plano.atualizarProgresso) {
     await atualizarProgressoHistoricoSync(db, instance.id, {
       status: "running",
-      progress: chunk.progress,
+      progress: plano.progress,
       erro: null,
       heartbeat: true,
     });
   }
 
-  const lidParaPn = mapaLidParaPn(chunk.phoneLidMappings);
   const midiaJobs: JobMidiaInbound[] = [];
-  const evoToken = instance.evoToken;
-
-  // Ingest sequencial por conversa/timestamp — paralelo bagunça ultimaMensagemEm.
-  const pendentes: Array<() => Promise<void>> = [];
-  for (const conv of chunk.conversations) {
-    const { idExternoLinha, idExternoCanonico, phone } = resolverJidHistoricoSync(
-      conv.jid,
-      lidParaPn,
-    );
-
-    const mensagensOrdenadas = [...conv.messages].toSorted((a, b) => {
-      const ta = a.timestamp?.getTime() ?? 0;
-      const tb = b.timestamp?.getTime() ?? 0;
-      return ta - tb;
+  let offset = 0;
+  while (offset < plano.totalMensagens) {
+    const lote = await processarHistorySyncChunkLote(db, instance, data, {
+      offset,
+      limit: HISTORY_SYNC_INGEST_LOTE_TAMANHO,
     });
-
-    for (const msg of mensagensOrdenadas) {
-      const direcao = msg.fromMe ? "outbound" : "inbound";
-      const isMidia = TIPOS_MIDIA.has(msg.type);
-      pendentes.push(async () => {
-        const result = await ingerirMensagem(db, {
-          instanciaId: instance.id,
-          organizacaoId: instance.organizacaoId,
-          phone,
-          contactName: conv.nome,
-          idExternoLinha,
-          idExternoCanonico,
-          body: msg.body,
-          type: msg.type,
-          externalId: msg.messageId,
-          provedor: "evo",
-          direcao,
-          criadoEm: msg.timestamp ?? undefined,
-          ultimaMensagemEm: msg.timestamp ?? undefined,
-          naoLidasInicial: conv.unreadCount,
-          metadados: {
-            origemHistorico: true,
-            syncType: chunk.syncType,
-            syncFase: rotuloHistorySyncType(chunk.syncType),
-            ...(isMidia ? { waMessage: msg.messageObj } : {}),
-          },
-          status: msg.status ?? (direcao === "outbound" ? "sent" : "delivered"),
-        });
-
-        if (!result || !isMidia || !evoToken) return;
-        if (result.midiaR2Chave) return;
-
-        midiaJobs.push({
-          provider: "evo",
-          instanceUuid: instance.uuid,
-          messageId: result.messageId,
-          externalId: msg.messageId,
-          type: msg.type,
-          instanceToken: evoToken,
-          messageKey: {
-            remoteJid: msg.chatJid,
-            fromMe: msg.fromMe,
-            id: msg.messageId,
-          },
-          waMessage: msg.messageObj,
-          mimeType: mimeDeMessageObj(msg.messageObj),
-          fileName: fileNameDeMessageObj(msg.messageObj),
-        });
-      });
-    }
+    midiaJobs.push(...lote.midiaJobs);
+    offset = lote.offsetProximo;
+    if (lote.esgotado) break;
   }
 
-  await pendentes.reduce<Promise<void>>((acc, run) => acc.then(run), Promise.resolve());
-
-  const concluido = !onDemand && historySyncConcluido(chunk);
-  if (concluido) {
+  if (plano.marcarConcluidoAoFinal) {
     await atualizarProgressoHistoricoSync(db, instance.id, { marcarConcluido: true });
   }
 
-  return { ignorado: false, concluido, progress: chunk.progress ?? 0, midiaJobs };
+  return {
+    ignorado: false,
+    concluido: plano.marcarConcluidoAoFinal,
+    progress: plano.progress,
+    midiaJobs,
+  };
 }

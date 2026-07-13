@@ -1,25 +1,22 @@
 /**
- * Contrato fila → Workflow HistorySync (IDs, retries create, midias em lotes).
+ * Contrato fila → Workflow HistorySync (IDs, retries create, lotes curtos).
  */
 import { describe, expect, it, vi } from "vitest";
 import {
   deveMarcarFalhaAposTentativasFila,
+  HISTORY_SYNC_INGEST_LOTE_TAMANHO,
   HISTORY_SYNC_MIDIA_CONCORRENCIA,
   particionarEmLotes,
 } from "./history-sync";
 
 /** Espelha apps/history-sync/src/helpers.ts — evita importar Worker no vitest do pacote. */
 function idWorkflowHistorySyncChunk(r2Key: string): string {
-  const base =
-    r2Key
-      .split("/")
-      .pop()
-      ?.replace(/\.json$/i, "") ?? "x";
+  const base = r2Key.split("/").pop()?.replace(/\.json$/i, "") ?? "x";
   return `hs-${base}`.slice(0, 100);
 }
 
-function chaveR2MidiaJobs(r2KeyChunk: string): string {
-  return `${r2KeyChunk}.midia-jobs.json`;
+function chaveR2MidiaJobsLote(r2KeyChunk: string, loteIngestao: number): string {
+  return `${r2KeyChunk}.midia-lote-${loteIngestao}.json`;
 }
 
 function truncarErroWorker(erro: string): string {
@@ -34,11 +31,15 @@ function decidirAcaoCreateWorkflow(attempts: number, erro: string): AcaoFila {
   return "retry";
 }
 
-const PASSOS_WORKFLOW = [
+const PASSOS_BASE = [
   "carregar-chunk-r2",
   "resolver-instancia",
-  "ingerir-mensagens",
-  "persistir-midias",
+  "planejar-chunk",
+  "marcar-running",
+  "ingerir-lote-0",
+  "persistir-midia-0-0",
+  "limpar-midia-0",
+  "marcar-concluido",
   "marcar-falha",
 ] as const;
 
@@ -71,7 +72,8 @@ async function simularPersistirMidiasEmLotes(
 
 describe("worker history-sync — fila → workflow", () => {
   it("1) ID do workflow e estavel a partir do r2Key", () => {
-    const key = "historico-sync/847c01d8-e12b-421d-8e81-7ab8c8844072/2026-07-13/abc-def.json";
+    const key =
+      "historico-sync/847c01d8-e12b-421d-8e81-7ab8c8844072/2026-07-13/abc-def.json";
     expect(idWorkflowHistorySyncChunk(key)).toBe("hs-abc-def");
     expect(idWorkflowHistorySyncChunk(key)).toBe(idWorkflowHistorySyncChunk(key));
   });
@@ -82,9 +84,9 @@ describe("worker history-sync — fila → workflow", () => {
     expect(idWorkflowHistorySyncChunk(longo).startsWith("hs-")).toBe(true);
   });
 
-  it("3) chave staging de midia jobs", () => {
-    expect(chaveR2MidiaJobs("historico-sync/u/d/x.json")).toBe(
-      "historico-sync/u/d/x.json.midia-jobs.json",
+  it("3) chave staging midia por lote de ingestao", () => {
+    expect(chaveR2MidiaJobsLote("historico-sync/u/d/x.json", 2)).toBe(
+      "historico-sync/u/d/x.json.midia-lote-2.json",
     );
   });
 
@@ -101,15 +103,19 @@ describe("worker history-sync — fila → workflow", () => {
     expect(decidirAcaoCreateWorkflow(5, "boom")).toBe("ack_falha");
   });
 
-  it("7) passos do workflow tem nomes estaveis para o dashboard", () => {
-    expect(PASSOS_WORKFLOW).toContain("carregar-chunk-r2");
-    expect(PASSOS_WORKFLOW).toContain("ingerir-mensagens");
-    expect(PASSOS_WORKFLOW).toContain("persistir-midias");
-    expect(PASSOS_WORKFLOW).toContain("marcar-falha");
+  it("7) passos base do workflow (lotes dinamicos alem destes)", () => {
+    expect(PASSOS_BASE).toContain("planejar-chunk");
+    expect(PASSOS_BASE).toContain("ingerir-lote-0");
+    expect(PASSOS_BASE).toContain("persistir-midia-0-0");
+    expect(PASSOS_BASE).toContain("marcar-falha");
   });
 
   it("8) erro truncado em 500 chars", () => {
     expect(truncarErroWorker("x".repeat(800))).toHaveLength(500);
+  });
+
+  it("8b) 100 msgs → 4 steps ingerir-lote", () => {
+    expect(Math.ceil(100 / HISTORY_SYNC_INGEST_LOTE_TAMANHO)).toBe(4);
   });
 });
 
