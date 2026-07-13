@@ -5,6 +5,7 @@ import {
   marcarInstanciaDesconectadaEvolution,
   notFound,
   preconditionFailed,
+  solicitarHistoricoSyncEvolution,
 } from "@whasap/api-core";
 import {
   ICONE_CONEXAO_PADRAO,
@@ -770,34 +771,30 @@ export const instanciaHandlers = {
     if (!isEvoProvider(row.provedor)) {
       preconditionFailed("Sincronização de histórico disponível apenas para WhatsApp Comercial");
     }
-    if (!row.evo?.token) {
-      preconditionFailed("Instância Evolution sem token de sessão");
-    }
-    if (row.status !== "connected") {
+    if (row.status !== "connected" && row.status !== "pending_payment") {
       preconditionFailed("Instância precisa estar conectada para sincronizar histórico");
     }
 
-    const lockRecente =
-      row.evo.historicoSincronizandoEm &&
-      Date.now() - row.evo.historicoSincronizandoEm.getTime() < 30 * 60 * 1000;
-    if (lockRecente) {
-      preconditionFailed("Sincronização de histórico já em andamento");
-    }
-
-    const creds = await obterCredenciaisEvolution(ctx.env);
-    const client = criarClienteEvolutionGo(
+    const result = await solicitarHistoricoSyncEvolution(
+      ctx.db,
       ctx.env,
-      creds,
-      { instanceToken: row.evo.token },
-      { instanciaUuid: row.uuid },
+      {
+        id: row.id,
+        uuid: row.uuid,
+        evo: row.evo
+          ? {
+              token: row.evo.token,
+              historicoSincronizadoEm: row.evo.historicoSincronizadoEm,
+              historicoSincronizandoEm: row.evo.historicoSincronizandoEm,
+              historicoSyncStatus: row.evo.historicoSyncStatus,
+            }
+          : null,
+      },
+      { forcar: false },
     );
-
-    await client.historySync({ count: 5000 });
-
-    await ctx.db
-      .update(instanciaEvo)
-      .set(comTimestampAtualizacao({ historicoSincronizandoEm: new Date() }))
-      .where(eq(instanciaEvo.instanciaId, row.id));
+    if (!result.ok) {
+      preconditionFailed(result.motivo ?? "Não foi possível iniciar a sincronização");
+    }
 
     return { ok: true };
   },

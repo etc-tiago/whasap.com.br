@@ -54,5 +54,13 @@
       "store_id": "76b096bc6b03460dabd7744ba277a1ee",
       "secret_name": "EVOLUTION_SECRETS_STORE"
     }
-  ]
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "HISTORY_SYNC_QUEUE",
+        "queue": "whasap-history-sync"
+      }
+    ]
+  }
 }

@@ -2,8 +2,10 @@
  * Processamento de webhooks Evolution GO (formato whatsmeow).
  */
 import {
+  atualizarProgressoHistoricoSync,
   marcarInstanciaConectadaEvolution,
   marcarInstanciaDesconectadaEvolution,
+  solicitarHistoricoSyncSePrimeiraConexao,
 } from "@whasap/api-core";
 import {
   colunasContatoTag,
@@ -23,7 +25,6 @@ import { log } from "@whasap/evlog";
 import {
   deveIgnorarHistorySyncChunk,
   formatInteractiveResponseBody,
-  historySyncConcluido,
   indiceWhatsappParaCorPainel,
   jidParaIdExterno,
   jidParaTelefone,
@@ -214,68 +215,71 @@ async function processarMensagemGo(
   });
 }
 
-async function processarHistorySyncGo(
+async function enfileirarHistorySyncGo(
   db: Db,
+  env: Env,
   instance: InstanciaWebhook,
   data: Record<string, unknown>,
 ): Promise<void> {
   const chunk = parseGoHistorySyncChunk(data);
-  if (deveIgnorarHistorySyncChunk(chunk)) return;
-
-  const LOTE = 50;
-  const tarefas = chunk.conversations.flatMap((conv) => {
-    const idExternoLinha = jidParaIdExterno(conv.jid);
-    const idExternoCanonico = conv.jid.endsWith("@g.us")
-      ? conv.jid
-      : `${jidParaTelefone(conv.jid)}@s.whatsapp.net`;
-    const phone = jidParaTelefone(conv.jid);
-
-    return conv.messages.map((msg) => {
-      const direcao = msg.fromMe ? "outbound" : "inbound";
-      return () =>
-        ingerirMensagem(db, {
-          instanciaId: instance.id,
-          organizacaoId: instance.organizacaoId,
-          phone,
-          contactName: conv.nome,
-          idExternoLinha,
-          idExternoCanonico,
-          body: msg.body,
-          type: msg.type,
-          externalId: msg.messageId,
-          provedor: "evo",
-          direcao,
-          criadoEm: msg.timestamp ?? undefined,
-          ultimaMensagemEm: msg.timestamp ?? undefined,
-          naoLidasInicial: conv.unreadCount,
-          metadados: { origemHistorico: true, syncType: chunk.syncType },
-          status: msg.status ?? (direcao === "outbound" ? "sent" : "delivered"),
-        });
+  if (deveIgnorarHistorySyncChunk(chunk)) {
+    await atualizarProgressoHistoricoSync(db, instance.id, {
+      status: "running",
+      progress: chunk.progress,
     });
-  });
-
-  const lotes = Array.from({ length: Math.ceil(tarefas.length / LOTE) }, (_, i) =>
-    tarefas.slice(i * LOTE, (i + 1) * LOTE),
-  );
-
-  async function processarLote(indice: number): Promise<void> {
-    if (indice >= lotes.length) return;
-    await Promise.all(lotes[indice]!.map((tarefa) => tarefa()));
-    await processarLote(indice + 1);
+    return;
   }
 
-  await processarLote(0);
+  if (!env.HISTORY_SYNC_QUEUE) {
+    log.error({
+      contexto: "webhook.history_sync",
+      erro: "Fila HISTORY_SYNC_QUEUE não configurada",
+      instanciaUuid: instance.uuid,
+    });
+    await atualizarProgressoHistoricoSync(db, instance.id, {
+      status: "failed",
+      erro: "Fila HISTORY_SYNC_QUEUE não configurada",
+    });
+    return;
+  }
 
-  if (historySyncConcluido(chunk)) {
-    await db
-      .update(instanciaEvo)
-      .set(
-        comTimestampAtualizacao({
-          historicoSincronizadoEm: new Date(),
-          historicoSincronizandoEm: null,
-        }),
-      )
-      .where(eq(instanciaEvo.instanciaId, instance.id));
+  const date = new Date().toISOString().slice(0, 10);
+  const r2Key = `historico-sync/${instance.uuid}/${date}/${crypto.randomUUID()}.json`;
+  await env.R2.put(r2Key, JSON.stringify(data), {
+    httpMetadata: { contentType: "application/json" },
+  });
+
+  await env.HISTORY_SYNC_QUEUE.send({
+    instanciaUuid: instance.uuid,
+    r2Key,
+    receivedAt: new Date().toISOString(),
+  });
+
+  await atualizarProgressoHistoricoSync(db, instance.id, {
+    status: "running",
+    progress: chunk.progress,
+    erro: null,
+  });
+}
+
+async function marcarConectadaEPedirHistorico(
+  db: Db,
+  env: Env,
+  instance: InstanciaWebhook,
+): Promise<void> {
+  await marcarInstanciaConectadaEvolution(db, {
+    instanciaIdInterno: instance.id,
+    orgIdInterno: instance.organizacaoId,
+    asaasIdAssinatura: instance.asaasIdAssinatura,
+  });
+  try {
+    await solicitarHistoricoSyncSePrimeiraConexao(db, env, instance.id, instance.uuid);
+  } catch (err) {
+    log.error({
+      contexto: "webhook.history_sync_auto",
+      instanciaUuid: instance.uuid,
+      erro: err instanceof Error ? err.message : String(err),
+    });
   }
 }
 
@@ -502,11 +506,7 @@ export async function processEvolutionGoWebhook(
     const estado =
       event === "Disconnected" ? "close" : parseConnectionUpdateWebhook(payload as never);
     if (estado === "open") {
-      await marcarInstanciaConectadaEvolution(db, {
-        instanciaIdInterno: instance.id,
-        orgIdInterno: instance.organizacaoId,
-        asaasIdAssinatura: instance.asaasIdAssinatura,
-      });
+      await marcarConectadaEPedirHistorico(db, env, instance);
     } else if (estado === "close") {
       await marcarInstanciaDesconectadaEvolution(db, instance.id);
     }
@@ -516,11 +516,7 @@ export async function processEvolutionGoWebhook(
   if (event === "PairSuccess") {
     const estado = parseGoPairSuccess((payload.data ?? {}) as Record<string, unknown>);
     if (estado === "open") {
-      await marcarInstanciaConectadaEvolution(db, {
-        instanciaIdInterno: instance.id,
-        orgIdInterno: instance.organizacaoId,
-        asaasIdAssinatura: instance.asaasIdAssinatura,
-      });
+      await marcarConectadaEPedirHistorico(db, env, instance);
     }
     return;
   }
@@ -550,7 +546,7 @@ export async function processEvolutionGoWebhook(
   }
 
   if (event === "HistorySync") {
-    await processarHistorySyncGo(db, instance, (payload.data ?? {}) as Record<string, unknown>);
+    await enfileirarHistorySyncGo(db, env, instance, (payload.data ?? {}) as Record<string, unknown>);
     return;
   }
 

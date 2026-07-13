@@ -79,6 +79,9 @@ export const colunasInstanciaEvo = {
   token: true,
   historicoSincronizadoEm: true,
   historicoSincronizandoEm: true,
+  historicoSyncStatus: true,
+  historicoSyncProgress: true,
+  historicoSyncErro: true,
 } as const;
 
 export const colunasInstanciaMetaCloud = {

@@ -82,6 +82,13 @@ Não usamos `wrangler deploy --env production` — isso criaria workers com sufi
 - Sem domínio (só Cron Trigger `*/15`) — remoção de instâncias Evolution abandonadas
 - Dev: `apps/evolution-cleanup/.dev.vars`
 
+### `apps/history-sync`
+
+- Worker vars: `WORKER_NAME`
+- Sem domínio — consumer da fila `whasap-history-sync` (chunks HistorySync enfileirados pelo `webhook`)
+- Hyperdrive + R2 (`whasap`)
+- Criar a fila na Cloudflare: `wrangler queues create whasap-history-sync`
+
 ## Setup local rápido
 
 ```bash

@@ -59,6 +59,9 @@ export function mapearInstanciaParaSaida(
     evo?: {
       historicoSincronizadoEm: Date | null;
       historicoSincronizandoEm: Date | null;
+      historicoSyncStatus?: string | null;
+      historicoSyncProgress?: number | null;
+      historicoSyncErro?: string | null;
     } | null;
     metaCloud?: {
       phoneNumberId: string | null;
@@ -66,6 +69,15 @@ export function mapearInstanciaParaSaida(
   },
   organizacaoUuid: string,
 ) {
+  const statusRaw = instance.evo?.historicoSyncStatus;
+  const evoHistoricoSyncStatus: "idle" | "requested" | "running" | "completed" | "failed" =
+    statusRaw === "requested" ||
+    statusRaw === "running" ||
+    statusRaw === "completed" ||
+    statusRaw === "failed"
+      ? statusRaw
+      : "idle";
+
   return {
     id: instance.uuid,
     organizacaoId: organizacaoUuid,
@@ -81,5 +93,8 @@ export function mapearInstanciaParaSaida(
     criadoEm: instance.criadoEm.toISOString(),
     evoHistoricoSincronizadoEm: instance.evo?.historicoSincronizadoEm?.toISOString() ?? null,
     evoHistoricoSincronizandoEm: instance.evo?.historicoSincronizandoEm?.toISOString() ?? null,
+    evoHistoricoSyncStatus,
+    evoHistoricoSyncProgress: instance.evo?.historicoSyncProgress ?? null,
+    evoHistoricoSyncErro: instance.evo?.historicoSyncErro ?? null,
   };
 }

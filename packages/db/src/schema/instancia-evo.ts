@@ -15,6 +15,10 @@ export const instanciaEvo = pgTable(
     token: text(),
     historicoSincronizadoEm: timestamp(),
     historicoSincronizandoEm: timestamp(),
+    /** idle | requested | running | completed | failed */
+    historicoSyncStatus: text().notNull().default("idle"),
+    historicoSyncProgress: integer(),
+    historicoSyncErro: text(),
     criadoEm: timestamp().notNull(),
     atualizadoEm: timestamp().notNull(),
   },

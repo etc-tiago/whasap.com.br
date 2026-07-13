@@ -6,6 +6,7 @@ export const SERVICOS = {
   webhook: "whasap-webhook",
   cdn: "whasap-cdn",
   evolutionCleanup: "whasap-evolution-cleanup",
+  historySync: "whasap-history-sync",
 } as const;
 
 export type ServicoEvlog = keyof typeof SERVICOS;

@@ -10,4 +10,9 @@ export type Env = AsaasSecretsEnv &
     WHATSAPP_CLOUD_WEBHOOK_SECRET: string;
     CDN_HMAC_SECRET?: string;
     ASAAS_WEBHOOK_TOKEN: string;
+    HISTORY_SYNC_QUEUE: Queue<{
+      instanciaUuid: string;
+      r2Key: string;
+      receivedAt: string;
+    }>;
   };

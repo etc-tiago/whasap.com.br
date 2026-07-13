@@ -81,6 +81,11 @@ export const instanciaSchema = z.object({
   criadoEm: z.string().datetime(),
   evoHistoricoSincronizadoEm: z.string().datetime().nullable().optional(),
   evoHistoricoSincronizandoEm: z.string().datetime().nullable().optional(),
+  evoHistoricoSyncStatus: z
+    .enum(["idle", "requested", "running", "completed", "failed"])
+    .optional(),
+  evoHistoricoSyncProgress: z.number().int().nullable().optional(),
+  evoHistoricoSyncErro: z.string().nullable().optional(),
 });
 
 export const messageTypeSchema = z.enum([

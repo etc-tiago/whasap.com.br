@@ -42,6 +42,20 @@ function resolverIconeConexao(icone: string | null | undefined): IconeConexao {
   return ICONE_CONEXAO_PADRAO;
 }
 
+function resolverHistoricoSyncStatus(
+  status: string | null | undefined,
+): "idle" | "requested" | "running" | "completed" | "failed" {
+  if (
+    status === "requested" ||
+    status === "running" ||
+    status === "completed" ||
+    status === "failed"
+  ) {
+    return status;
+  }
+  return "idle";
+}
+
 export function toInstanciaOutput(instance: InstanciaComProvedor, organizacaoUuid: string) {
   return {
     id: instance.uuid,
@@ -58,5 +72,8 @@ export function toInstanciaOutput(instance: InstanciaComProvedor, organizacaoUui
     criadoEm: instance.criadoEm.toISOString(),
     evoHistoricoSincronizadoEm: instance.evo?.historicoSincronizadoEm?.toISOString() ?? null,
     evoHistoricoSincronizandoEm: instance.evo?.historicoSincronizandoEm?.toISOString() ?? null,
+    evoHistoricoSyncStatus: resolverHistoricoSyncStatus(instance.evo?.historicoSyncStatus),
+    evoHistoricoSyncProgress: instance.evo?.historicoSyncProgress ?? null,
+    evoHistoricoSyncErro: instance.evo?.historicoSyncErro ?? null,
   };
 }

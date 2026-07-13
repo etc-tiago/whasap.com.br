@@ -1,0 +1,37 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "whasap-history-sync",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-05",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "c8f9852b6dc748489154722036fb4e48",
+      "localConnectionString": "postgres://postgres:postgres@db.localtest.me:5432/whasap"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "whasap"
+    }
+  ],
+  "vars": {
+    "WORKER_NAME": "whasap-history-sync"
+  },
+  "queues": {
+    "consumers": [
+      {
+        "queue": "whasap-history-sync",
+        "max_batch_size": 5,
+        "max_retries": 5
+      }
+    ]
+  }
+}

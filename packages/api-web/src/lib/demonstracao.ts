@@ -1,5 +1,5 @@
-import { preconditionFailed, marcarInstanciaConectadaEvolution } from "@whasap/api-core";
-import { mvpDefaults } from "@whasap/config";
+import { preconditionFailed, marcarInstanciaConectadaEvolution, solicitarHistoricoSyncSePrimeiraConexao } from "@whasap/api-core";
+import { isEvoProvider, mvpDefaults } from "@whasap/config";
 import {
   colunasOrganizacaoPublica,
   comTimestampAtualizacao,
@@ -127,6 +127,23 @@ export async function marcarInstanciaConectada(
     orgIdInterno,
     asaasIdAssinatura,
   });
+
+  const row = await ctx.db.query.instancia.findFirst({
+    where: eq(instancia.id, instanciaIdInterno),
+    columns: { uuid: true, provedor: true },
+  });
+  if (row && isEvoProvider(row.provedor)) {
+    try {
+      await solicitarHistoricoSyncSePrimeiraConexao(
+        ctx.db,
+        ctx.env,
+        instanciaIdInterno,
+        row.uuid,
+      );
+    } catch {
+      // Sync automático não bloqueia a conexão.
+    }
+  }
 }
 
 async function carregarDemonstracaoOrg(

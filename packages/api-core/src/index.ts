@@ -83,5 +83,25 @@ export {
   type ResultadoVarreduraEvolution,
   type StatusSweepEvolution,
 } from "./lib/instancia-evolution-abandonada";
+export {
+  atualizarStatusMensagemPorIdExterno,
+  buscarContatoPorIdExterno,
+  decrementarNaoLidas,
+  ingerirMensagem,
+  marcarConversaLidaLocal,
+  type IngerirMensagemParams,
+} from "./lib/ingestao-mensagem";
+export {
+  atualizarProgressoHistoricoSync,
+  processarHistorySyncChunk,
+  type InstanciaParaHistorySync,
+} from "./lib/history-sync";
+export {
+  historicoSyncEmAndamento,
+  solicitarHistoricoSyncEvolution,
+  solicitarHistoricoSyncSePrimeiraConexao,
+  type EnvSolicitarHistorico,
+  type InstanciaParaSolicitarHistorico,
+} from "./lib/solicitar-historico-sync";
 export { resolveSessionJwtSecret } from "./lib/session-jwt-secret";
 export type { BaseEnv, DbContext } from "./types";

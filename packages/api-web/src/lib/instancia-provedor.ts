@@ -23,6 +23,9 @@ export type InstanciaComProvedor = Pick<
     | "token"
     | "historicoSincronizadoEm"
     | "historicoSincronizandoEm"
+    | "historicoSyncStatus"
+    | "historicoSyncProgress"
+    | "historicoSyncErro"
   > | null;
   metaCloud?: Pick<
     typeof instanciaMetaCloud.$inferSelect,
