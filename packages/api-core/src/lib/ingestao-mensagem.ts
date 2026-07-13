@@ -45,9 +45,13 @@ export type IngerirMensagemParams = {
 
 /** Atualiza `ultima_mensagem_em` só se o novo valor for mais recente (race-safe). */
 function sqlUltimaMensagemMonotonica(nova: Date) {
+  // `Date` cru no `sql` template vira `Date.toString()` no driver ("Wed Sep 18…")
+  // e o Postgres rejeita. Parametrizar ISO + cast evita isso.
+  const iso = Number.isNaN(nova.getTime()) ? new Date().toISOString() : nova.toISOString();
+  const ts = sql`${sql.param(iso)}::timestamp`;
   return sql`CASE
-    WHEN ${conversa.ultimaMensagemEm} IS NULL OR ${conversa.ultimaMensagemEm} < ${nova}
-    THEN ${nova}
+    WHEN ${conversa.ultimaMensagemEm} IS NULL OR ${conversa.ultimaMensagemEm} < ${ts}
+    THEN ${ts}
     ELSE ${conversa.ultimaMensagemEm}
   END`;
 }
