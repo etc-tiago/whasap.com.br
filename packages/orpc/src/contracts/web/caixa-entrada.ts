@@ -14,6 +14,29 @@ const etiquetaSchema = z.object({
   cor: z.string().nullable(),
 });
 
+const contatoInstanciaResumoSchema = z.object({
+  id: z.string().uuid(),
+  nome: z.string(),
+  icone: iconeConexaoSchema,
+});
+
+const conversaAbertaContatoSchema = z.object({
+  id: z.string().uuid(),
+  instanciaId: z.string().uuid(),
+  instanciaNome: z.string(),
+  usuarioAtribuidoId: z.string().uuid().nullable(),
+  usuarioAtribuidoNome: z.string().nullable(),
+});
+
+const contatoListaItemSchema = z.object({
+  id: z.string().uuid(),
+  nome: z.string().nullable(),
+  telefone: z.string().nullable(),
+  criadoEm: z.string().datetime(),
+  instancias: z.array(contatoInstanciaResumoSchema),
+  conversaAberta: conversaAbertaContatoSchema.nullable(),
+});
+
 const conversaSchema = z.object({
   id: z.string().uuid(),
   instanciaId: z.string().uuid(),
@@ -207,6 +230,48 @@ export const caixaEntradaContract = {
   },
 
   contatos: {
+    lista: oc
+      .input(
+        z.object({
+          organizacaoHash: organizacaoHashSchema,
+          busca: z.string().trim().max(200).optional(),
+          instanciaId: z.string().uuid().optional(),
+          limite: z.number().int().min(1).max(100).default(30),
+          offset: z.number().int().min(0).default(0),
+        }),
+      )
+      .output(
+        z.object({
+          itens: z.array(contatoListaItemSchema),
+          total: z.number().int(),
+        }),
+      ),
+
+    criar: oc
+      .input(
+        z.object({
+          organizacaoHash: organizacaoHashSchema,
+          instanciaId: z.string().uuid(),
+          telefone: z.string().min(8).max(30),
+          nome: z.string().trim().max(200).optional(),
+        }),
+      )
+      .output(contatoListaItemSchema),
+
+    atualizar: oc
+      .input(
+        z.object({
+          contatoId: z.string().uuid(),
+          nome: z.string().trim().max(200),
+        }),
+      )
+      .output(
+        z.object({
+          ok: z.boolean(),
+          nome: z.string().nullable(),
+        }),
+      ),
+
     atualizarNome: oc
       .input(
         z.object({
@@ -220,5 +285,9 @@ export const caixaEntradaContract = {
           nome: z.string().nullable(),
         }),
       ),
+
+    remover: oc
+      .input(z.object({ contatoId: z.string().uuid() }))
+      .output(z.object({ ok: z.boolean() })),
   },
 };

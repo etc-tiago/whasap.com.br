@@ -35,6 +35,10 @@ export type ConversaItem = Awaited<
   ReturnType<typeof orpcClient.caixaEntrada.conversas.lista>
 >[number];
 
+export type ContatoListaItem = Awaited<
+  ReturnType<typeof orpcClient.caixaEntrada.contatos.lista>
+>["itens"][number];
+
 export type MensagemItem = Awaited<
   ReturnType<typeof orpcClient.caixaEntrada.mensagens.lista>
 >[number];

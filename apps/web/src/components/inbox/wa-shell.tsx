@@ -19,6 +19,8 @@ type WaShellProps = {
   podeIniciarConversa?: boolean;
   onConversaIniciada?: (conversaId: string) => void;
   telefoneIniciarBusca?: string | null;
+  iniciarConversaExterna?: { telefone: string; instanciaId?: string } | null;
+  onIniciarConversaExternaConsumida?: () => void;
   chatHeader?: ReactNode;
   chatBody?: ReactNode;
   composer?: ReactNode;
@@ -37,6 +39,8 @@ export function WaShell({
   podeIniciarConversa,
   onConversaIniciada,
   telefoneIniciarBusca,
+  iniciarConversaExterna,
+  onIniciarConversaExternaConsumida,
   chatHeader,
   chatBody,
   composer,
@@ -50,11 +54,13 @@ export function WaShell({
         onFiltroChange={onFiltroChange}
         mobileHidden={conversaAberta}
         instancias={instancias}
-        instanciaPadraoId={instanciaPadraoId}
+        instanciaPadraoId={iniciarConversaExterna?.instanciaId ?? instanciaPadraoId}
         organizacaoHash={organizacaoHash}
         podeIniciarConversa={podeIniciarConversa}
         onConversaIniciada={onConversaIniciada}
         telefoneIniciarBusca={telefoneIniciarBusca}
+        iniciarConversaExterna={iniciarConversaExterna}
+        onIniciarConversaExternaConsumida={onIniciarConversaExternaConsumida}
       >
         {listaConversas}
       </WaChatListPanel>

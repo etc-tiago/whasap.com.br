@@ -66,10 +66,18 @@ export function WaRail({ organizacaoHash }: WaRailProps) {
 
         <WaRailHistoricoSync organizacaoHash={organizacaoHash} instanciaEvo={instanciaEvo} />
 
-        <RailButton icon={<Users className="size-5" />} disabled label="Comunidades" />
+        <WaRailLink
+          to="/$organizacaoHash/contatos"
+          params={{ organizacaoHash }}
+          title="Contatos"
+          activeOptions={waRailLinkActiveOptionsExact}
+        >
+          <Users className="size-5" />
+        </WaRailLink>
+
         <RailButton
           icon={
-            <div className="size-5 rounded-full bg-gradient-to-br from-[oklch(0.7_0.2_300)] to-[oklch(0.6_0.2_260)]" />
+            <div className="size-5 rounded-full bg-linear-to-br from-[oklch(0.7_0.2_300)] to-[oklch(0.6_0.2_260)]" />
           }
           disabled
           label="Canais"

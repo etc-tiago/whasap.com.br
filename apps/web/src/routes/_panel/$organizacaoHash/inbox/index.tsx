@@ -1,8 +1,10 @@
 /**
  * Caixa de entrada estilo WhatsApp Web — lista unificada por organização.
+ *
+ * Search: `conversa` seleciona thread; `telefone`+`instancia` abrem nova conversa (ex.: Contatos).
  */
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { isEvoProvider, isMetaCloudProvider } from "@whasap/config";
 import { Badge } from "@whasap/ui/components/badge";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -23,20 +25,62 @@ import { orpc, type ConversaItem } from "@/lib/orpc";
 import { eCandidatoTelefoneBr, normalizarTelefoneBr, telefonesBrIguais } from "@/lib/telefone-br";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
+type InboxSearch = {
+  conversa?: string;
+  telefone?: string;
+  instancia?: string;
+};
+
 export const Route = createFileRoute("/_panel/$organizacaoHash/inbox/")({
+  validateSearch: (s: Record<string, unknown>): InboxSearch => ({
+    conversa: typeof s.conversa === "string" && s.conversa ? s.conversa : undefined,
+    telefone: typeof s.telefone === "string" && s.telefone ? s.telefone : undefined,
+    instancia: typeof s.instancia === "string" && s.instancia ? s.instancia : undefined,
+  }),
   component: InboxOrgPage,
 });
 
 function InboxOrgPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const organizacaoHash = useOrganizacaoHash();
+  const search = Route.useSearch();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [filtroAtivo, setFiltroAtivo] = useState<FiltroConversa>("Tudo");
   const [message, setMessage] = useState("");
   const [midia, setMidia] = useState<MidiaAnexada | null>(null);
+  const [iniciarConversaExterna, setIniciarConversaExterna] = useState<{
+    telefone: string;
+    instanciaId?: string;
+  } | null>(null);
 
   const { data: session } = useSession();
+
+  useEffect(() => {
+    if (search.conversa) {
+      setSelectedId(search.conversa);
+    }
+  }, [search.conversa]);
+
+  useEffect(() => {
+    if (!search.telefone) return;
+    setIniciarConversaExterna({
+      telefone: search.telefone,
+      instanciaId: search.instancia,
+    });
+  }, [search.telefone, search.instancia]);
+
+  function limparSearchInbox() {
+    if (!organizacaoHash) return;
+    if (!search.conversa && !search.telefone && !search.instancia) return;
+    void navigate({
+      to: "/$organizacaoHash/inbox",
+      params: { organizacaoHash },
+      search: {},
+      replace: true,
+    });
+  }
 
   const org = useQuery(
     orpc.organizacao.obter.queryOptions({
@@ -329,6 +373,13 @@ function InboxOrgPage() {
       telefoneIniciarBusca={
         podeIniciarConversa && instanciasParaNovaConversa.length > 0 ? telefoneIniciarBusca : null
       }
+      iniciarConversaExterna={
+        podeIniciarConversa && instanciasParaNovaConversa.length > 0 ? iniciarConversaExterna : null
+      }
+      onIniciarConversaExternaConsumida={() => {
+        setIniciarConversaExterna(null);
+        limparSearchInbox();
+      }}
       listaConversas={listaConversas}
       chatHeader={
         selected && instanciaAtivaId ? (

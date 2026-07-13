@@ -1,5 +1,5 @@
 import { Archive, MessageSquarePlus, MoreVertical, Plus, Search } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@whasap/ui/lib/utils";
 
 import { WaIconButton } from "@/components/inbox/wa-icon-button";
@@ -27,6 +27,9 @@ type WaChatListPanelProps = {
   onConversaIniciada?: (conversaId: string) => void;
   /** Telefone normalizado da busca sem match exato — exibe chip "Iniciar conversa". */
   telefoneIniciarBusca?: string | null;
+  /** Abre o popover de nova conversa com telefone/instância pré-preenchidos (ex.: deep-link de Contatos). */
+  iniciarConversaExterna?: { telefone: string; instanciaId?: string } | null;
+  onIniciarConversaExternaConsumida?: () => void;
 };
 
 export function WaChatListPanel({
@@ -42,6 +45,8 @@ export function WaChatListPanel({
   podeIniciarConversa,
   onConversaIniciada,
   telefoneIniciarBusca,
+  iniciarConversaExterna,
+  onIniciarConversaExternaConsumida,
 }: WaChatListPanelProps) {
   const [novaConversaOpen, setNovaConversaOpen] = useState(false);
   const [telefoneInicial, setTelefoneInicial] = useState<string | undefined>();
@@ -50,6 +55,13 @@ export function WaChatListPanel({
     instancias.length > 0 &&
     Boolean(organizacaoHash && onConversaIniciada) &&
     Boolean(podeIniciarConversa);
+
+  useEffect(() => {
+    if (!iniciarConversaExterna?.telefone || !podeAbrirNovaConversa) return;
+    setTelefoneInicial(iniciarConversaExterna.telefone);
+    setNovaConversaOpen(true);
+    onIniciarConversaExternaConsumida?.();
+  }, [iniciarConversaExterna, podeAbrirNovaConversa, onIniciarConversaExternaConsumida]);
 
   function abrirNovaConversa(telefone?: string) {
     setTelefoneInicial(telefone);

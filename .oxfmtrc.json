@@ -12,6 +12,7 @@
     "**/routeTree.gen.ts",
     "bun.lock",
     "packages/db/migrations",
-    "**/auto-imports.d.ts"
+    "auto-imports.d.ts",
+    "routeTree.gen.ts"
   ]
 }

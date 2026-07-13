@@ -25,7 +25,8 @@
     ".wrangler",
     "**/routeTree.gen.ts",
     "bun.lock",
-    "**/auto-imports.d.ts"
+    "auto-imports.d.ts",
+    "routeTree.gen.ts"
   ],
   "overrides": [
     {

@@ -55,6 +55,7 @@ export function mapearInstanciaParaSaida(
     asaasIdAssinatura: string | null;
     trialTerminaEm: Date | null;
     conectadoEm: Date | null;
+    sessaoRemotaLiberadaEm: Date | null;
     criadoEm: Date;
     evo?: {
       historicoSincronizadoEm: Date | null;
@@ -90,6 +91,7 @@ export function mapearInstanciaParaSaida(
     cloudPhoneNumberId: instance.metaCloud?.phoneNumberId ?? null,
     trialEndsAt: instance.trialTerminaEm?.toISOString() ?? null,
     connectedAt: instance.conectadoEm?.toISOString() ?? null,
+    sessaoRemotaLiberadaEm: instance.sessaoRemotaLiberadaEm?.toISOString() ?? null,
     criadoEm: instance.criadoEm.toISOString(),
     evoHistoricoSincronizadoEm: instance.evo?.historicoSincronizadoEm?.toISOString() ?? null,
     evoHistoricoSincronizandoEm: instance.evo?.historicoSincronizandoEm?.toISOString() ?? null,

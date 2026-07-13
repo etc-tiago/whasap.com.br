@@ -23,6 +23,7 @@ import { Route as PanelOrganizacaoHashRelatoriosRouteImport } from './routes/_pa
 import { Route as PanelOrganizacaoHashIntegracaoRouteImport } from './routes/_panel/$organizacaoHash/integracao'
 import { Route as PanelOrganizacaoHashInstanciasRouteImport } from './routes/_panel/$organizacaoHash/instancias'
 import { Route as PanelOrganizacaoHashEquipeRouteImport } from './routes/_panel/$organizacaoHash/equipe'
+import { Route as PanelOrganizacaoHashContatosRouteImport } from './routes/_panel/$organizacaoHash/contatos'
 import { Route as PanelOrganizacaoHashAjustesRouteRouteImport } from './routes/_panel/$organizacaoHash/ajustes/route'
 import { Route as PanelOrganizacaoHashInboxIndexRouteImport } from './routes/_panel/$organizacaoHash/inbox/index'
 import { Route as PanelOrganizacaoHashAjustesIndexRouteImport } from './routes/_panel/$organizacaoHash/ajustes/index'
@@ -108,6 +109,12 @@ const PanelOrganizacaoHashEquipeRoute =
     path: '/equipe',
     getParentRoute: () => PanelOrganizacaoHashRouteRoute,
   } as any)
+const PanelOrganizacaoHashContatosRoute =
+  PanelOrganizacaoHashContatosRouteImport.update({
+    id: '/contatos',
+    path: '/contatos',
+    getParentRoute: () => PanelOrganizacaoHashRouteRoute,
+  } as any)
 const PanelOrganizacaoHashAjustesRouteRoute =
   PanelOrganizacaoHashAjustesRouteRouteImport.update({
     id: '/ajustes',
@@ -172,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/rpc/': typeof RpcIndexRoute
   '/~/': typeof Char126IndexRoute
   '/$organizacaoHash/ajustes': typeof PanelOrganizacaoHashAjustesRouteRouteWithChildren
+  '/$organizacaoHash/contatos': typeof PanelOrganizacaoHashContatosRoute
   '/$organizacaoHash/equipe': typeof PanelOrganizacaoHashEquipeRoute
   '/$organizacaoHash/instancias': typeof PanelOrganizacaoHashInstanciasRoute
   '/$organizacaoHash/integracao': typeof PanelOrganizacaoHashIntegracaoRoute
@@ -194,6 +202,7 @@ export interface FileRoutesByTo {
   '/rpc/$': typeof RpcSplatRoute
   '/rpc': typeof RpcIndexRoute
   '/~': typeof Char126IndexRoute
+  '/$organizacaoHash/contatos': typeof PanelOrganizacaoHashContatosRoute
   '/$organizacaoHash/equipe': typeof PanelOrganizacaoHashEquipeRoute
   '/$organizacaoHash/instancias': typeof PanelOrganizacaoHashInstanciasRoute
   '/$organizacaoHash/integracao': typeof PanelOrganizacaoHashIntegracaoRoute
@@ -220,6 +229,7 @@ export interface FileRoutesById {
   '/rpc/': typeof RpcIndexRoute
   '/~/': typeof Char126IndexRoute
   '/_panel/$organizacaoHash/ajustes': typeof PanelOrganizacaoHashAjustesRouteRouteWithChildren
+  '/_panel/$organizacaoHash/contatos': typeof PanelOrganizacaoHashContatosRoute
   '/_panel/$organizacaoHash/equipe': typeof PanelOrganizacaoHashEquipeRoute
   '/_panel/$organizacaoHash/instancias': typeof PanelOrganizacaoHashInstanciasRoute
   '/_panel/$organizacaoHash/integracao': typeof PanelOrganizacaoHashIntegracaoRoute
@@ -246,6 +256,7 @@ export interface FileRouteTypes {
     | '/rpc/'
     | '/~/'
     | '/$organizacaoHash/ajustes'
+    | '/$organizacaoHash/contatos'
     | '/$organizacaoHash/equipe'
     | '/$organizacaoHash/instancias'
     | '/$organizacaoHash/integracao'
@@ -268,6 +279,7 @@ export interface FileRouteTypes {
     | '/rpc/$'
     | '/rpc'
     | '/~'
+    | '/$organizacaoHash/contatos'
     | '/$organizacaoHash/equipe'
     | '/$organizacaoHash/instancias'
     | '/$organizacaoHash/integracao'
@@ -293,6 +305,7 @@ export interface FileRouteTypes {
     | '/rpc/'
     | '/~/'
     | '/_panel/$organizacaoHash/ajustes'
+    | '/_panel/$organizacaoHash/contatos'
     | '/_panel/$organizacaoHash/equipe'
     | '/_panel/$organizacaoHash/instancias'
     | '/_panel/$organizacaoHash/integracao'
@@ -420,6 +433,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelOrganizacaoHashEquipeRouteImport
       parentRoute: typeof PanelOrganizacaoHashRouteRoute
     }
+    '/_panel/$organizacaoHash/contatos': {
+      id: '/_panel/$organizacaoHash/contatos'
+      path: '/contatos'
+      fullPath: '/$organizacaoHash/contatos'
+      preLoaderRoute: typeof PanelOrganizacaoHashContatosRouteImport
+      parentRoute: typeof PanelOrganizacaoHashRouteRoute
+    }
     '/_panel/$organizacaoHash/ajustes': {
       id: '/_panel/$organizacaoHash/ajustes'
       path: '/ajustes'
@@ -512,6 +532,7 @@ const PanelOrganizacaoHashAjustesRouteRouteWithChildren =
 
 interface PanelOrganizacaoHashRouteRouteChildren {
   PanelOrganizacaoHashAjustesRouteRoute: typeof PanelOrganizacaoHashAjustesRouteRouteWithChildren
+  PanelOrganizacaoHashContatosRoute: typeof PanelOrganizacaoHashContatosRoute
   PanelOrganizacaoHashEquipeRoute: typeof PanelOrganizacaoHashEquipeRoute
   PanelOrganizacaoHashInstanciasRoute: typeof PanelOrganizacaoHashInstanciasRoute
   PanelOrganizacaoHashIntegracaoRoute: typeof PanelOrganizacaoHashIntegracaoRoute
@@ -526,6 +547,7 @@ const PanelOrganizacaoHashRouteRouteChildren: PanelOrganizacaoHashRouteRouteChil
   {
     PanelOrganizacaoHashAjustesRouteRoute:
       PanelOrganizacaoHashAjustesRouteRouteWithChildren,
+    PanelOrganizacaoHashContatosRoute: PanelOrganizacaoHashContatosRoute,
     PanelOrganizacaoHashEquipeRoute: PanelOrganizacaoHashEquipeRoute,
     PanelOrganizacaoHashInstanciasRoute: PanelOrganizacaoHashInstanciasRoute,
     PanelOrganizacaoHashIntegracaoRoute: PanelOrganizacaoHashIntegracaoRoute,

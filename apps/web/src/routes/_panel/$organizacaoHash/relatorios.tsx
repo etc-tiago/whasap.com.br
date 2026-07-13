@@ -6,7 +6,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { skipToken, useQuery } from "@tanstack/react-query";
 import { rotuloProvedor } from "@whasap/config";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@whasap/ui/components/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@whasap/ui/components/card";
 import {
   ChartContainer,
   ChartLegend,
@@ -162,7 +168,12 @@ function ReportsPage() {
 
   const tempoRespostaData = [
     { faixa: "ate5", label: "≤ 5 min", total: dist?.ate5Min ?? 0, fill: "var(--color-ate5)" },
-    { faixa: "de5a15", label: "5–15 min", total: dist?.de5a15Min ?? 0, fill: "var(--color-de5a15)" },
+    {
+      faixa: "de5a15",
+      label: "5–15 min",
+      total: dist?.de5a15Min ?? 0,
+      fill: "var(--color-de5a15)",
+    },
     {
       faixa: "de15a60",
       label: "15–60 min",
@@ -472,9 +483,7 @@ function ReportsPage() {
                       className="mx-auto aspect-square max-h-[280px] w-full"
                     >
                       <PieChart>
-                        <ChartTooltip
-                          content={<ChartTooltipContent nameKey="id" hideLabel />}
-                        />
+                        <ChartTooltip content={<ChartTooltipContent nameKey="id" hideLabel />} />
                         <Pie
                           data={itensData}
                           dataKey="total"

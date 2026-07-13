@@ -13,9 +13,10 @@ import {
   isIconeConexao,
   isMetaCloudProvider,
   mimeToExtension,
+  type IconeConexao,
 } from "@whasap/config";
 import type { MetaTemplate } from "@whasap/meta";
-import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNull, or, type SQL } from "drizzle-orm";
 import {
   contato,
   contatoInstancia,
@@ -40,6 +41,7 @@ import {
   incluirInstanciaOperacao,
   incluirUsuarioRelacao,
   instancia,
+  marcarExclusaoLogica,
   mensagem,
   mensagemTemplate,
   resolverIdInterno,
@@ -197,6 +199,126 @@ async function exigirAcessoInstancia(ctx: WebContext, instanciaUuid: string) {
 /** Analistas têm acesso somente leitura na caixa de entrada. */
 function verificarPodeEscreverCaixaEntrada(role: MemberRole) {
   if (role === "analista") forbidden();
+}
+
+/**
+ * Normaliza telefone e monta o id externo WhatsApp (`{digits}@s.whatsapp.net`).
+ */
+function normalizarTelefoneContato(telefone: string) {
+  const phone = telefone.replace(/\D/g, "");
+  return { phone, idExterno: `${phone}@s.whatsapp.net` };
+}
+
+type ContatoListaSaida = {
+  id: string;
+  nome: string | null;
+  telefone: string | null;
+  criadoEm: string;
+  instancias: Array<{
+    id: string;
+    nome: string;
+    icone: IconeConexao;
+  }>;
+  conversaAberta: {
+    id: string;
+    instanciaId: string;
+    instanciaNome: string;
+    usuarioAtribuidoId: string | null;
+    usuarioAtribuidoNome: string | null;
+  } | null;
+};
+
+/**
+ * Monta itens da lista de contatos com instâncias vinculadas e conversa aberta (se houver).
+ */
+async function montarItensContatoLista(
+  ctx: WebContext,
+  contacts: Array<{
+    id: number;
+    uuid: string;
+    nome: string | null;
+    telefone: string | null;
+    criadoEm: Date;
+  }>,
+): Promise<ContatoListaSaida[]> {
+  if (contacts.length === 0) return [];
+
+  const contactIds = contacts.map((c) => c.id);
+
+  const vinculos = await ctx.db.query.contatoInstancia.findMany({
+    where: inArray(contatoInstancia.contatoId, contactIds),
+    columns: colunasContatoInstancia,
+  });
+
+  const instanciaIds = [...new Set(vinculos.map((v) => v.instanciaId))];
+  const instanciasRows =
+    instanciaIds.length > 0
+      ? await ctx.db.query.instancia.findMany({
+          where: and(inArray(instancia.id, instanciaIds), isNull(instancia.excluidoEm)),
+          columns: { id: true, uuid: true, nome: true, icone: true },
+        })
+      : [];
+  const instanciaPorId = new Map(instanciasRows.map((i) => [i.id, i]));
+
+  const instanciasPorContato = new Map<number, ContatoListaSaida["instancias"]>();
+  for (const vinculo of vinculos) {
+    const inst = instanciaPorId.get(vinculo.instanciaId);
+    if (!inst) continue;
+    const lista = instanciasPorContato.get(vinculo.contatoId) ?? [];
+    lista.push({
+      id: inst.uuid,
+      nome: inst.nome,
+      icone: isIconeConexao(inst.icone) ? inst.icone : ICONE_CONEXAO_PADRAO,
+    });
+    instanciasPorContato.set(vinculo.contatoId, lista);
+  }
+
+  const conversasAbertas = await ctx.db.query.conversa.findMany({
+    where: and(
+      inArray(conversa.contatoId, contactIds),
+      eq(conversa.status, "open"),
+      isNull(conversa.excluidoEm),
+    ),
+    columns: {
+      id: true,
+      uuid: true,
+      contatoId: true,
+      instanciaId: true,
+      ultimaMensagemEm: true,
+    },
+    with: {
+      atribuidoUsuario: incluirUsuarioRelacao,
+      instancia: { columns: { id: true, uuid: true, nome: true } },
+    },
+    orderBy: [desc(conversa.ultimaMensagemEm)],
+  });
+
+  const conversaAbertaPorContato = new Map<number, (typeof conversasAbertas)[number]>();
+  for (const row of conversasAbertas) {
+    if (!conversaAbertaPorContato.has(row.contatoId)) {
+      conversaAbertaPorContato.set(row.contatoId, row);
+    }
+  }
+
+  return contacts.map((c) => {
+    const aberta = conversaAbertaPorContato.get(c.id);
+    return {
+      id: c.uuid,
+      nome: c.nome,
+      telefone: c.telefone,
+      criadoEm: c.criadoEm.toISOString(),
+      instancias: instanciasPorContato.get(c.id) ?? [],
+      conversaAberta: aberta?.instancia
+        ? {
+            id: aberta.uuid,
+            instanciaId: aberta.instancia.uuid,
+            instanciaNome: aberta.instancia.nome,
+            usuarioAtribuidoId: aberta.atribuidoUsuario?.uuid ?? null,
+            usuarioAtribuidoNome: aberta.atribuidoUsuario?.nome ?? null,
+          }
+        : null,
+    };
+  });
 }
 
 function mapearMensagemParaSaida(
@@ -1158,6 +1280,163 @@ export const caixaEntradaHandlers = {
   },
 
   contatos: {
+    /**
+     * Lista paginada de contatos da organização, com instâncias e atendente da conversa aberta.
+     */
+    lista: async (
+      ctx: WebContext,
+      input: {
+        organizacaoHash: string;
+        busca?: string;
+        instanciaId?: string;
+        limite?: number;
+        offset?: number;
+      },
+    ) => {
+      exigirAutenticacao(ctx);
+      await resolverMembro(ctx, input.organizacaoHash);
+      const organizacaoId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
+      if (organizacaoId === null) notFound();
+      await exigirAcessoDemonstracao(ctx, organizacaoId);
+
+      const limite = input.limite ?? 30;
+      const offset = input.offset ?? 0;
+      const busca = input.busca?.trim();
+
+      const filtros: SQL[] = [eq(contato.organizacaoId, organizacaoId), isNull(contato.excluidoEm)];
+
+      if (busca) {
+        const termo = `%${busca}%`;
+        filtros.push(or(ilike(contato.nome, termo), ilike(contato.telefone, termo))!);
+      }
+
+      if (input.instanciaId) {
+        const { instance } = await exigirAcessoInstancia(ctx, input.instanciaId);
+        if (instance.organizacaoId !== organizacaoId) notFound();
+        const vinculos = await ctx.db.query.contatoInstancia.findMany({
+          where: eq(contatoInstancia.instanciaId, instance.id),
+          columns: { contatoId: true },
+        });
+        const ids = vinculos.map((v) => v.contatoId);
+        if (ids.length === 0) return { itens: [], total: 0 };
+        filtros.push(inArray(contato.id, ids));
+      }
+
+      const where = and(...filtros);
+
+      const [[totalRow], rows] = await Promise.all([
+        ctx.db.select({ n: count() }).from(contato).where(where),
+        ctx.db.query.contato.findMany({
+          where,
+          columns: {
+            id: true,
+            uuid: true,
+            nome: true,
+            telefone: true,
+            criadoEm: true,
+          },
+          orderBy: [desc(contato.atualizadoEm), desc(contato.id)],
+          limit: limite,
+          offset,
+        }),
+      ]);
+
+      const itens = await montarItensContatoLista(ctx, rows);
+      return { itens, total: totalRow?.n ?? 0 };
+    },
+
+    /**
+     * Cria (ou reaproveita) contato e vínculo com a instância, sem abrir conversa.
+     */
+    criar: async (
+      ctx: WebContext,
+      input: {
+        organizacaoHash: string;
+        instanciaId: string;
+        telefone: string;
+        nome?: string;
+      },
+    ) => {
+      exigirAutenticacao(ctx);
+      await resolverMembro(ctx, input.organizacaoHash);
+      const { instance, role } = await exigirAcessoInstancia(ctx, input.instanciaId);
+      verificarPodeEscreverCaixaEntrada(role);
+
+      const organizacaoId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
+      if (organizacaoId === null || instance.organizacaoId !== organizacaoId) notFound();
+      await exigirAcessoDemonstracao(ctx, organizacaoId);
+
+      const { phone, idExterno } = normalizarTelefoneContato(input.telefone);
+      if (phone.length < 8) preconditionFailed("Telefone inválido");
+
+      const nome = input.nome?.trim() || null;
+
+      let contact = await ctx.db.query.contato.findFirst({
+        where: and(
+          eq(contato.organizacaoId, organizacaoId),
+          eq(contato.idExterno, idExterno),
+          isNull(contato.excluidoEm),
+        ),
+        columns: {
+          id: true,
+          uuid: true,
+          nome: true,
+          telefone: true,
+          criadoEm: true,
+        },
+      });
+
+      if (!contact) {
+        [contact] = await ctx.db
+          .insert(contato)
+          .values(
+            comTimestampsCriacao({
+              organizacaoId,
+              idExterno,
+              telefone: phone,
+              nome,
+            }),
+          )
+          .returning({
+            id: contato.id,
+            uuid: contato.uuid,
+            nome: contato.nome,
+            telefone: contato.telefone,
+            criadoEm: contato.criadoEm,
+          });
+      } else if (nome && !contact.nome) {
+        await ctx.db
+          .update(contato)
+          .set(comTimestampAtualizacao({ nome }))
+          .where(eq(contato.id, contact.id));
+        contact = { ...contact, nome };
+      }
+
+      const vinculoExistente = await ctx.db.query.contatoInstancia.findFirst({
+        where: and(
+          eq(contatoInstancia.contatoId, contact!.id),
+          eq(contatoInstancia.instanciaId, instance.id),
+        ),
+        columns: colunasSomenteId,
+      });
+      if (!vinculoExistente) {
+        await ctx.db.insert(contatoInstancia).values(
+          comTimestampsCriacao({
+            contatoId: contact!.id,
+            instanciaId: instance.id,
+            idExterno,
+          }),
+        );
+      }
+
+      const [item] = await montarItensContatoLista(ctx, [contact!]);
+      return item!;
+    },
+
+    atualizar: async (ctx: WebContext, input: { contatoId: string; nome: string }) => {
+      return caixaEntradaHandlers.contatos.atualizarNome(ctx, input);
+    },
+
     atualizarNome: async (ctx: WebContext, input: { contatoId: string; nome: string }) => {
       exigirAutenticacao(ctx);
       const { contact, role } = await exigirAcessoContato(ctx, input.contatoId);
@@ -1171,6 +1450,20 @@ export const caixaEntradaHandlers = {
         .where(eq(contato.id, contact.id));
 
       return { ok: true, nome };
+    },
+
+    /** Soft-delete do contato da organização. */
+    remover: async (ctx: WebContext, input: { contatoId: string }) => {
+      exigirAutenticacao(ctx);
+      const { contact, role } = await exigirAcessoContato(ctx, input.contatoId);
+      verificarPodeEscreverCaixaEntrada(role);
+
+      await ctx.db
+        .update(contato)
+        .set(comTimestampAtualizacao(marcarExclusaoLogica()))
+        .where(eq(contato.id, contact.id));
+
+      return { ok: true };
     },
   },
 
