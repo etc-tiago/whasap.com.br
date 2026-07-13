@@ -78,15 +78,29 @@ function base64ParaArrayBuffer(base64: string): ArrayBuffer {
 
 const LIMITE_MIDIA_BYTES = 20 * 1024 * 1024;
 
+/** Evolution GO e Meta Cloud API só aceitam MP4 no outbound de vídeo. */
+const MIME_VIDEO_OUTBOUND = new Set(["video/mp4"]);
+
 function mimeCompativelComTipo(tipo: string, tipoConteudo: string): boolean {
   const mime = tipoConteudo.split(";")[0]?.trim().toLowerCase() ?? "";
   if (tipo === "image") return mime.startsWith("image/");
   if (tipo === "audio") return mime.startsWith("audio/");
-  if (tipo === "video") return mime.startsWith("video/");
+  if (tipo === "video") return MIME_VIDEO_OUTBOUND.has(mime);
   if (tipo === "document") {
     return mime.startsWith("application/") || mime.startsWith("text/");
   }
   return false;
+}
+
+function mensagemMimeIncompativel(tipo: string, tipoConteudo: string): string {
+  if (tipo === "video") {
+    const mime = tipoConteudo.split(";")[0]?.trim().toLowerCase() ?? "";
+    if (mime === "video/quicktime" || mime.includes("quicktime")) {
+      return "Vídeo deve ser MP4. Arquivos MOV (gravações do Mac/iPhone) não são suportados.";
+    }
+    return "Vídeo deve ser MP4 (video/mp4). Outros formatos não são suportados.";
+  }
+  return "Tipo de arquivo incompatível com o anexo selecionado";
 }
 
 function resolverUrlMidia(
@@ -794,6 +808,14 @@ export const caixaEntradaHandlers = {
       if (["image", "audio", "video", "document", "sticker"].includes(tipo) && !mediaUrl) {
         preconditionFailed("Mídia não informada");
       }
+      if (tipo === "video") {
+        const chave = (input.mediaR2Key ?? mediaUrl ?? "").toLowerCase();
+        if (chave && !chave.includes(".mp4")) {
+          preconditionFailed(
+            "Vídeo deve ser MP4. Arquivos MOV (gravações do Mac/iPhone) não são suportados.",
+          );
+        }
+      }
 
       if (!conv.contact.telefone) notFound("Telefone do contato não informado");
 
@@ -1474,7 +1496,7 @@ export const caixaEntradaHandlers = {
       const conv = await exigirAcessoConversa(ctx, input.conversaId);
       verificarPodeEscreverCaixaEntrada(conv.role);
       if (!mimeCompativelComTipo(input.tipo, input.tipoConteudo)) {
-        preconditionFailed("Tipo de arquivo incompatível com o anexo selecionado");
+        preconditionFailed(mensagemMimeIncompativel(input.tipo, input.tipoConteudo));
       }
 
       const buffer = base64ParaArrayBuffer(input.dados);

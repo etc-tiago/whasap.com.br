@@ -47,9 +47,9 @@ const OPCOES_MIDIA = [
   {
     tipo: "video" as const,
     rotulo: "Vídeo",
-    descricao: "Clipes e gravações",
+    descricao: "Apenas MP4",
     icone: Film,
-    accept: "video/*",
+    accept: "video/mp4,.mp4",
   },
   {
     tipo: "document" as const,
@@ -59,6 +59,23 @@ const OPCOES_MIDIA = [
     accept: ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,application/*,text/*",
   },
 ];
+
+/** Evolution GO / Meta só aceitam MP4 no envio de vídeo. */
+function validarArquivoMidia(tipo: TipoMidia, arquivo: File): string | null {
+  if (tipo !== "video") return null;
+
+  const mime = (arquivo.type || "").split(";")[0]?.trim().toLowerCase() ?? "";
+  const pontinho = arquivo.name.lastIndexOf(".");
+  const ext = pontinho > 0 ? arquivo.name.slice(pontinho + 1).toLowerCase() : "";
+
+  const mimeOk = mime === "video/mp4" || (mime === "" && ext === "mp4");
+  const extOk = !ext || ext === "mp4";
+
+  if (!mimeOk || !extOk) {
+    return "Use um vídeo em MP4. Arquivos MOV (gravações do Mac/iPhone) não são suportados.";
+  }
+  return null;
+}
 
 function BotaoOpcaoMidia({
   rotulo,
@@ -176,6 +193,15 @@ export function WaComposer({
     if (!arquivo || disabled || upload.isPending) return;
 
     setErroUpload(null);
+
+    const erroLocal = validarArquivoMidia(tipo, arquivo);
+    if (erroLocal) {
+      setErroUpload(erroLocal);
+      const input = inputsRef.current[tipo];
+      if (input) input.value = "";
+      return;
+    }
+
     setUploadTipo(tipo);
 
     try {
