@@ -8,15 +8,15 @@ import { Badge } from "@whasap/ui/components/badge";
 import { useEffect, useMemo, useState } from "react";
 
 import { WaChatHeader } from "@/components/inbox/wa-chat-header";
-import { WaChatRow } from "@/components/inbox/wa-chat-row";
 import type { FiltroConversa } from "@/components/inbox/wa-chat-list-panel";
+import { WaChatRow } from "@/components/inbox/wa-chat-row";
 import { WaComposer, type MidiaAnexada } from "@/components/inbox/wa-composer";
 import { WaMessageArea } from "@/components/inbox/wa-message-area";
 import { WaShell } from "@/components/inbox/wa-shell";
 import { useSession } from "@/lib/auth";
-import { formatarHorarioConversa, formatarPreviewMensagem } from "@/lib/inbox-utils";
 import { IconeConexaoLucide } from "@/lib/icones-conexao";
 import { janelaCloudAberta, podeEnviarMensagem } from "@/lib/inbox-permissoes";
+import { formatarHorarioConversa, formatarPreviewMensagem } from "@/lib/inbox-utils";
 import { instanciaOperacional } from "@/lib/instancia-status";
 import { orgInput } from "@/lib/org-input";
 import { orpc, type ConversaItem } from "@/lib/orpc";
@@ -49,13 +49,13 @@ function InboxOrgPage() {
     }),
   );
 
-  const conversations = useQuery({
-    ...orpc.caixaEntrada.conversas.lista.queryOptions({
+  const conversations = useQuery(
+    orpc.caixaEntrada.conversas.lista.queryOptions({
       input: orgInput(organizacaoHash),
+      refetchInterval: 10_000,
+      enabled: Boolean(organizacaoHash),
     }),
-    refetchInterval: 10_000,
-    enabled: Boolean(organizacaoHash),
-  });
+  );
 
   const selected = conversations.data?.find((c: ConversaItem) => c.id === selectedId);
   const instanciaAtivaId =
@@ -220,7 +220,10 @@ function InboxOrgPage() {
           badge={
             <>
               {c.instanciaNome ? (
-                <Badge variant="outline" className="inline-flex max-w-[6.5rem] items-center gap-1 truncate text-[10px]">
+                <Badge
+                  variant="outline"
+                  className="inline-flex max-w-26 items-center gap-1 truncate text-[10px]"
+                >
                   <IconeConexaoLucide nome={c.instanciaIcone} className="h-3 w-3 shrink-0" />
                   <span className="truncate">{c.instanciaNome}</span>
                 </Badge>

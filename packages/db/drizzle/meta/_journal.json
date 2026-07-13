@@ -15,6 +15,13 @@
       "when": 1783819524885,
       "tag": "0001_wandering_hobgoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783909805509,
+      "tag": "0002_wide_sauron",
+      "breakpoints": true
     }
   ]
 }
