@@ -20,6 +20,8 @@ export const usuario = pgTable("usuario", {
   nome: text().notNull(),
   emailVerificadoEm: timestamp(),
   lgpdConsentidoEm: timestamp(),
+  /** Última atividade no painel (heartbeat / login). */
+  ultimaAtividadeEm: timestamp(),
   excluidoEm: timestamp(),
   criadoEm: timestamp().notNull(),
   atualizadoEm: timestamp().notNull(),

@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import { useSession } from "@/lib/auth";
+import { useAtividadeHeartbeat } from "@/lib/use-atividade-heartbeat";
 
 export const Route = createFileRoute("/_panel")({
   component: PanelGate,
@@ -10,6 +11,9 @@ export const Route = createFileRoute("/_panel")({
 function PanelGate() {
   const navigate = useNavigate();
   const { data: session, isPending } = useSession();
+  const autenticado = Boolean(session?.usuario);
+
+  useAtividadeHeartbeat(autenticado);
 
   useEffect(() => {
     if (!isPending && !session?.usuario) {

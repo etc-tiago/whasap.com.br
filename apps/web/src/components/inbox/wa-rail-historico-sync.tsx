@@ -10,7 +10,7 @@ import {
   AlertDialogTitle,
 } from "@whasap/ui/components/alert-dialog";
 import { cn } from "@whasap/ui/lib/utils";
-import { AlertCircle, Check, History, Loader2 } from "lucide-react";
+import { AlertCircle, History, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -26,7 +26,7 @@ type WaRailHistoricoSyncProps = {
   instanciaEvo: InstanciaItem | null;
 };
 
-/** Botão do rail + confirmação para sincronizar histórico Evolution. */
+/** Botão do rail + confirmação para sincronizar histórico Evolution. Oculto após conclusão. */
 export function WaRailHistoricoSync({ organizacaoHash, instanciaEvo }: WaRailHistoricoSyncProps) {
   const queryClient = useQueryClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -45,6 +45,8 @@ export function WaRailHistoricoSync({ organizacaoHash, instanciaEvo }: WaRailHis
     }),
   );
 
+  if (syncStatus === "completed") return null;
+
   return (
     <>
       <button
@@ -61,18 +63,12 @@ export function WaRailHistoricoSync({ organizacaoHash, instanciaEvo }: WaRailHis
           "relative flex h-11 w-11 items-center justify-center rounded-lg transition-colors",
           "text-wa-icon hover:bg-wa-hover disabled:cursor-not-allowed disabled:opacity-50",
           syncStatus === "failed" && "text-destructive",
-          syncStatus === "completed" && "text-wa-green-dark",
         )}
       >
         {syncing || sincronizar.isPending ? (
           <Loader2 className="size-5 animate-spin" />
         ) : syncStatus === "failed" ? (
           <AlertCircle className="size-5" />
-        ) : syncStatus === "completed" ? (
-          <span className="relative">
-            <History className="size-5" />
-            <Check className="absolute -bottom-0.5 -right-0.5 size-2.5" />
-          </span>
         ) : (
           <History className="size-5" />
         )}

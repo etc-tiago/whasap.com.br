@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull, lt, or } from "drizzle-orm";
 import { mvpDefaults } from "@whasap/config";
 import { createSessionCookieHelpers } from "@whasap/api-core";
 import {
@@ -6,6 +6,7 @@ import {
   colunasSessaoWeb,
   colunasUsuarioSessao,
   comCriadoEm,
+  comTimestampAtualizacao,
   incluirOrganizacaoPublica,
   organizacaoMembro,
   sessao,
@@ -17,11 +18,37 @@ import type { WebContext, WebUsuario, MemberRole } from "../types";
 export const SESSION_COOKIE = "whasap_web";
 export const SESSION_MAX_AGE_SECONDS = mvpDefaults.auth.sessionMaxAgeDays * 24 * 60 * 60;
 
+/** Intervalo mínimo entre writes de `ultimaAtividadeEm` (alinhado ao ping de ~30s). */
+const ATIVIDADE_THROTTLE_MS = 25_000;
+
 const cookieHelpers = createSessionCookieHelpers(SESSION_COOKIE);
 
 export const getSessionTokenFromRequest = cookieHelpers.getSessionTokenFromRequest;
 export const sessionCookieHeader = cookieHelpers.sessionCookieHeader;
 export const clearSessionCookieHeader = cookieHelpers.clearSessionCookieHeader;
+
+/**
+ * Atualiza `usuario.ultimaAtividadeEm` se null ou mais antigo que o throttle.
+ * @returns Se gravou no banco.
+ */
+export async function registrarAtividadeUsuario(
+  ctx: WebContext,
+  usuarioInternalId: number,
+): Promise<boolean> {
+  const limiar = new Date(Date.now() - ATIVIDADE_THROTTLE_MS);
+  const resultado = await ctx.db
+    .update(usuario)
+    .set(comTimestampAtualizacao({ ultimaAtividadeEm: new Date() }))
+    .where(
+      and(
+        eq(usuario.id, usuarioInternalId),
+        isNull(usuario.excluidoEm),
+        or(isNull(usuario.ultimaAtividadeEm), lt(usuario.ultimaAtividadeEm, limiar)),
+      ),
+    )
+    .returning({ id: usuario.id });
+  return resultado.length > 0;
+}
 
 /** Cria sessão web e retorna token opaco + expiração. */
 export async function createSession(
@@ -31,6 +58,7 @@ export async function createSession(
 ): Promise<{ token: string; expiraEm: Date }> {
   const token = crypto.randomUUID();
   const expiraEm = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
+  const agora = new Date();
   await ctx.db.insert(sessao).values(
     comCriadoEm({
       usuarioId: usuarioInternalId,
@@ -39,6 +67,10 @@ export async function createSession(
       expiraEm,
     }),
   );
+  await ctx.db
+    .update(usuario)
+    .set(comTimestampAtualizacao({ ultimaAtividadeEm: agora }))
+    .where(eq(usuario.id, usuarioInternalId));
   return { token, expiraEm };
 }
 

@@ -7,9 +7,9 @@ import { fatiarHistorySyncData } from "./fixtures/carregar-history-sync-r2";
 import { parseGoHistorySyncChunk } from "./webhook-go";
 
 function chunkCom(nMsgs: number, nConvs = 1): Record<string, unknown> {
-  const conversations = Array.from({ length: nConvs }, (_, ci) => ({
+  const conversations = Array.from({ length: nConvs }, (_conv, ci) => ({
     ID: `5511${ci}@s.whatsapp.net`,
-    messages: Array.from({ length: nMsgs }, (_, mi) => ({
+    messages: Array.from({ length: nMsgs }, (_msg, mi) => ({
       message: {
         key: {
           remoteJID: `5511${ci}@s.whatsapp.net`,

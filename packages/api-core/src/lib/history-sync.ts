@@ -344,6 +344,7 @@ export async function processarHistorySyncChunkLote(
     const direcao = msg.fromMe ? "outbound" : "inbound";
     const isMidia = TIPOS_MIDIA.has(msg.type);
 
+    // oxlint-disable-next-line eslint/no-await-in-loop -- lotes sequenciais
     const result = await ingerirMensagem(db, {
       instanciaId: instance.id,
       organizacaoId: instance.organizacaoId,
@@ -434,6 +435,7 @@ export async function processarHistorySyncChunk(
   const midiaJobs: JobMidiaInbound[] = [];
   let offset = 0;
   while (offset < plano.totalMensagens) {
+    // oxlint-disable-next-line eslint/no-await-in-loop -- lotes sequenciais
     const lote = await processarHistorySyncChunkLote(db, instance, data, {
       offset,
       limit: HISTORY_SYNC_INGEST_LOTE_TAMANHO,

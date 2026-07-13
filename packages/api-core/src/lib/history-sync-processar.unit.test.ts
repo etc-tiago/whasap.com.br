@@ -28,6 +28,10 @@ function dbMock() {
   };
 }
 
+async function load() {
+  return import("./history-sync");
+}
+
 describe("processarHistorySyncChunk (unit)", () => {
   beforeEach(() => {
     ingerirMensagem.mockReset();
@@ -39,10 +43,6 @@ describe("processarHistorySyncChunk (unit)", () => {
       midiaR2Chave: null,
     });
   });
-
-  async function load() {
-    return import("./history-sync");
-  }
 
   const instance = {
     id: 42,
@@ -1295,10 +1295,6 @@ describe("processarHistorySyncChunk (unit)", () => {
 });
 
 describe("concluirHistoricosSyncOciosos (unit)", () => {
-  async function load() {
-    return import("./history-sync");
-  }
-
   it("27) sem rows ociosas retorna 0", async () => {
     const { concluirHistoricosSyncOciosos } = await load();
     const db = {
@@ -1339,10 +1335,6 @@ describe("concluirHistoricosSyncOciosos (unit)", () => {
 });
 
 describe("atualizarProgressoHistoricoSync (unit)", () => {
-  async function load() {
-    return import("./history-sync");
-  }
-
   it("29) patch vazio nao chama update", async () => {
     let updateCalls = 0;
     const { atualizarProgressoHistoricoSync } = await load();

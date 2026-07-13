@@ -456,7 +456,9 @@ export function parseGoReceipt(
   state?: string,
 ): GoReceiptNormalizado | null {
   const chatJid = String(data.Chat ?? "");
-  const messageIds = (data.MessageIDs as string[] | undefined) ?? [];
+  const messageIds = ((data.MessageIDs as string[] | undefined) ?? [])
+    .map((id) => String(id).trim())
+    .filter((id) => id.length > 0);
   if (!chatJid || messageIds.length === 0) return null;
 
   return {

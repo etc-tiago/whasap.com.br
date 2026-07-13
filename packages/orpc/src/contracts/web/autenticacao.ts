@@ -80,4 +80,7 @@ export const autenticacaoContract = {
     .output(loginOkSchema),
 
   consumirLinkMagico: oc.input(z.object({ token: z.string().uuid() })).output(loginOkSchema),
+
+  /** Heartbeat do painel — atualiza `usuario.ultimaAtividadeEm` (throttle no servidor). */
+  registrarAtividade: oc.input(z.object({})).output(z.object({ ok: z.boolean() })),
 };

@@ -27,6 +27,18 @@ function inst(parcial: Partial<InstanciaItem> = {}): InstanciaItem {
   } as InstanciaItem;
 }
 
+function titulo(s: ReturnType<typeof historicoSyncStatusDe>) {
+  return s === "failed" ? "Tentar sincronizar de novo?" : "Sincronizar histórico?";
+}
+
+function acao(s: ReturnType<typeof historicoSyncStatusDe>) {
+  return s === "failed" ? "Tentar de novo" : "Sincronizar";
+}
+
+function precisaPoll(i: InstanciaItem) {
+  return historicoSyncEmAndamento(i);
+}
+
 describe("historicoSyncStatusDe", () => {
   it("1) requested explicito", () => {
     expect(historicoSyncStatusDe(inst({ evoHistoricoSyncStatus: "requested" }))).toBe("requested");
@@ -301,8 +313,6 @@ describe("rotuloHistoricoSync", () => {
   });
 
   it("36) titulo rail failed vs idle (copy do dialog)", () => {
-    const titulo = (s: ReturnType<typeof historicoSyncStatusDe>) =>
-      s === "failed" ? "Tentar sincronizar de novo?" : "Sincronizar histórico?";
     expect(titulo(historicoSyncStatusDe(inst({ evoHistoricoSyncStatus: "failed" })))).toBe(
       "Tentar sincronizar de novo?",
     );
@@ -310,8 +320,6 @@ describe("rotuloHistoricoSync", () => {
   });
 
   it("37) botao acao failed vs idle", () => {
-    const acao = (s: ReturnType<typeof historicoSyncStatusDe>) =>
-      s === "failed" ? "Tentar de novo" : "Sincronizar";
     expect(acao(historicoSyncStatusDe(inst({ evoHistoricoSyncStatus: "failed" })))).toBe(
       "Tentar de novo",
     );
@@ -321,7 +329,6 @@ describe("rotuloHistoricoSync", () => {
   });
 
   it("38) polling ativo quando requested ou running", () => {
-    const precisaPoll = (i: InstanciaItem) => historicoSyncEmAndamento(i);
     expect(precisaPoll(inst({ evoHistoricoSyncStatus: "requested" }))).toBe(true);
     expect(precisaPoll(inst({ evoHistoricoSyncStatus: "running" }))).toBe(true);
     expect(precisaPoll(inst({ evoHistoricoSyncStatus: "completed" }))).toBe(false);

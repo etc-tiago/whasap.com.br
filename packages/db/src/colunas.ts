@@ -29,6 +29,7 @@ export const colunasUsuarioRelacao = {
   uuid: true,
   nome: true,
   email: true,
+  ultimaAtividadeEm: true,
 } as const;
 
 /**

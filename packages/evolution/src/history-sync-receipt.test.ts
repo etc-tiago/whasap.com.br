@@ -31,6 +31,23 @@ describe("parseGoReceipt (sintetico)", () => {
     expect(parseGoReceipt({ Chat: "5511@s.whatsapp.net", MessageIDs: [] })).toBeNull();
   });
 
+  it("3b) MessageIDs só vazios/whitespace retorna null; mistura mantém válidos", () => {
+    expect(
+      parseGoReceipt({
+        Chat: "5511@s.whatsapp.net",
+        MessageIDs: ["", "  "],
+        Type: "read",
+      }),
+    ).toBeNull();
+    expect(
+      parseGoReceipt({
+        Chat: "5511@s.whatsapp.net",
+        MessageIDs: ["", "ABC", "  "],
+        Type: "read",
+      })!.messageIds,
+    ).toEqual(["ABC"]);
+  });
+
   it("4) state externo preenchido", () => {
     const r = parseGoReceipt(
       { Chat: "5511@s.whatsapp.net", MessageIDs: ["M1"], Type: "DELIVERED" },

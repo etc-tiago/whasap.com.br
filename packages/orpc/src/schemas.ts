@@ -59,6 +59,8 @@ export const organizacaoMembroSchema = z.object({
   usuarioNome: z.string().optional(),
   usuarioEmail: z.string().email().optional(),
   role: memberRoleSchema,
+  ultimaAtividadeEm: z.string().datetime().nullable(),
+  ultimaMensagemEnviadaEm: z.string().datetime().nullable(),
 });
 
 export const instanciaSchema = z.object({

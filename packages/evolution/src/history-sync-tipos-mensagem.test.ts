@@ -248,10 +248,10 @@ describe("HistorySync tipos de mensagem (sintetico)", () => {
       extendedTextMessage: { text: "Texto *formatado* com link https://exemplo.com" },
     });
     expect(c.temMensagens).toBe(true);
-    const msg = c.conversations[0]!.messages[0]!;
-    expect(msg.type).toBe("text");
-    expect(msg.body).toContain("formatado");
-    expect(msg.body).toContain("https://exemplo.com");
+    const mensagem = c.conversations[0]!.messages[0]!;
+    expect(mensagem.type).toBe("text");
+    expect(mensagem.body).toContain("formatado");
+    expect(mensagem.body).toContain("https://exemplo.com");
   });
 
   it("32) conversation simples no chunk", () => {

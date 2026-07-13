@@ -158,6 +158,7 @@ describe.skipIf(!podeRodar)("HistorySync ingestao (Postgres + corpus R2)", () =>
     expect(result.ignorado).toBe(false);
 
     for (const idExterno of ids) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- asserts sequenciais por id
       const row = await db.query.mensagem.findFirst({
         where: and(eq(mensagem.idExterno, idExterno), isNull(mensagem.excluidoEm)),
         columns: { id: true, conversaId: true, tipo: true, corpo: true },

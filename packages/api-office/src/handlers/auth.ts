@@ -10,7 +10,7 @@ import {
 } from "@whasap/api-core";
 import { colunasOfficeUsuarioSessao, colunasUsuarioSomenteId, officeUsuario } from "@whasap/db";
 
-import { createSession } from "../lib/session";
+import { createSession, deleteSession } from "../lib/session";
 import type { OfficeContext } from "../types";
 import { exigirAutenticacaoOffice, mapearSessaoOfficeParaSaida } from "./auth-session";
 
@@ -82,7 +82,6 @@ export const autenticacaoHandlers = {
   /** Encerra sessão office e invalida cookie. */
   sair: async (ctx: OfficeContext) => {
     if (ctx.sessionToken) {
-      const { deleteSession } = await import("../lib/session");
       await deleteSession(ctx, ctx.sessionToken);
     }
     limparSessaoRpc(ctx);

@@ -68,6 +68,7 @@ export async function persistirMidiasEmLotes(
   let ok = 0;
   let falhas = 0;
   for (const lote of lotes) {
+    // oxlint-disable-next-line eslint/no-await-in-loop -- lotes sequenciais
     const r = await persistirMidiasLoteUnico(env, db, lote);
     ok += r.ok;
     falhas += r.falhas;

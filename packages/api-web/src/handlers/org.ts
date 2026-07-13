@@ -22,16 +22,19 @@ import {
   comCriadoEm,
   comTimestampAtualizacao,
   comTimestampsCriacao,
+  conversa,
   incluirOrganizacaoPublica,
   incluirUsuarioRelacao,
+  instancia,
   marcarExclusaoLogica,
+  mensagem,
   organizacao,
   organizacaoConvite,
   organizacaoMembro,
   resolverIdInterno,
   usuario,
 } from "@whasap/db";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, max } from "drizzle-orm";
 
 import { toOrganizacaoOutput } from "../lib/mappers";
 import { persistSessionOrganization } from "../lib/session";
@@ -213,23 +216,63 @@ export const organizacaoHandlers = {
           eq(organizacaoMembro.organizacaoId, internalOrgId),
           isNull(organizacaoMembro.excluidoEm),
         ),
-        columns: { uuid: true, papel: true },
+        columns: { uuid: true, papel: true, usuarioId: true },
         with: {
           organizacao: incluirOrganizacaoPublica,
           usuario: incluirUsuarioRelacao,
         },
       });
 
-      return rows
-        .filter((r) => r.organizacao && r.usuario)
-        .map((r) => ({
+      const membrosValidos = rows.filter((r) => r.organizacao && r.usuario);
+      const usuarioIdsInternos = [
+        ...new Set(membrosValidos.map((r) => r.usuarioId).filter((id): id is number => id != null)),
+      ];
+
+      const ultimaMsgPorUsuario = new Map<number, Date>();
+      if (usuarioIdsInternos.length > 0) {
+        const instancias = await ctx.db.query.instancia.findMany({
+          where: and(eq(instancia.organizacaoId, internalOrgId), isNull(instancia.excluidoEm)),
+          columns: { id: true },
+        });
+        const instanciaIds = instancias.map((i) => i.id);
+        if (instanciaIds.length > 0) {
+          const agregados = await ctx.db
+            .select({
+              usuarioId: mensagem.enviadoPorUsuarioId,
+              em: max(mensagem.criadoEm),
+            })
+            .from(mensagem)
+            .innerJoin(conversa, eq(conversa.id, mensagem.conversaId))
+            .where(
+              and(
+                inArray(conversa.instanciaId, instanciaIds),
+                inArray(mensagem.enviadoPorUsuarioId, usuarioIdsInternos),
+                eq(mensagem.direcao, "outbound"),
+              ),
+            )
+            .groupBy(mensagem.enviadoPorUsuarioId);
+
+          for (const row of agregados) {
+            if (row.usuarioId != null && row.em != null) {
+              ultimaMsgPorUsuario.set(row.usuarioId, row.em);
+            }
+          }
+        }
+      }
+
+      return membrosValidos.map((r) => {
+        const ultimaMsg = ultimaMsgPorUsuario.get(r.usuarioId);
+        return {
           id: r.uuid,
           organizacaoId: r.organizacao!.uuid,
           usuarioId: r.usuario!.uuid,
           usuarioNome: r.usuario!.nome,
           usuarioEmail: r.usuario!.email,
           role: r.papel,
-        }));
+          ultimaAtividadeEm: r.usuario!.ultimaAtividadeEm?.toISOString() ?? null,
+          ultimaMensagemEnviadaEm: ultimaMsg?.toISOString() ?? null,
+        };
+      });
     },
 
     convidar: async (

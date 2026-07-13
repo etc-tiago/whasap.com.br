@@ -51,6 +51,10 @@ const instanciaBase = {
   },
 };
 
+async function load() {
+  return import("./solicitar-historico-sync");
+}
+
 describe("solicitarHistoricoSyncEvolution", () => {
   beforeEach(() => {
     getStatus.mockReset();
@@ -59,10 +63,6 @@ describe("solicitarHistoricoSyncEvolution", () => {
     getStatus.mockResolvedValue({ state: "open" });
     historySync.mockResolvedValue(undefined);
   });
-
-  async function load() {
-    return import("./solicitar-historico-sync");
-  }
 
   it("1) sem token retorna erro", async () => {
     const { solicitarHistoricoSyncEvolution } = await load();
@@ -191,10 +191,6 @@ describe("solicitarHistoricoSyncSePrimeiraConexao", () => {
     historySync.mockResolvedValue(undefined);
   });
 
-  async function load() {
-    return import("./solicitar-historico-sync");
-  }
-
   it("8) sem evo no banco nao faz nada", async () => {
     const { solicitarHistoricoSyncSePrimeiraConexao } = await load();
     await solicitarHistoricoSyncSePrimeiraConexao(
@@ -250,10 +246,6 @@ describe("solicitarHistoricoSyncConversaEvolution", () => {
     historySync.mockResolvedValue(undefined);
     updates.length = 0;
   });
-
-  async function load() {
-    return import("./solicitar-historico-sync");
-  }
 
   it("11) sem mensagem ancora (telefone vazio)", async () => {
     const { solicitarHistoricoSyncConversaEvolution } = await load();

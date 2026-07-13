@@ -20,9 +20,9 @@ function chunkRaw(opts: {
 }) {
   const nConv = opts.conversations ?? 1;
   const nMsgs = opts.msgs ?? 0;
-  const conversations = Array.from({ length: nConv }, (_, c) => ({
+  const conversations = Array.from({ length: nConv }, (_conv, c) => ({
     ID: `5511999${c}@s.whatsapp.net`,
-    messages: Array.from({ length: nMsgs }, (_, i) => ({
+    messages: Array.from({ length: nMsgs }, (_msg, i) => ({
       message: {
         key: {
           remoteJID: `5511999${c}@s.whatsapp.net`,

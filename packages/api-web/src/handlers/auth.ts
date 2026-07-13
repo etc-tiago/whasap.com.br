@@ -18,9 +18,14 @@ import {
 } from "@whasap/db";
 import { and, eq, isNull } from "drizzle-orm";
 
-import { createSession } from "../lib/session";
+import {
+  createSession,
+  deleteSession,
+  getOrganizationForUser,
+  registrarAtividadeUsuario,
+} from "../lib/session";
 import type { WebContext } from "../types";
-import { mapearSessaoParaSaida } from "./auth-session";
+import { mapearSessaoParaSaida, exigirAutenticacao } from "./auth-session";
 
 export {
   exigirAdmin,
@@ -170,7 +175,6 @@ export const autenticacaoHandlers = {
   /** Encerra sessão web e invalida cookie. */
   sair: async (ctx: WebContext) => {
     if (ctx.sessionToken) {
-      const { deleteSession } = await import("../lib/session");
       await deleteSession(ctx, ctx.sessionToken);
     }
     limparSessaoRpc(ctx);
@@ -182,7 +186,6 @@ export const autenticacaoHandlers = {
    * Reidrata `ctx.organizationId` e `ctx.role` a partir do banco.
    */
   eu: async (ctx: WebContext) => {
-    const { getOrganizationForUser } = await import("../lib/session");
     const orgData = ctx.usuario
       ? await getOrganizationForUser(ctx, ctx.usuario.internalId, ctx.organizationId ?? undefined)
       : null;
@@ -191,5 +194,14 @@ export const autenticacaoHandlers = {
       ctx.role = orgData.role;
     }
     return mapearSessaoParaSaida(ctx, orgData?.organization ?? null);
+  },
+
+  /**
+   * Heartbeat do painel — grava `ultimaAtividadeEm` com throttle de ~25s.
+   */
+  registrarAtividade: async (ctx: WebContext) => {
+    exigirAutenticacao(ctx);
+    await registrarAtividadeUsuario(ctx, ctx.usuario!.internalId);
+    return { ok: true };
   },
 };

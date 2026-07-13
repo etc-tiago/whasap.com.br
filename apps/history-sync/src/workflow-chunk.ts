@@ -151,6 +151,7 @@ export class HistorySyncChunkWorkflow extends WorkflowEntrypoint<Env, HistorySyn
       let midiasFalhas = 0;
 
       while (offset < plano.totalMensagens) {
+        // oxlint-disable-next-line eslint/no-await-in-loop -- lotes sequenciais
         const ingest = await step.do(`ingerir-lote-${loteIdx}`, RETRY_INGEST, async () => {
           const object = await this.env.R2.get(r2Key);
           if (!object) throw new NonRetryableError(`Chunk R2 ausente: ${r2Key}`);
@@ -188,6 +189,7 @@ export class HistorySyncChunkWorkflow extends WorkflowEntrypoint<Env, HistorySyn
 
         if (ingest.midiaJobsKey && ingest.midiaLotes > 0) {
           for (let j = 0; j < ingest.midiaLotes; j++) {
+            // oxlint-disable-next-line eslint/no-await-in-loop -- lotes sequenciais
             const resumo = await step.do(
               `persistir-midia-${loteIdx}-${j}`,
               RETRY_MIDIA,
@@ -210,6 +212,7 @@ export class HistorySyncChunkWorkflow extends WorkflowEntrypoint<Env, HistorySyn
             midiasFalhas += resumo.falhas;
           }
 
+          // oxlint-disable-next-line eslint/no-await-in-loop -- limpeza após lotes sequenciais
           await step.do(`limpar-midia-${loteIdx}`, async () => {
             await this.env.R2.delete(ingest.midiaJobsKey!);
             return { deleted: ingest.midiaJobsKey };

@@ -8,6 +8,7 @@ import enviarOtpFluxo from "./enviar-otp-fluxo";
 import eu from "./eu";
 import iniciarFluxo from "./iniciar-fluxo";
 import obterFluxo from "./obter-fluxo";
+import registrarAtividade from "./registrar-atividade";
 import sair from "./sair";
 
 export default {
@@ -22,4 +23,5 @@ export default {
   entrarFluxo,
   cadastrarFluxo,
   consumirLinkMagico,
+  registrarAtividade,
 };

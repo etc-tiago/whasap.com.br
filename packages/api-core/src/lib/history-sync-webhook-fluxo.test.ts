@@ -173,11 +173,11 @@ describe("simularWebhookHistorySync", () => {
   });
 });
 
-describe("truncar erro worker (contrato)", () => {
-  function truncarErroWorker(erro: string): string {
-    return erro.slice(0, 500);
-  }
+function truncarErroWorker(erro: string): string {
+  return erro.slice(0, 500);
+}
 
+describe("truncar erro worker (contrato)", () => {
   it("8) erro curto intacto", () => {
     expect(truncarErroWorker("falha")).toBe("falha");
   });
