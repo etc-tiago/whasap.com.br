@@ -3,7 +3,14 @@
  *
  * Search: `conversa` seleciona thread; `telefone`+`instancia` abrem nova conversa (ex.: Contatos).
  */
-import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  skipToken,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { isEvoProvider, isMetaCloudProvider } from "@whasap/config";
 import { Badge } from "@whasap/ui/components/badge";
@@ -26,9 +33,18 @@ import { janelaCloudAberta, podeEnviarMensagem } from "@/lib/inbox-permissoes";
 import { formatarHorarioConversa, formatarPreviewMensagem } from "@/lib/inbox-utils";
 import { instanciaOperacional } from "@/lib/instancia-status";
 import { orgInput } from "@/lib/org-input";
-import { orpc, type ConversaItem } from "@/lib/orpc";
+import { orpc, type ConversaItem, type MensagemItem } from "@/lib/orpc";
 import { eCandidatoTelefoneBr, normalizarTelefoneBr, telefonesBrIguais } from "@/lib/telefone-br";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
+
+const LIMITE_MENSAGENS_PAGINA = 40;
+
+type CursorMensagens = { antesCriadoEm: string; antesId: string };
+
+type PaginaMensagens = {
+  itens: MensagemItem[];
+  temMaisAntigas: boolean;
+};
 
 type InboxSearch = {
   conversa?: string;
@@ -62,6 +78,8 @@ function InboxOrgPage() {
     telefone: string;
     instanciaId?: string;
   } | null>(null);
+  const [forcarRodapeToken, setForcarRodapeToken] = useState(0);
+  const ultimaMensagemEmRef = useRef<string | null>(null);
 
   const { data: session } = useSession();
 
@@ -148,13 +166,25 @@ function InboxOrgPage() {
     orpc.caixaEntrada.conversas.sincronizarHistorico.mutationOptions({}),
   );
 
-  const messages = useQuery({
-    ...orpc.caixaEntrada.mensagens.lista.queryOptions({
-      input: selectedId ? { conversaId: selectedId } : skipToken,
+  const messages = useInfiniteQuery({
+    ...orpc.caixaEntrada.mensagens.lista.infiniteOptions({
+      input: selectedId
+        ? (pageParam: CursorMensagens | undefined) => ({
+            conversaId: selectedId,
+            limite: LIMITE_MENSAGENS_PAGINA,
+            ...(pageParam ?? {}),
+          })
+        : skipToken,
+      initialPageParam: undefined as CursorMensagens | undefined,
+      getNextPageParam: (last) => {
+        if (!last.temMaisAntigas || last.itens.length === 0) return undefined;
+        const oldest = last.itens[0]!;
+        return { antesCriadoEm: oldest.criadoEm, antesId: oldest.id };
+      },
     }),
     refetchInterval: (query) => {
       if (!selectedId) return false;
-      const itens = query.state.data;
+      const itens = query.state.data?.pages.flatMap((p) => p.itens);
       if (!itens) return false;
       const midiaPendente = itens.some(
         (m) => ["image", "video", "audio", "document", "sticker"].includes(m.type) && !m.mediaUrl,
@@ -170,14 +200,37 @@ function InboxOrgPage() {
     },
   });
 
+  const mensagens = useMemo(
+    () => [...(messages.data?.pages ?? [])].reverse().flatMap((p) => p.itens),
+    [messages.data?.pages],
+  );
+
   useEffect(() => {
-    if (!selectedId || !messages.data?.length) return;
+    ultimaMensagemEmRef.current = null;
+  }, [selectedId]);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    const atual = conversations.data?.find((c) => c.id === selectedId)?.ultimaMensagemEm ?? null;
+    const anterior = ultimaMensagemEmRef.current;
+    if (anterior !== null && atual !== null && atual !== anterior) {
+      void queryClient.invalidateQueries({
+        queryKey: orpc.caixaEntrada.mensagens.lista.key({
+          input: { conversaId: selectedId },
+        }),
+      });
+    }
+    ultimaMensagemEmRef.current = atual;
+  }, [selectedId, conversations.data, queryClient]);
+
+  useEffect(() => {
+    if (!selectedId || mensagens.length === 0) return;
     const conversa = conversations.data?.find((c) => c.id === selectedId);
     if (!conversa) return;
     const instanciaRow = instancias.data?.find((i) => i.id === conversa.instanciaId);
     if (!instanciaRow || !isEvoProvider(instanciaRow.provider)) return;
 
-    const midiaPendente = messages.data.some(
+    const midiaPendente = mensagens.some(
       (m) => ["image", "video", "audio", "document", "sticker"].includes(m.type) && !m.mediaUrl,
     );
     if (!midiaPendente) return;
@@ -185,7 +238,7 @@ function InboxOrgPage() {
 
     midiaSyncDisparado.current.add(selectedId);
     sincronizarHistoricoMidia.mutate({ conversaId: selectedId });
-  }, [selectedId, messages.data, conversations.data, instancias.data, sincronizarHistoricoMidia]);
+  }, [selectedId, mensagens, conversations.data, instancias.data, sincronizarHistoricoMidia]);
 
   const membros = useQuery(
     orpc.organizacao.membros.lista.queryOptions({
@@ -197,6 +250,24 @@ function InboxOrgPage() {
     () => (organizacaoHash ? { organizacaoHash } : null),
     [organizacaoHash],
   );
+
+  function anexarMensagemNaCache(conversaId: string, nova: MensagemItem) {
+    queryClient.setQueriesData<InfiniteData<PaginaMensagens, CursorMensagens | undefined>>(
+      {
+        queryKey: orpc.caixaEntrada.mensagens.lista.key({
+          input: { conversaId },
+        }),
+      },
+      (old) => {
+        if (!old?.pages?.length) return old;
+        const pages = [...old.pages];
+        const primeira = pages[0]!;
+        if (primeira.itens.some((m) => m.id === nova.id)) return old;
+        pages[0] = { ...primeira, itens: [...primeira.itens, nova] };
+        return { ...old, pages };
+      },
+    );
+  }
 
   const markRead = useMutation(
     orpc.caixaEntrada.mensagens.marcarLido.mutationOptions({
@@ -212,11 +283,11 @@ function InboxOrgPage() {
 
   const sendMessage = useMutation(
     orpc.caixaEntrada.mensagens.enviar.mutationOptions({
-      onSuccess: () => {
+      onSuccess: (nova) => {
         if (selectedId) {
-          queryClient.invalidateQueries({
-            queryKey: orpc.caixaEntrada.mensagens.lista.key({ input: { conversaId: selectedId } }),
-          });
+          anexarMensagemNaCache(selectedId, nova);
+          ultimaMensagemEmRef.current = nova.criadoEm;
+          setForcarRodapeToken((n) => n + 1);
         }
         if (listaQueryInput) {
           queryClient.invalidateQueries({
@@ -293,8 +364,8 @@ function InboxOrgPage() {
   }, [selectedId]);
 
   useEffect(() => {
-    if (!selectedId || !messages.data?.length) return;
-    const ultimaInbound = [...messages.data]
+    if (!selectedId || mensagens.length === 0) return;
+    const ultimaInbound = [...mensagens]
       .toReversed()
       .find((m) => m.direction === "inbound" && m.idExterno);
     if (ultimaInbound?.idExterno) {
@@ -303,7 +374,7 @@ function InboxOrgPage() {
         mensagemIdExterno: ultimaInbound.idExterno,
       });
     }
-  }, [selectedId, messages.data, marcarComoLido]);
+  }, [selectedId, mensagens, marcarComoLido]);
 
   async function handleSend() {
     if (!selectedId) return;
@@ -436,7 +507,22 @@ function InboxOrgPage() {
           />
         ) : undefined
       }
-      chatBody={selected ? <WaMessageArea mensagens={messages.data ?? []} /> : undefined}
+      chatBody={
+        selected ? (
+          <WaMessageArea
+            conversaId={selected.id}
+            mensagens={mensagens}
+            temMaisAntigas={Boolean(messages.hasNextPage)}
+            isFetchingNextPage={messages.isFetchingNextPage}
+            onNearTop={() => {
+              if (messages.hasNextPage && !messages.isFetchingNextPage) {
+                void messages.fetchNextPage();
+              }
+            }}
+            forcarRodapeToken={forcarRodapeToken}
+          />
+        ) : undefined
+      }
       composer={
         selected ? (
           composerDisabled ? (

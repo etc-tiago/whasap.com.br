@@ -41,6 +41,6 @@ export type ContatoListaItem = Awaited<
 
 export type MensagemItem = Awaited<
   ReturnType<typeof orpcClient.caixaEntrada.mensagens.lista>
->[number];
+>["itens"][number];
 
 export type RelatorioVisaoGeral = Awaited<ReturnType<typeof orpcClient.relatorios.visaoGeral>>;

@@ -116,7 +116,28 @@ export const caixaEntradaContract = {
   },
 
   mensagens: {
-    lista: oc.input(z.object({ conversaId: z.string().uuid() })).output(z.array(mensagemSchema)),
+    lista: oc
+      .input(
+        z
+          .object({
+            conversaId: z.string().uuid(),
+            limite: z.number().int().min(1).max(100).default(40),
+            antesCriadoEm: z.string().datetime().optional(),
+            antesId: z.string().uuid().optional(),
+          })
+          .refine(
+            (v) =>
+              (v.antesCriadoEm === undefined && v.antesId === undefined) ||
+              (v.antesCriadoEm !== undefined && v.antesId !== undefined),
+            { message: "antesCriadoEm e antesId devem ser enviados juntos" },
+          ),
+      )
+      .output(
+        z.object({
+          itens: z.array(mensagemSchema),
+          temMaisAntigas: z.boolean(),
+        }),
+      ),
 
     enviar: oc.input(enviarMensagemInputSchema).output(mensagemSchema),
 

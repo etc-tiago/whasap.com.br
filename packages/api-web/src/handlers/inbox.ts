@@ -16,7 +16,7 @@ import {
   type IconeConexao,
 } from "@whasap/config";
 import type { MetaTemplate } from "@whasap/meta";
-import { and, asc, count, desc, eq, ilike, inArray, isNull, or, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNull, lt, or, type SQL } from "drizzle-orm";
 import {
   contato,
   contatoInstancia,
@@ -805,16 +805,50 @@ export const caixaEntradaHandlers = {
   },
 
   mensagens: {
-    lista: async (ctx: WebContext, input: { conversaId: string }) => {
+    /**
+     * Página de mensagens da conversa (mais recentes primeiro via cursor).
+     * Sem cursor: últimas `limite` msgs. Com `antesCriadoEm`+`antesId`: lote mais antigo.
+     * `itens` sempre em ASC para render.
+     */
+    lista: async (
+      ctx: WebContext,
+      input: {
+        conversaId: string;
+        limite?: number;
+        antesCriadoEm?: string;
+        antesId?: string;
+      },
+    ) => {
       exigirAutenticacao(ctx);
       const conv = await exigirAcessoConversa(ctx, input.conversaId);
 
-      const rows = await ctx.db.query.mensagem.findMany({
-        where: and(eq(mensagem.conversaId, conv.conversation.id), isNull(mensagem.excluidoEm)),
+      const limite = input.limite ?? 40;
+      const filtros: SQL[] = [
+        eq(mensagem.conversaId, conv.conversation.id),
+        isNull(mensagem.excluidoEm),
+      ];
+
+      if (input.antesCriadoEm && input.antesId) {
+        const antesCriadoEm = new Date(input.antesCriadoEm);
+        filtros.push(
+          or(
+            lt(mensagem.criadoEm, antesCriadoEm),
+            and(eq(mensagem.criadoEm, antesCriadoEm), lt(mensagem.uuid, input.antesId)),
+          )!,
+        );
+      }
+
+      const rowsDesc = await ctx.db.query.mensagem.findMany({
+        where: and(...filtros),
         columns: colunasMensagemLista,
         with: { enviadoPorUsuario: incluirUsuarioRelacao },
-        orderBy: [asc(mensagem.criadoEm)],
+        orderBy: [desc(mensagem.criadoEm), desc(mensagem.uuid)],
+        limit: limite + 1,
       });
+
+      const temMaisAntigas = rowsDesc.length > limite;
+      const paginaDesc = temMaisAntigas ? rowsDesc.slice(0, limite) : rowsDesc;
+      const rows = paginaDesc.toReversed();
 
       const midiasAtualizadas = await garantirMidiasDaConversa(ctx, {
         instance: conv.instance,
@@ -824,15 +858,18 @@ export const caixaEntradaHandlers = {
         rows,
       });
 
-      return rows.map((m) =>
-        mapearMensagemParaSaida(
-          {
-            ...m,
-            midiaR2Chave: midiasAtualizadas.get(m.id) ?? m.midiaR2Chave,
-          },
-          ctx.env.CDN_URL,
+      return {
+        itens: rows.map((m) =>
+          mapearMensagemParaSaida(
+            {
+              ...m,
+              midiaR2Chave: midiasAtualizadas.get(m.id) ?? m.midiaR2Chave,
+            },
+            ctx.env.CDN_URL,
+          ),
         ),
-      );
+        temMaisAntigas,
+      };
     },
 
     enviar: async (
