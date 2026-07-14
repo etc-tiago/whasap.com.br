@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,13 +8,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@whasap/ui/components/dropdown-menu";
-import { LogOut } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 
+import { searchAbrirAjustes } from "@/lib/abrir-ajustes";
 import { useSession } from "@/lib/auth";
 import { nomeExibicaoDoEmail } from "@/lib/inbox-utils";
 import { orpc } from "@/lib/orpc";
 
 export function WaRailProfile() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const email = session?.usuario?.email ?? "";
@@ -47,6 +50,19 @@ export function WaRailProfile() {
           ) : null}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="gap-2 md:hidden"
+          onSelect={() =>
+            void navigate({
+              to: ".",
+              search: searchAbrirAjustes("geral"),
+              replace: true,
+            })
+          }
+        >
+          <Settings className="h-4 w-4" />
+          Ajustes
+        </DropdownMenuItem>
         <DropdownMenuItem
           disabled={logout.isPending}
           onSelect={() => logout.mutate({})}

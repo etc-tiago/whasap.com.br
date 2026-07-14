@@ -19,6 +19,7 @@ import { Route as PanelIntegracaoRouteImport } from './routes/_panel/integracao'
 import { Route as PanelOrganizacaoHashRouteRouteImport } from './routes/_panel/$organizacaoHash/route'
 import { Route as PanelOrganizacaoHashIndexRouteImport } from './routes/_panel/$organizacaoHash/index'
 import { Route as Char126AcessoTokenRouteImport } from './routes/~/acesso/$token'
+import { Route as PanelOrganizacaoHashRespostasRapidasRouteImport } from './routes/_panel/$organizacaoHash/respostas-rapidas'
 import { Route as PanelOrganizacaoHashRelatoriosRouteImport } from './routes/_panel/$organizacaoHash/relatorios'
 import { Route as PanelOrganizacaoHashIntegracaoRouteImport } from './routes/_panel/$organizacaoHash/integracao'
 import { Route as PanelOrganizacaoHashInstanciasRouteImport } from './routes/_panel/$organizacaoHash/instancias'
@@ -92,6 +93,12 @@ const Char126AcessoTokenRoute = Char126AcessoTokenRouteImport.update({
   path: '/~/acesso/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PanelOrganizacaoHashRespostasRapidasRoute =
+  PanelOrganizacaoHashRespostasRapidasRouteImport.update({
+    id: '/respostas-rapidas',
+    path: '/respostas-rapidas',
+    getParentRoute: () => PanelOrganizacaoHashRouteRoute,
+  } as any)
 const PanelOrganizacaoHashRelatoriosRoute =
   PanelOrganizacaoHashRelatoriosRouteImport.update({
     id: '/relatorios',
@@ -234,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/$organizacaoHash/instancias': typeof PanelOrganizacaoHashInstanciasRoute
   '/$organizacaoHash/integracao': typeof PanelOrganizacaoHashIntegracaoRoute
   '/$organizacaoHash/relatorios': typeof PanelOrganizacaoHashRelatoriosRoute
+  '/$organizacaoHash/respostas-rapidas': typeof PanelOrganizacaoHashRespostasRapidasRoute
   '/~/acesso/$token': typeof Char126AcessoTokenRoute
   '/$organizacaoHash/': typeof PanelOrganizacaoHashIndexRoute
   '/$organizacaoHash/acoes/automacao': typeof PanelOrganizacaoHashAcoesAutomacaoRoute
@@ -263,6 +271,7 @@ export interface FileRoutesByTo {
   '/$organizacaoHash/instancias': typeof PanelOrganizacaoHashInstanciasRoute
   '/$organizacaoHash/integracao': typeof PanelOrganizacaoHashIntegracaoRoute
   '/$organizacaoHash/relatorios': typeof PanelOrganizacaoHashRelatoriosRoute
+  '/$organizacaoHash/respostas-rapidas': typeof PanelOrganizacaoHashRespostasRapidasRoute
   '/~/acesso/$token': typeof Char126AcessoTokenRoute
   '/$organizacaoHash': typeof PanelOrganizacaoHashIndexRoute
   '/$organizacaoHash/acoes/automacao': typeof PanelOrganizacaoHashAcoesAutomacaoRoute
@@ -297,6 +306,7 @@ export interface FileRoutesById {
   '/_panel/$organizacaoHash/instancias': typeof PanelOrganizacaoHashInstanciasRoute
   '/_panel/$organizacaoHash/integracao': typeof PanelOrganizacaoHashIntegracaoRoute
   '/_panel/$organizacaoHash/relatorios': typeof PanelOrganizacaoHashRelatoriosRoute
+  '/_panel/$organizacaoHash/respostas-rapidas': typeof PanelOrganizacaoHashRespostasRapidasRoute
   '/~/acesso/$token': typeof Char126AcessoTokenRoute
   '/_panel/$organizacaoHash/': typeof PanelOrganizacaoHashIndexRoute
   '/_panel/$organizacaoHash/acoes/automacao': typeof PanelOrganizacaoHashAcoesAutomacaoRoute
@@ -331,6 +341,7 @@ export interface FileRouteTypes {
     | '/$organizacaoHash/instancias'
     | '/$organizacaoHash/integracao'
     | '/$organizacaoHash/relatorios'
+    | '/$organizacaoHash/respostas-rapidas'
     | '/~/acesso/$token'
     | '/$organizacaoHash/'
     | '/$organizacaoHash/acoes/automacao'
@@ -360,6 +371,7 @@ export interface FileRouteTypes {
     | '/$organizacaoHash/instancias'
     | '/$organizacaoHash/integracao'
     | '/$organizacaoHash/relatorios'
+    | '/$organizacaoHash/respostas-rapidas'
     | '/~/acesso/$token'
     | '/$organizacaoHash'
     | '/$organizacaoHash/acoes/automacao'
@@ -393,6 +405,7 @@ export interface FileRouteTypes {
     | '/_panel/$organizacaoHash/instancias'
     | '/_panel/$organizacaoHash/integracao'
     | '/_panel/$organizacaoHash/relatorios'
+    | '/_panel/$organizacaoHash/respostas-rapidas'
     | '/~/acesso/$token'
     | '/_panel/$organizacaoHash/'
     | '/_panel/$organizacaoHash/acoes/automacao'
@@ -493,6 +506,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/~/acesso/$token'
       preLoaderRoute: typeof Char126AcessoTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_panel/$organizacaoHash/respostas-rapidas': {
+      id: '/_panel/$organizacaoHash/respostas-rapidas'
+      path: '/respostas-rapidas'
+      fullPath: '/$organizacaoHash/respostas-rapidas'
+      preLoaderRoute: typeof PanelOrganizacaoHashRespostasRapidasRouteImport
+      parentRoute: typeof PanelOrganizacaoHashRouteRoute
     }
     '/_panel/$organizacaoHash/relatorios': {
       id: '/_panel/$organizacaoHash/relatorios'
@@ -704,6 +724,7 @@ interface PanelOrganizacaoHashRouteRouteChildren {
   PanelOrganizacaoHashInstanciasRoute: typeof PanelOrganizacaoHashInstanciasRoute
   PanelOrganizacaoHashIntegracaoRoute: typeof PanelOrganizacaoHashIntegracaoRoute
   PanelOrganizacaoHashRelatoriosRoute: typeof PanelOrganizacaoHashRelatoriosRoute
+  PanelOrganizacaoHashRespostasRapidasRoute: typeof PanelOrganizacaoHashRespostasRapidasRoute
   PanelOrganizacaoHashIndexRoute: typeof PanelOrganizacaoHashIndexRoute
   PanelOrganizacaoHashInboxIndexRoute: typeof PanelOrganizacaoHashInboxIndexRoute
   PanelOrganizacaoHashInboxInstanceIdIndexRoute: typeof PanelOrganizacaoHashInboxInstanceIdIndexRoute
@@ -721,6 +742,8 @@ const PanelOrganizacaoHashRouteRouteChildren: PanelOrganizacaoHashRouteRouteChil
     PanelOrganizacaoHashInstanciasRoute: PanelOrganizacaoHashInstanciasRoute,
     PanelOrganizacaoHashIntegracaoRoute: PanelOrganizacaoHashIntegracaoRoute,
     PanelOrganizacaoHashRelatoriosRoute: PanelOrganizacaoHashRelatoriosRoute,
+    PanelOrganizacaoHashRespostasRapidasRoute:
+      PanelOrganizacaoHashRespostasRapidasRoute,
     PanelOrganizacaoHashIndexRoute: PanelOrganizacaoHashIndexRoute,
     PanelOrganizacaoHashInboxIndexRoute: PanelOrganizacaoHashInboxIndexRoute,
     PanelOrganizacaoHashInboxInstanceIdIndexRoute:

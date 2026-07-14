@@ -1,21 +1,33 @@
 import { useQuery } from "@tanstack/react-query";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { isEvoProvider } from "@whasap/config";
-import { ChartArea, MessageCircle, Settings, Users, Zap } from "lucide-react";
+import { cn } from "@whasap/ui/lib/utils";
+import { ChartArea, MessageCircle, MessageSquareText, Settings, Users, Zap } from "lucide-react";
 
 import { WaRailHistoricoSync } from "@/components/inbox/wa-rail-historico-sync";
-import { WaRailLink, waRailLinkActiveOptionsExact } from "@/components/inbox/wa-rail-link";
+import {
+  WaRailLink,
+  waRailLinkActiveOptionsExact,
+  waRailLinkActiveProps,
+  waRailLinkInactiveProps,
+} from "@/components/inbox/wa-rail-link";
 import { WaRailProfile } from "@/components/inbox/wa-rail-profile";
 import { WaRailTheme } from "@/components/inbox/wa-rail-theme";
+import { searchAbrirAjustes } from "@/lib/abrir-ajustes";
 import { historicoSyncEmAndamento } from "@/lib/historico-sync";
 import { instanciaOperacional } from "@/lib/instancia-status";
 import { orgInput } from "@/lib/org-input";
 import { orpc } from "@/lib/orpc";
+
+const orgRouteApi = getRouteApi("/$organizacaoHash");
 
 type WaRailProps = {
   organizacaoHash: string;
 };
 
 export function WaRail({ organizacaoHash }: WaRailProps) {
+  const navigate = useNavigate();
+  const { ajustes } = orgRouteApi.useSearch();
   const instancias = useQuery({
     ...orpc.instancia.lista.queryOptions({ input: orgInput(organizacaoHash) }),
     refetchInterval: (q) => {
@@ -54,6 +66,14 @@ export function WaRail({ organizacaoHash }: WaRailProps) {
           </WaRailLink>
         )}
         <WaRailLink
+          to="/$organizacaoHash/respostas-rapidas"
+          params={{ organizacaoHash }}
+          title="Respostas rápidas"
+          activeOptions={waRailLinkActiveOptionsExact}
+        >
+          <MessageSquareText className="size-5" />
+        </WaRailLink>
+        <WaRailLink
           to="/$organizacaoHash/relatorios"
           params={{ organizacaoHash }}
           title="Relatórios"
@@ -79,9 +99,22 @@ export function WaRail({ organizacaoHash }: WaRailProps) {
       </div>
       <div className="flex flex-col items-center gap-1">
         <WaRailTheme />
-        <WaRailLink to="/$organizacaoHash/ajustes" params={{ organizacaoHash }} title="Ajustes">
+        <button
+          type="button"
+          title="Ajustes"
+          className={cn(
+            ajustes ? waRailLinkActiveProps.className : waRailLinkInactiveProps.className,
+          )}
+          onClick={() =>
+            void navigate({
+              to: ".",
+              search: searchAbrirAjustes("geral"),
+              replace: true,
+            })
+          }
+        >
           <Settings className="size-5" />
-        </WaRailLink>
+        </button>
         <WaRailProfile />
       </div>
     </aside>

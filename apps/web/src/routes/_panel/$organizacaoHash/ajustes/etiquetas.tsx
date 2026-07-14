@@ -1,14 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_panel/$organizacaoHash/ajustes/etiquetas")({
-  component: AjustesEtiquetasPage,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/$organizacaoHash/inbox",
+      params: { organizacaoHash: params.organizacaoHash },
+      search: { ajustes: "etiquetas" },
+      replace: true,
+    });
+  },
 });
-
-function AjustesEtiquetasPage() {
-  return (
-    <div className="p-6">
-      <h2 className="text-lg font-semibold text-wa-text">Etiquetas</h2>
-      <p className="mt-2 text-sm text-wa-text-muted">Em breve.</p>
-    </div>
-  );
-}

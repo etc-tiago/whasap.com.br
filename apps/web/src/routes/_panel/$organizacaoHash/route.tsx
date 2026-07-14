@@ -2,7 +2,7 @@
  * Layout da organização: shell do painel + gate de onboarding.
  *
  * Redireciona para `/integracao` quando a org não tem instância conectada.
- * Paths isentos: `/integracao`, `/ajustes`.
+ * Paths isentos: `/integracao`. Modal de Ajustes (`?ajustes=`) também isento.
  */
 import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -10,12 +10,14 @@ import { useEffect } from "react";
 
 import { WaOrgShell } from "@/components/inbox/wa-org-shell";
 import { PanelShell } from "@/components/panel-shell";
+import { validarOrganizacaoSearch } from "@/lib/ajustes-search";
 import { isOrganizacaoConectada } from "@/lib/onboarding";
 import { orgInput } from "@/lib/org-input";
 import { orpc } from "@/lib/orpc";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
 export const Route = createFileRoute("/_panel/$organizacaoHash")({
+  validateSearch: (s: Record<string, unknown>) => validarOrganizacaoSearch(s),
   component: OrganizacaoLayout,
 });
 
@@ -23,6 +25,7 @@ function OrganizacaoLayout() {
   const organizacaoHash = useOrganizacaoHash();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { ajustes } = Route.useSearch();
 
   const org = useQuery(
     orpc.organizacao.obter.queryOptions({
@@ -38,14 +41,14 @@ function OrganizacaoLayout() {
 
   const onboardingComplete = instances.data ? isOrganizacaoConectada(instances.data) : false;
   const integracaoPath = organizacaoHash ? `/${organizacaoHash}/integracao` : "";
-  const ajustesPath = organizacaoHash ? `/${organizacaoHash}/ajustes` : "";
-  const exemptPaths = [integracaoPath, ajustesPath];
+  const exemptPath =
+    Boolean(integracaoPath && pathname.startsWith(integracaoPath)) || Boolean(ajustes);
   const needsOnboarding =
     Boolean(organizacaoHash) &&
     org.isSuccess &&
     instances.isSuccess &&
     !onboardingComplete &&
-    !exemptPaths.some((p) => pathname.startsWith(p));
+    !exemptPath;
 
   useEffect(() => {
     if (!needsOnboarding || !organizacaoHash) return;

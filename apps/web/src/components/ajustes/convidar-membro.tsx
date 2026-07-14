@@ -15,6 +15,7 @@ import {
 
 import { orpc } from "@/lib/orpc";
 import { getOrpcErrorMessage } from "@/lib/orpc-error";
+import type { OrganizacaoSearch } from "@/lib/ajustes-search";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
 type Papel = "admin" | "usuario" | "analista";
@@ -37,11 +38,14 @@ export function ConvidarMembro({ open }: ConvidarMembroProps) {
   const [role, setRole] = useState<Papel>("usuario");
 
   const setAberto = (proximo: boolean) => {
-    if (!organizacaoHash) return;
     void navigate({
-      to: "/$organizacaoHash/ajustes/usuarios",
-      params: { organizacaoHash },
-      search: { convidar: proximo ? "1" : "" },
+      to: ".",
+      search: (prev: OrganizacaoSearch) => ({
+        ...prev,
+        ajustes: "usuarios",
+        convidar: proximo ? ("1" as const) : undefined,
+      }),
+      replace: true,
     });
   };
 

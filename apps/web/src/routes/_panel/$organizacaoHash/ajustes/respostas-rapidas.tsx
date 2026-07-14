@@ -1,11 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { GestaoRespostasRapidas } from "@/components/ajustes/gestao-respostas-rapidas";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_panel/$organizacaoHash/ajustes/respostas-rapidas")({
-  component: AjustesRespostasRapidasPage,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/$organizacaoHash/respostas-rapidas",
+      params: { organizacaoHash: params.organizacaoHash },
+      replace: true,
+    });
+  },
 });
-
-function AjustesRespostasRapidasPage() {
-  return <GestaoRespostasRapidas />;
-}

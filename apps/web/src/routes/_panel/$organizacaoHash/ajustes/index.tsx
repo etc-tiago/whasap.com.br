@@ -1,17 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { BlocoOrganizacao } from "@/components/ajustes/bloco-organizacao";
-import { BlocoUsuario } from "@/components/ajustes/bloco-usuario";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_panel/$organizacaoHash/ajustes/")({
-  component: AjustesIndexPage,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/$organizacaoHash/inbox",
+      params: { organizacaoHash: params.organizacaoHash },
+      search: { ajustes: "geral" },
+      replace: true,
+    });
+  },
 });
-
-function AjustesIndexPage() {
-  return (
-    <div className="max-w-lg space-y-6 p-6">
-      <BlocoOrganizacao />
-      <BlocoUsuario />
-    </div>
-  );
-}
