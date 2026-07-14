@@ -1,7 +1,7 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-import { sessaoSchema } from "../../schemas";
+import { sessaoSchema, usuarioSchema } from "../../schemas";
 
 const fluxoPublicoSchema = z.object({
   hash: z.string().uuid(),
@@ -50,6 +50,11 @@ export const autenticacaoContract = {
   sair: oc.input(z.object({})).output(z.object({ ok: z.boolean() })),
 
   eu: oc.output(sessaoSchema),
+
+  /** Atualiza dados da conta do usuário autenticado. */
+  atualizar: oc
+    .input(z.object({ nome: z.string().min(2) }))
+    .output(usuarioSchema),
 
   iniciarFluxo: oc.input(z.object({ email: z.string().email() })).output(
     z.object({

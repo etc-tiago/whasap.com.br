@@ -1,3 +1,4 @@
+import atualizar from "./atualizar";
 import cadastrar from "./cadastrar";
 import cadastrarFluxo from "./cadastrar-fluxo";
 import consumirLinkMagico from "./consumir-link-magico";
@@ -17,6 +18,7 @@ export default {
   entrar,
   sair,
   eu,
+  atualizar,
   iniciarFluxo,
   obterFluxo,
   enviarOtpFluxo,

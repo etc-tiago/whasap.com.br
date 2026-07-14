@@ -13,11 +13,13 @@ import {
 import {
   colunasUsuarioSessao,
   colunasUsuarioSomenteId,
+  comTimestampAtualizacao,
   comTimestampsCriacao,
   usuario,
 } from "@whasap/db";
 import { and, eq, isNull } from "drizzle-orm";
 
+import { toUsuarioOutput } from "../lib/mappers";
 import {
   createSession,
   deleteSession,
@@ -194,6 +196,35 @@ export const autenticacaoHandlers = {
       ctx.role = orgData.role;
     }
     return mapearSessaoParaSaida(ctx, orgData?.organization ?? null);
+  },
+
+  /**
+   * Atualiza o nome da conta do usuário autenticado.
+   * @returns Usuário público após persistir.
+   */
+  atualizar: async (ctx: WebContext, input: { nome: string }) => {
+    const atual = exigirAutenticacao(ctx);
+    const nome = input.nome.trim();
+
+    const [row] = await ctx.db
+      .update(usuario)
+      .set(comTimestampAtualizacao({ nome }))
+      .where(and(eq(usuario.id, atual.internalId), isNull(usuario.excluidoEm)))
+      .returning();
+
+    if (!row) {
+      unauthorized("Não autenticado");
+    }
+
+    ctx.usuario = {
+      id: row.uuid,
+      internalId: row.id,
+      email: row.email,
+      nome: row.nome,
+      emailVerificadoEm: row.emailVerificadoEm,
+    };
+
+    return toUsuarioOutput(row);
   },
 
   /**
