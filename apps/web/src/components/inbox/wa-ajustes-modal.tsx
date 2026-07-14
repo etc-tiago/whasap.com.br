@@ -98,13 +98,14 @@ export function WaAjustesModal() {
           "max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:w-full max-sm:max-w-none max-sm:rounded-none",
         )}
       >
-        <DialogHeader className="sr-only">
-          <DialogTitle>Ajustes</DialogTitle>
-          <DialogDescription>Configurações da organização e da conta.</DialogDescription>
+        <DialogHeader className="shrink-0 space-y-0 border-b border-border px-6 py-5 pr-14 text-left">
+          <DialogTitle className="text-2xl font-semibold tracking-tight">Ajustes</DialogTitle>
+          <DialogDescription className="sr-only">
+            Configurações da organização e da conta.
+          </DialogDescription>
         </DialogHeader>
         <div className="flex min-h-0 flex-1">
           <nav className="flex w-52 shrink-0 flex-col border-r border-border bg-muted/30 p-2 max-sm:w-40">
-            <p className="px-3 py-2 text-sm font-semibold text-foreground">Ajustes</p>
             {NAV.map(({ secao, rotulo, icone: Icone }) => (
               <button
                 key={secao}

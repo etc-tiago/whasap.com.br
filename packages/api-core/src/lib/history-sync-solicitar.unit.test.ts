@@ -369,6 +369,61 @@ describe("solicitarHistoricoSyncConversaEvolution", () => {
     expect(r.motivo).toContain("não encontrada");
   });
 
+  it("15b) 500 na conversa = copy genérica (sem jaSincronizouAntes)", async () => {
+    historySync.mockRejectedValue(new Error('Evolution GO error (500): {"error":"internal"}'));
+    const { solicitarHistoricoSyncConversaEvolution } = await load();
+    const r = await solicitarHistoricoSyncConversaEvolution(
+      dbMock({
+        contatoInstancia: async () => ({ idExterno: "5511@s.whatsapp.net" }),
+        mensagem: async () => ({
+          idExterno: "M1",
+          direcao: "inbound",
+          criadoEm: new Date(),
+        }),
+      }) as never,
+      {} as never,
+      {
+        instanciaId: 1,
+        instanciaUuid: "u",
+        evoToken: "t",
+        conversaIdInterno: 2,
+        contatoId: 3,
+        telefone: "5511",
+      },
+    );
+    expect(r.ok).toBe(false);
+    expect(r.motivo).toBe(
+      "O WhatsApp não conseguiu iniciar a sincronização agora. Confirme que a sessão está conectada e tente de novo em alguns minutos.",
+    );
+    expect(r.motivo).not.toContain("já houve sync recente");
+  });
+
+  it("15c) 502 na conversa usa a mesma copy de 500", async () => {
+    historySync.mockRejectedValue(new Error("Evolution GO error (502): bad gateway"));
+    const { solicitarHistoricoSyncConversaEvolution } = await load();
+    const r = await solicitarHistoricoSyncConversaEvolution(
+      dbMock({
+        contatoInstancia: async () => ({ idExterno: "5511@s.whatsapp.net" }),
+        mensagem: async () => ({
+          idExterno: "M1",
+          direcao: "inbound",
+          criadoEm: new Date(),
+        }),
+      }) as never,
+      {} as never,
+      {
+        instanciaId: 1,
+        instanciaUuid: "u",
+        evoToken: "t",
+        conversaIdInterno: 2,
+        contatoId: 3,
+        telefone: "5511",
+      },
+    );
+    expect(r.ok).toBe(false);
+    expect(r.motivo).toContain("não conseguiu iniciar");
+  });
+
   it("16) telefone vazio usa idExterno do vinculo", async () => {
     const criadoEm = new Date("2026-07-01T12:00:00.000Z");
     const { solicitarHistoricoSyncConversaEvolution } = await load();

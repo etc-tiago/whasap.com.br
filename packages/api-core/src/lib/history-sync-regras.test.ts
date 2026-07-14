@@ -265,6 +265,27 @@ describe("motivoFalhaHistorySync (copy do rail)", () => {
     expect(msg).not.toContain("já houve sync recente");
   });
 
+  it("31b) 500 sem opts (sync conversa) = mesma copy amigavel do PRECONDITION_FAILED", () => {
+    const msg = motivoFalhaHistorySync(
+      new Error(
+        'Evolution GO error (500): {"error":"Failed to download audio download failed with status code 403"}',
+      ),
+    );
+    expect(msg).toBe(
+      "O WhatsApp não conseguiu iniciar a sincronização agora. Confirme que a sessão está conectada e tente de novo em alguns minutos.",
+    );
+  });
+
+  it("31c) body Evolution com CDN 403 nao muda o mapeamento de status HTTP 500", () => {
+    const msg = motivoFalhaHistorySync(
+      new Error(
+        'Evolution GO error (500): {"error":"Failed to download sticker download failed with status code 403"}',
+      ),
+      { jaSincronizouAntes: false },
+    );
+    expect(msg).toContain("não conseguiu iniciar");
+  });
+
   it("32) 429 mapeia como rate-limit amigavel se ja sincronizou", () => {
     const msg = motivoFalhaHistorySync(new Error("Evolution GO error (429)"), {
       jaSincronizouAntes: true,

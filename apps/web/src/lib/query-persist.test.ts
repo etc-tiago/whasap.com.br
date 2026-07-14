@@ -4,6 +4,9 @@ import { QueryClient, QueryObserver } from "@tanstack/react-query";
 import {
   caminhoNaAllowlistPersist,
   caminhoQueryKeyOrpc,
+  limparCachePersistido,
+  QUERY_PERSIST_BUSTER,
+  QUERY_PERSIST_MAX_AGE_MS,
   shouldDehydrateInboxQuery,
 } from "./query-persist";
 
@@ -26,6 +29,10 @@ describe("caminhoQueryKeyOrpc", () => {
     expect(caminhoQueryKeyOrpc([])).toBeNull();
     expect(caminhoQueryKeyOrpc([1, 2])).toBeNull();
   });
+
+  it("ignora head misto (string + number)", () => {
+    expect(caminhoQueryKeyOrpc([["a", 1] as unknown as string[]])).toBeNull();
+  });
 });
 
 describe("caminhoNaAllowlistPersist", () => {
@@ -40,6 +47,16 @@ describe("caminhoNaAllowlistPersist", () => {
     expect(caminhoNaAllowlistPersist(["instancia", "obterQr"])).toBe(false);
     expect(caminhoNaAllowlistPersist(["caixaEntrada", "midia", "upload"])).toBe(false);
     expect(caminhoNaAllowlistPersist(["autenticacao", "eu"])).toBe(false);
+  });
+
+  it("prefixo incompleto não passa", () => {
+    expect(caminhoNaAllowlistPersist(["caixaEntrada", "conversas"])).toBe(false);
+    expect(caminhoNaAllowlistPersist(["caixaEntrada"])).toBe(false);
+  });
+
+  it("aceita allowlist customizada", () => {
+    expect(caminhoNaAllowlistPersist(["a", "b"], [["a", "b"]])).toBe(true);
+    expect(caminhoNaAllowlistPersist(["a", "c"], [["a", "b"]])).toBe(false);
   });
 });
 
@@ -90,5 +107,41 @@ describe("shouldDehydrateInboxQuery", () => {
     });
     expect(pending && shouldDehydrateInboxQuery(pending)).toBe(false);
     observer.destroy();
+  });
+
+  it("não persiste query com erro", async () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    await client
+      .fetchQuery({
+        queryKey: [["caixaEntrada", "conversas", "lista"], { input: { organizacaoHash: "o" } }],
+        queryFn: async () => {
+          throw new Error("fail");
+        },
+      })
+      .catch(() => undefined);
+    const q = client.getQueryCache().find({
+      queryKey: [["caixaEntrada", "conversas", "lista"], { input: { organizacaoHash: "o" } }],
+    });
+    expect(q && shouldDehydrateInboxQuery(q)).toBe(false);
+  });
+});
+
+describe("constantes e limparCachePersistido", () => {
+  it("maxAge e buster estão definidos", () => {
+    expect(QUERY_PERSIST_MAX_AGE_MS).toBe(1000 * 60 * 60 * 24);
+    expect(QUERY_PERSIST_BUSTER).toMatch(/^whasap-web-rq-/);
+  });
+
+  it("limparCachePersistido esvazia o QueryClient", async () => {
+    const client = new QueryClient();
+    await client.fetchQuery({
+      queryKey: [["organizacao", "obter"], { input: { organizacaoHash: "o" } }],
+      queryFn: async () => ({ id: "1" }),
+    });
+    expect(client.getQueryCache().getAll().length).toBeGreaterThan(0);
+    await limparCachePersistido(client);
+    expect(client.getQueryCache().getAll()).toHaveLength(0);
   });
 });
