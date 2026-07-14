@@ -14,6 +14,7 @@ import { validarOrganizacaoSearch } from "@/lib/ajustes-search";
 import { isOrganizacaoConectada } from "@/lib/onboarding";
 import { orgInput } from "@/lib/org-input";
 import { orpc } from "@/lib/orpc";
+import { useInboxNotificacoes } from "@/lib/use-inbox-notificacoes";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
 export const Route = createFileRoute("/_panel/$organizacaoHash")({
@@ -26,6 +27,8 @@ function OrganizacaoLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { ajustes } = Route.useSearch();
+
+  useInboxNotificacoes();
 
   const org = useQuery(
     orpc.organizacao.obter.queryOptions({

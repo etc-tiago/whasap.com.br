@@ -12,6 +12,7 @@ import { log } from "evlog";
 import { useEffect, type ReactNode } from "react";
 
 import { appIcons } from "@whasap/config";
+import { Toaster } from "@whasap/ui/components/sonner";
 
 import { InboxDbProvider } from "../lib/inbox-db";
 import { reportError } from "../lib/error-reporting";
@@ -133,6 +134,7 @@ function RootComponent() {
       <InboxDbProvider>
         <TemaProvider>
           <Outlet />
+          <Toaster richColors closeButton position="top-right" />
         </TemaProvider>
       </InboxDbProvider>
     </PersistQueryClientProvider>

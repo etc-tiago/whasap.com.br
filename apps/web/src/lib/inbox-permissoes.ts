@@ -30,3 +30,14 @@ export function janelaCloudAberta(metaCloudJanelaExpiraEm: string | null | undef
   if (!metaCloudJanelaExpiraEm) return false;
   return new Date(metaCloudJanelaExpiraEm) > new Date();
 }
+
+/**
+ * Conversas que disparam notificação de nova mensagem: sem dono ou atribuídas a mim
+ * (mesmo critério do papel `usuario` em {@link podeEnviarMensagem}).
+ */
+export function conversaRelevanteParaNotificacao(
+  atribuidoId: string | null | undefined,
+  meuId: string,
+): boolean {
+  return !atribuidoId || atribuidoId === meuId;
+}
