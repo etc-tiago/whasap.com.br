@@ -10,6 +10,7 @@ import {
 } from "@whasap/ui/components/card";
 import { Input } from "@whasap/ui/components/input";
 import { Label } from "@whasap/ui/components/label";
+import { Switch } from "@whasap/ui/components/switch";
 import { useEffect, useState } from "react";
 
 import { WaAcaoCard, invalidarAposAcao, useAcoesResumo } from "@/components/inbox/wa-acao-card";
@@ -36,15 +37,40 @@ function AcoesAutomacaoPage() {
   const d = resumo.data;
 
   const [horas, setHoras] = useState("72");
+  const [exibirNome, setExibirNome] = useState(false);
+
   useEffect(() => {
     const v = org.data?.horasAutoFecharInatividade ?? d?.horasAutoFecharInatividade;
     if (v) setHoras(v);
   }, [org.data?.horasAutoFecharInatividade, d?.horasAutoFecharInatividade]);
 
-  const salvar = useMutation(
+  useEffect(() => {
+    if (org.data) setExibirNome(org.data.exibirNomeAtendenteMensagens);
+  }, [org.data]);
+
+  async function invalidarOrg() {
+    await invalidarAposAcao(queryClient);
+    if (!organizacaoHash) return;
+    await queryClient.invalidateQueries({
+      queryKey: orpc.organizacao.obter.key({ input: { organizacaoHash } }),
+    });
+  }
+
+  const salvarHoras = useMutation(
     orpc.organizacao.atualizar.mutationOptions({
       onSuccess: async () => {
-        await invalidarAposAcao(queryClient);
+        await invalidarOrg();
+      },
+    }),
+  );
+
+  const salvarNome = useMutation(
+    orpc.organizacao.atualizar.mutationOptions({
+      onError: () => {
+        setExibirNome(org.data?.exibirNomeAtendenteMensagens ?? false);
+      },
+      onSuccess: async () => {
+        await invalidarOrg();
       },
     }),
   );
@@ -57,7 +83,7 @@ function AcoesAutomacaoPage() {
         <h2 className="text-lg font-semibold text-wa-text">Automação</h2>
         <p className="mt-1 text-sm text-wa-text-muted">
           Defina após quantas horas sem mensagem uma conversa em atendimento é fechada
-          automaticamente (cron).
+          automaticamente (cron) e se o nome do atendente aparece nas mensagens enviadas.
         </p>
       </div>
 
@@ -85,30 +111,65 @@ function AcoesAutomacaoPage() {
                   max={8760}
                   value={horas}
                   onChange={(e) => setHoras(e.target.value)}
-                  disabled={salvar.isPending}
+                  disabled={salvarHoras.isPending}
                 />
               </div>
               <Button
                 size="sm"
                 disabled={
-                  salvar.isPending || !horas || horas === org.data?.horasAutoFecharInatividade
+                  salvarHoras.isPending || !horas || horas === org.data?.horasAutoFecharInatividade
                 }
                 onClick={() =>
-                  salvar.mutate({
+                  salvarHoras.mutate({
                     organizacaoHash,
                     horasAutoFecharInatividade: horas,
                   })
                 }
               >
-                {salvar.isPending ? "Salvando…" : "Salvar"}
+                {salvarHoras.isPending ? "Salvando…" : "Salvar"}
               </Button>
-              {salvar.error ? (
+              {salvarHoras.error ? (
                 <p className="text-sm text-destructive">
-                  {getOrpcErrorMessage(salvar.error, "Não foi possível salvar.")}
+                  {getOrpcErrorMessage(salvarHoras.error, "Não foi possível salvar.")}
                 </p>
               ) : null}
-              {salvar.isSuccess ? (
+              {salvarHoras.isSuccess ? (
                 <p className="text-sm text-wa-text-muted">Configuração salva.</p>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Nome do atendente nas mensagens</CardTitle>
+              <CardDescription>
+                Quando ativo, o nome do atendente vai na primeira linha do texto ou da legenda
+                enviados ao WhatsApp. Em áudio e figurinha, o nome é enviado como mensagem de texto
+                imediatamente antes da mídia.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between gap-4">
+                <Label htmlFor="exibir-nome-atendente" className="text-sm font-normal">
+                  Exibir nome do atendente
+                </Label>
+                <Switch
+                  id="exibir-nome-atendente"
+                  checked={exibirNome}
+                  disabled={salvarNome.isPending}
+                  onCheckedChange={(checked) => {
+                    setExibirNome(checked);
+                    salvarNome.mutate({
+                      organizacaoHash,
+                      exibirNomeAtendenteMensagens: checked,
+                    });
+                  }}
+                />
+              </div>
+              {salvarNome.error ? (
+                <p className="text-sm text-destructive">
+                  {getOrpcErrorMessage(salvarNome.error, "Não foi possível salvar.")}
+                </p>
               ) : null}
             </CardContent>
           </Card>

@@ -46,6 +46,8 @@ export const organizacaoSchema = z.object({
   aceiteAdesaoVersao: z.string().nullable(),
   /** Horas sem mensagem antes do auto-fechar (texto numérico, default "72"). */
   horasAutoFecharInatividade: z.string(),
+  /** Prefixa o nome do atendente nas mensagens outbound do WhatsApp. */
+  exibirNomeAtendenteMensagens: z.boolean(),
 });
 
 export const organizacaoComPapelSchema = organizacaoSchema.extend({

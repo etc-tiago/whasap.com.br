@@ -20,6 +20,7 @@ export function mapearOrganizacaoParaSaida(org: {
   aceiteAdesaoEm: Date | null;
   aceiteAdesaoVersao: string | null;
   horasAutoFecharInatividade?: string | null;
+  exibirNomeAtendenteMensagens?: boolean | null;
 }) {
   return {
     id: org.uuid,
@@ -32,6 +33,7 @@ export function mapearOrganizacaoParaSaida(org: {
     aceiteAdesaoEm: org.aceiteAdesaoEm?.toISOString() ?? null,
     aceiteAdesaoVersao: org.aceiteAdesaoVersao,
     horasAutoFecharInatividade: org.horasAutoFecharInatividade ?? "72",
+    exibirNomeAtendenteMensagens: org.exibirNomeAtendenteMensagens ?? false,
   };
 }
 

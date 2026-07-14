@@ -7,6 +7,7 @@ import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/reac
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { isEvoProvider, isMetaCloudProvider } from "@whasap/config";
 import { Badge } from "@whasap/ui/components/badge";
+import { Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { WaChatHeader } from "@/components/inbox/wa-chat-header";
@@ -351,46 +352,49 @@ function InboxOrgPage() {
     setMidia(null);
   }
 
-  const listaConversas =
-    conversasFiltradas.length === 0 ? (
-      <p className="px-4 py-8 text-center text-sm text-wa-text-muted">
-        {busca.trim()
-          ? "Nenhuma conversa encontrada."
-          : "Nenhuma conversa ainda. Mensagens recebidas aparecerão aqui."}
-      </p>
-    ) : (
-      conversasFiltradas.map((c: ConversaItem) => (
-        <WaChatRow
-          key={c.id}
-          id={c.contatoId}
-          nome={c.contatoNome ?? c.contatoTelefone}
-          preview={formatarPreviewMensagem(c.ultimaMensagemPreview, c.ultimaMensagemTipo)}
-          time={formatarHorarioConversa(c.ultimaMensagemEm)}
-          ativo={selectedId === c.id}
-          naoLidas={c.naoLidas}
-          etiquetas={c.etiquetas}
-          badge={
-            <>
-              {c.instanciaNome ? (
-                <Badge
-                  variant="outline"
-                  className="inline-flex max-w-26 items-center gap-1 truncate text-[10px]"
-                >
-                  <IconeConexaoLucide nome={c.instanciaIcone} className="h-3 w-3 shrink-0" />
-                  <span className="truncate">{c.instanciaNome}</span>
-                </Badge>
-              ) : null}
-              {c.usuarioAtribuidoNome ? (
-                <Badge variant="secondary" className="text-[10px]">
-                  {c.usuarioAtribuidoNome}
-                </Badge>
-              ) : null}
-            </>
-          }
-          onClick={() => setSelectedId(c.id)}
-        />
-      ))
-    );
+  const listaConversas = conversations.isPending ? (
+    <div className="flex justify-center px-4 py-8">
+      <Loader2 className="h-5 w-5 animate-spin text-wa-icon" aria-label="Carregando conversas" />
+    </div>
+  ) : conversasFiltradas.length === 0 ? (
+    <p className="px-4 py-8 text-center text-sm text-wa-text-muted">
+      {busca.trim()
+        ? "Nenhuma conversa encontrada."
+        : "Nenhuma conversa ainda. Mensagens recebidas aparecerão aqui."}
+    </p>
+  ) : (
+    conversasFiltradas.map((c: ConversaItem) => (
+      <WaChatRow
+        key={c.id}
+        id={c.contatoId}
+        nome={c.contatoNome ?? c.contatoTelefone}
+        preview={formatarPreviewMensagem(c.ultimaMensagemPreview, c.ultimaMensagemTipo)}
+        time={formatarHorarioConversa(c.ultimaMensagemEm)}
+        ativo={selectedId === c.id}
+        naoLidas={c.naoLidas}
+        etiquetas={c.etiquetas}
+        badge={
+          <>
+            {c.instanciaNome ? (
+              <Badge
+                variant="outline"
+                className="inline-flex max-w-26 items-center gap-1 truncate text-[10px]"
+              >
+                <IconeConexaoLucide nome={c.instanciaIcone} className="h-3 w-3 shrink-0" />
+                <span className="truncate">{c.instanciaNome}</span>
+              </Badge>
+            ) : null}
+            {c.usuarioAtribuidoNome ? (
+              <Badge variant="secondary" className="text-[10px]">
+                {c.usuarioAtribuidoNome}
+              </Badge>
+            ) : null}
+          </>
+        }
+        onClick={() => setSelectedId(c.id)}
+      />
+    ))
+  );
 
   if (!organizacaoHash) return null;
 

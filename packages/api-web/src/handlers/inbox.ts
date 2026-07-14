@@ -44,6 +44,7 @@ import {
   marcarExclusaoLogica,
   mensagem,
   mensagemTemplate,
+  organizacao,
   resolverIdInterno,
 } from "@whasap/db";
 
@@ -55,6 +56,11 @@ import {
   markProviderMessageRead,
   sendProviderMessage,
 } from "../lib/messaging";
+import {
+  midiaExigeTextoSeparadoParaNome,
+  midiaSuportaLegenda,
+  montarTextoComNomeAtendente,
+} from "../lib/nome-atendente-mensagem";
 import type { InstanciaComProvedor } from "../lib/instancia-provedor";
 import type { WebContext } from "../types";
 import { exigirAutenticacao, resolverMembro, resolverMembroPorIdInterno } from "./auth";
@@ -709,17 +715,26 @@ export const caixaEntradaHandlers = {
           enviadoPorUsuarioId: ctx.usuario!.internalId,
         });
       } else if (input.corpo) {
+        const orgPrefs = await ctx.db.query.organizacao.findFirst({
+          where: and(eq(organizacao.id, instance.organizacaoId), isNull(organizacao.excluidoEm)),
+          columns: { exibirNomeAtendenteMensagens: true },
+        });
+        const nomeAtendente = ctx.usuario!.nome.trim();
+        const corpo =
+          orgPrefs?.exibirNomeAtendenteMensagens && nomeAtendente
+            ? montarTextoComNomeAtendente(nomeAtendente, input.corpo)
+            : input.corpo;
         const externalId = await sendProviderMessage({
           ctx,
           instance,
           phone,
           type: "text",
-          body: input.corpo,
+          body: corpo,
         });
         await persistirMensagemOutboundPainel(ctx.db, {
           conversaId: conversation!.id,
           tipo: "text",
-          corpo: input.corpo,
+          corpo,
           idExterno: externalId,
           enviadoPorUsuarioId: ctx.usuario!.internalId,
         });
@@ -886,15 +901,49 @@ export const caixaEntradaHandlers = {
 
       if (!conv.contact.telefone) notFound("Telefone do contato não informado");
 
+      const usuario = ctx.usuario!;
+      const orgPrefs = await ctx.db.query.organizacao.findFirst({
+        where: and(eq(organizacao.id, conv.instance.organizacaoId), isNull(organizacao.excluidoEm)),
+        columns: { exibirNomeAtendenteMensagens: true },
+      });
+      const nomeAtendente = usuario.nome.trim();
+      const prefixarNome =
+        Boolean(orgPrefs?.exibirNomeAtendenteMensagens) && nomeAtendente.length > 0;
+
+      let bodyParaEnvio = input.body;
+      let captionParaEnvio = input.body;
+
+      if (prefixarNome && tipo === "text" && input.body) {
+        bodyParaEnvio = montarTextoComNomeAtendente(nomeAtendente, input.body);
+      } else if (prefixarNome && midiaSuportaLegenda(tipo)) {
+        bodyParaEnvio = montarTextoComNomeAtendente(nomeAtendente, input.body);
+        captionParaEnvio = bodyParaEnvio;
+      } else if (prefixarNome && midiaExigeTextoSeparadoParaNome(tipo)) {
+        const idTextoNome = await sendProviderMessage({
+          ctx,
+          instance: conv.instance,
+          phone: conv.contact.telefone,
+          type: "text",
+          body: nomeAtendente,
+        });
+        await persistirMensagemOutboundPainel(ctx.db, {
+          conversaId: conv.conversation.id,
+          tipo: "text",
+          corpo: nomeAtendente,
+          idExterno: idTextoNome,
+          enviadoPorUsuarioId: usuario.internalId,
+        });
+      }
+
       const externalId = await sendProviderMessage({
         ctx,
         instance: conv.instance,
         phone: conv.contact.telefone,
         type: tipo,
-        body: input.body,
+        body: bodyParaEnvio,
         mediaUrl,
         mediaR2Key: input.mediaR2Key,
-        caption: input.body,
+        caption: captionParaEnvio,
         filename: input.filename,
         voice: input.voice,
         latitude: input.latitude,
@@ -910,7 +959,7 @@ export const caixaEntradaHandlers = {
       });
 
       const corpo =
-        input.body ??
+        bodyParaEnvio ??
         (tipo === "reaction" ? (input.emoji ?? null) : null) ??
         (["button", "list", "carousel", "poll", "link", "interactive"].includes(tipo)
           ? `[${tipo}]`
@@ -922,7 +971,7 @@ export const caixaEntradaHandlers = {
         corpo,
         midiaR2Chave: input.mediaR2Key ?? null,
         idExterno: externalId,
-        enviadoPorUsuarioId: ctx.usuario!.internalId,
+        enviadoPorUsuarioId: usuario.internalId,
       });
 
       await ctx.db
@@ -930,7 +979,6 @@ export const caixaEntradaHandlers = {
         .set(comTimestampAtualizacao({ ultimaMensagemEm: new Date() }))
         .where(eq(conversa.id, conv.conversation.id));
 
-      const usuario = ctx.usuario!;
       return mapearMensagemParaSaida(
         {
           ...message,

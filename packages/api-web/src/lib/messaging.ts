@@ -195,7 +195,13 @@ export async function sendProviderMessage(params: SendMessageParams): Promise<st
     }
     if (type === "document" && params.mediaUrl) {
       return extractMetaMessageId(
-        await client.sendDocument(normalizedPhone, params.mediaUrl, params.filename, opts),
+        await client.sendDocument(
+          normalizedPhone,
+          params.mediaUrl,
+          params.filename,
+          params.caption ?? params.body ?? undefined,
+          opts,
+        ),
       );
     }
     if (type === "sticker" && params.mediaUrl) {

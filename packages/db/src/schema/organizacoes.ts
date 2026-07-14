@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   integer,
   pgTable,
@@ -27,6 +28,11 @@ export const organizacao = pgTable("organizacao", {
   /** Cota mensal de conversas únicas da org (base + ajustes manuais). */
   limiteConversas: integer().notNull().default(1000),
   horasAutoFecharInatividade: text().default("72"),
+  /**
+   * Quando true, o nome do atendente vai como primeira linha do texto/legenda
+   * enviado ao WhatsApp (`Nome\nconteúdo`). Áudio/sticker: texto só com o nome antes da mídia.
+   */
+  exibirNomeAtendenteMensagens: boolean().notNull().default(false),
   excluidoEm: timestamp(),
   criadoEm: timestamp().notNull(),
   atualizadoEm: timestamp().notNull(),

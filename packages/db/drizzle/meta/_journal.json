@@ -57,6 +57,13 @@
       "when": 1783976332380,
       "tag": "0007_lowly_ink",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1783991028830,
+      "tag": "0008_bizarre_warlock",
+      "breakpoints": true
     }
   ]
 }

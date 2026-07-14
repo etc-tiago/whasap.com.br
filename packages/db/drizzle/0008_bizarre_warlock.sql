@@ -1,0 +1,1 @@
+ALTER TABLE "organizacao" ADD COLUMN "exibir_nome_atendente_mensagens" boolean DEFAULT false NOT NULL;

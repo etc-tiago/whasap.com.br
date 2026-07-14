@@ -183,6 +183,7 @@ export function createMetaClient(credentials: MetaCredentials, clientOptions?: M
       to: string,
       documentUrl: string,
       filename?: string,
+      caption?: string,
       messageOptions?: MessageOptions,
     ) {
       return graph<{ messages: Array<{ id: string }> }>(
@@ -192,7 +193,11 @@ export function createMetaClient(credentials: MetaCredentials, clientOptions?: M
         {
           ...messageBase(to, messageOptions),
           type: "document",
-          document: { link: documentUrl, ...(filename ? { filename } : {}) },
+          document: {
+            link: documentUrl,
+            ...(filename ? { filename } : {}),
+            ...(caption ? { caption } : {}),
+          },
         },
       );
     },

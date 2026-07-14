@@ -141,6 +141,7 @@ export const organizacaoHandlers = {
       razaoSocial?: string;
       telefoneWhatsapp?: string;
       horasAutoFecharInatividade?: string;
+      exibirNomeAtendenteMensagens?: boolean;
     },
   ) => {
     await exigirAdmin(ctx, input.organizacaoHash);
@@ -174,6 +175,7 @@ export const organizacaoHandlers = {
           razaoSocial: input.razaoSocial,
           telefoneWhatsapp,
           horasAutoFecharInatividade: input.horasAutoFecharInatividade,
+          exibirNomeAtendenteMensagens: input.exibirNomeAtendenteMensagens,
         }),
       )
       .where(and(eq(organizacao.uuid, input.organizacaoHash), isNull(organizacao.excluidoEm)))

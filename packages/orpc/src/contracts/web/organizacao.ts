@@ -59,6 +59,7 @@ export const organizacaoContract = {
           .string()
           .regex(/^\d+$/, "Informe um número inteiro de horas")
           .optional(),
+        exibirNomeAtendenteMensagens: z.boolean().optional(),
       }),
     )
     .output(organizacaoSchema),

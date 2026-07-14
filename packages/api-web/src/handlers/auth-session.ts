@@ -135,6 +135,7 @@ export function mapearSessaoParaSaida(
     | "aceiteAdesaoEm"
     | "aceiteAdesaoVersao"
     | "horasAutoFecharInatividade"
+    | "exibirNomeAtendenteMensagens"
   > | null,
 ) {
   if (!ctx.usuario) {

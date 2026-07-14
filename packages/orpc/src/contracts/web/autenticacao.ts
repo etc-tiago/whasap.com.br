@@ -52,9 +52,7 @@ export const autenticacaoContract = {
   eu: oc.output(sessaoSchema),
 
   /** Atualiza dados da conta do usuário autenticado. */
-  atualizar: oc
-    .input(z.object({ nome: z.string().min(2) }))
-    .output(usuarioSchema),
+  atualizar: oc.input(z.object({ nome: z.string().min(2) })).output(usuarioSchema),
 
   iniciarFluxo: oc.input(z.object({ email: z.string().email() })).output(
     z.object({

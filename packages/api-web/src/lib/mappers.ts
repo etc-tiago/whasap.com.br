@@ -27,6 +27,7 @@ export function toOrganizacaoOutput(
     | "aceiteAdesaoEm"
     | "aceiteAdesaoVersao"
     | "horasAutoFecharInatividade"
+    | "exibirNomeAtendenteMensagens"
   >,
 ) {
   return {
@@ -40,6 +41,7 @@ export function toOrganizacaoOutput(
     aceiteAdesaoEm: org.aceiteAdesaoEm?.toISOString() ?? null,
     aceiteAdesaoVersao: org.aceiteAdesaoVersao,
     horasAutoFecharInatividade: org.horasAutoFecharInatividade ?? "72",
+    exibirNomeAtendenteMensagens: org.exibirNomeAtendenteMensagens ?? false,
   };
 }
 

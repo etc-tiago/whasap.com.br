@@ -49,6 +49,7 @@ export const colunasOrganizacaoPublica = {
   aceiteAdesaoVersao: true,
   limiteConversas: true,
   horasAutoFecharInatividade: true,
+  exibirNomeAtendenteMensagens: true,
 } as const;
 
 /** Checagem de slug / existência — retorna só PK interna. */
