@@ -12,7 +12,7 @@ import { cn } from "@whasap/ui/lib/utils";
 
 import type { AjustesSecao, OrganizacaoSearch } from "@/lib/ajustes-search";
 
-const routeApi = getRouteApi("/$organizacaoHash");
+const routeApi = getRouteApi("/_panel/$organizacaoHash");
 
 const SecaoGeral = lazy(() =>
   import("@/components/ajustes/secoes/secao-geral").then((m) => ({ default: m.SecaoAjustesGeral })),

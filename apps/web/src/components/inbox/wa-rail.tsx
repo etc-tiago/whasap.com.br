@@ -19,7 +19,7 @@ import { instanciaOperacional } from "@/lib/instancia-status";
 import { orgInput } from "@/lib/org-input";
 import { orpc } from "@/lib/orpc";
 
-const orgRouteApi = getRouteApi("/$organizacaoHash");
+const orgRouteApi = getRouteApi("/_panel/$organizacaoHash");
 
 type WaRailProps = {
   organizacaoHash: string;
