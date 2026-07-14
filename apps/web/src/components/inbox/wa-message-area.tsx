@@ -45,8 +45,7 @@ export function WaMessageArea({
   function atualizarPertoDoRodape() {
     const el = scrollRef.current;
     if (!el) return;
-    pertoDoRodapeRef.current =
-      el.scrollHeight - el.scrollTop - el.clientHeight < LIMIAR_RODAPE_PX;
+    pertoDoRodapeRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < LIMIAR_RODAPE_PX;
   }
 
   useEffect(() => {

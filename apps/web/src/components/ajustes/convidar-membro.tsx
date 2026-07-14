@@ -40,10 +40,10 @@ export function ConvidarMembro({ open }: ConvidarMembroProps) {
   const setAberto = (proximo: boolean) => {
     void navigate({
       to: ".",
-      search: (prev: OrganizacaoSearch) => ({
+      search: (prev: OrganizacaoSearch): OrganizacaoSearch => ({
         ...prev,
         ajustes: "usuarios",
-        convidar: proximo ? ("1" as const) : undefined,
+        convidar: proximo ? "1" : undefined,
       }),
       replace: true,
     });

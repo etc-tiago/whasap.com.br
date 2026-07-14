@@ -1,4 +1,5 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import {
   HeadContent,
   Link,
@@ -12,9 +13,11 @@ import { useEffect, type ReactNode } from "react";
 
 import { appIcons } from "@whasap/config";
 
-import { scriptTemaInicial, TemaProvider } from "../lib/tema";
+import { InboxDbProvider } from "../lib/inbox-db";
 import { reportError } from "../lib/error-reporting";
 import { panelMeta } from "../lib/panel-meta";
+import { queryPersistOptions } from "../lib/query-persist";
+import { scriptTemaInicial, TemaProvider } from "../lib/tema";
 import appCss from "../styles.css?url";
 
 const icons = appIcons();
@@ -126,10 +129,12 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TemaProvider>
-        <Outlet />
-      </TemaProvider>
-    </QueryClientProvider>
+    <PersistQueryClientProvider client={queryClient} persistOptions={queryPersistOptions}>
+      <InboxDbProvider>
+        <TemaProvider>
+          <Outlet />
+        </TemaProvider>
+      </InboxDbProvider>
+    </PersistQueryClientProvider>
   );
 }

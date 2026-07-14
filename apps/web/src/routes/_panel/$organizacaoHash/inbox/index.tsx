@@ -1,16 +1,11 @@
 /**
  * Caixa de entrada estilo WhatsApp Web — lista unificada por organização.
  *
- * Search: `conversa` seleciona thread; `telefone`+`instancia` abrem nova conversa (ex.: Contatos).
+ * Dados de conversas/mensagens via TanStack DB (Query Collection + live query);
+ * server/Postgres continua SSOT via ORPC. Search: `conversa` seleciona thread;
+ * `telefone`+`instancia` abrem nova conversa (ex.: Contatos).
  */
-import {
-  skipToken,
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-  type InfiniteData,
-} from "@tanstack/react-query";
+import { skipToken, useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { isEvoProvider, isMetaCloudProvider } from "@whasap/config";
 import { Badge } from "@whasap/ui/components/badge";
@@ -28,23 +23,15 @@ import {
 import { WaMessageArea } from "@/components/inbox/wa-message-area";
 import { WaShell } from "@/components/inbox/wa-shell";
 import { useSession } from "@/lib/auth";
+import { useInboxConversas, useInboxMensagens } from "@/lib/inbox-db";
 import { IconeConexaoLucide } from "@/lib/icones-conexao";
 import { janelaCloudAberta, podeEnviarMensagem } from "@/lib/inbox-permissoes";
 import { formatarHorarioConversa, formatarPreviewMensagem } from "@/lib/inbox-utils";
 import { instanciaOperacional } from "@/lib/instancia-status";
 import { orgInput } from "@/lib/org-input";
-import { orpc, type ConversaItem, type MensagemItem } from "@/lib/orpc";
+import { orpc, type ConversaItem } from "@/lib/orpc";
 import { eCandidatoTelefoneBr, normalizarTelefoneBr, telefonesBrIguais } from "@/lib/telefone-br";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
-
-const LIMITE_MENSAGENS_PAGINA = 40;
-
-type CursorMensagens = { antesCriadoEm: string; antesId: string };
-
-type PaginaMensagens = {
-  itens: MensagemItem[];
-  temMaisAntigas: boolean;
-};
 
 type InboxSearch = {
   conversa?: string;
@@ -62,7 +49,6 @@ export const Route = createFileRoute("/_panel/$organizacaoHash/inbox/")({
 });
 
 function InboxOrgPage() {
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const organizacaoHash = useOrganizacaoHash();
   const search = Route.useSearch();
@@ -120,15 +106,9 @@ function InboxOrgPage() {
     }),
   );
 
-  const conversations = useQuery(
-    orpc.caixaEntrada.conversas.lista.queryOptions({
-      input: orgInput(organizacaoHash),
-      refetchInterval: 10_000,
-      enabled: Boolean(organizacaoHash),
-    }),
-  );
+  const conversations = useInboxConversas(organizacaoHash);
 
-  const selected = conversations.data?.find((c: ConversaItem) => c.id === selectedId);
+  const selected = conversations.data.find((c: ConversaItem) => c.id === selectedId);
   const instanciasOperacionais = useMemo(
     () => (instancias.data ?? []).filter((i) => instanciaOperacional(i.status)),
     [instancias.data],
@@ -166,44 +146,14 @@ function InboxOrgPage() {
     orpc.caixaEntrada.conversas.sincronizarHistorico.mutationOptions({}),
   );
 
-  const messages = useInfiniteQuery({
-    ...orpc.caixaEntrada.mensagens.lista.infiniteOptions({
-      input: selectedId
-        ? (pageParam: CursorMensagens | undefined) => ({
-            conversaId: selectedId,
-            limite: LIMITE_MENSAGENS_PAGINA,
-            ...(pageParam ?? {}),
-          })
-        : skipToken,
-      initialPageParam: undefined as CursorMensagens | undefined,
-      getNextPageParam: (last) => {
-        if (!last.temMaisAntigas || last.itens.length === 0) return undefined;
-        const oldest = last.itens[0]!;
-        return { antesCriadoEm: oldest.criadoEm, antesId: oldest.id };
-      },
-    }),
-    refetchInterval: (query) => {
-      if (!selectedId) return false;
-      const itens = query.state.data?.pages.flatMap((p) => p.itens);
-      if (!itens) return false;
-      const midiaPendente = itens.some(
-        (m) => ["image", "video", "audio", "document", "sticker"].includes(m.type) && !m.mediaUrl,
-      );
-      if (!midiaPendente) {
-        midiaRefetchTentativas.current.delete(selectedId);
-        return false;
-      }
-      const n = midiaRefetchTentativas.current.get(selectedId) ?? 0;
-      if (n >= 20) return false;
-      midiaRefetchTentativas.current.set(selectedId, n + 1);
-      return 3_000;
-    },
-  });
-
-  const mensagens = useMemo(
-    () => [...(messages.data?.pages ?? [])].reverse().flatMap((p) => p.itens),
-    [messages.data?.pages],
-  );
+  const {
+    mensagens,
+    temMaisAntigas,
+    isFetchingNextPage,
+    fetchNextPage,
+    sincronizarRecentes,
+    anexarMensagem,
+  } = useInboxMensagens(selectedId);
 
   useEffect(() => {
     ultimaMensagemEmRef.current = null;
@@ -211,21 +161,17 @@ function InboxOrgPage() {
 
   useEffect(() => {
     if (!selectedId) return;
-    const atual = conversations.data?.find((c) => c.id === selectedId)?.ultimaMensagemEm ?? null;
+    const atual = conversations.data.find((c) => c.id === selectedId)?.ultimaMensagemEm ?? null;
     const anterior = ultimaMensagemEmRef.current;
     if (anterior !== null && atual !== null && atual !== anterior) {
-      void queryClient.invalidateQueries({
-        queryKey: orpc.caixaEntrada.mensagens.lista.key({
-          input: { conversaId: selectedId },
-        }),
-      });
+      void sincronizarRecentes();
     }
     ultimaMensagemEmRef.current = atual;
-  }, [selectedId, conversations.data, queryClient]);
+  }, [selectedId, conversations.data, sincronizarRecentes]);
 
   useEffect(() => {
     if (!selectedId || mensagens.length === 0) return;
-    const conversa = conversations.data?.find((c) => c.id === selectedId);
+    const conversa = conversations.data.find((c) => c.id === selectedId);
     if (!conversa) return;
     const instanciaRow = instancias.data?.find((i) => i.id === conversa.instanciaId);
     if (!instanciaRow || !isEvoProvider(instanciaRow.provider)) return;
@@ -240,42 +186,35 @@ function InboxOrgPage() {
     sincronizarHistoricoMidia.mutate({ conversaId: selectedId });
   }, [selectedId, mensagens, conversations.data, instancias.data, sincronizarHistoricoMidia]);
 
+  // Poll curto enquanto houver mídia sem URL (substitui refetchInterval do infinite query).
+  useEffect(() => {
+    if (!selectedId) return;
+    const midiaPendente = mensagens.some(
+      (m) => ["image", "video", "audio", "document", "sticker"].includes(m.type) && !m.mediaUrl,
+    );
+    if (!midiaPendente) {
+      midiaRefetchTentativas.current.delete(selectedId);
+      return;
+    }
+    const n = midiaRefetchTentativas.current.get(selectedId) ?? 0;
+    if (n >= 20) return;
+    const id = window.setTimeout(() => {
+      midiaRefetchTentativas.current.set(selectedId, n + 1);
+      void sincronizarRecentes();
+    }, 3_000);
+    return () => window.clearTimeout(id);
+  }, [selectedId, mensagens, sincronizarRecentes]);
+
   const membros = useQuery(
     orpc.organizacao.membros.lista.queryOptions({
       input: orgInput(organizacaoHash),
     }),
   );
 
-  const listaQueryInput = useMemo(
-    () => (organizacaoHash ? { organizacaoHash } : null),
-    [organizacaoHash],
-  );
-
-  function anexarMensagemNaCache(conversaId: string, nova: MensagemItem) {
-    queryClient.setQueriesData<InfiniteData<PaginaMensagens, CursorMensagens | undefined>>(
-      {
-        queryKey: orpc.caixaEntrada.mensagens.lista.key({
-          input: { conversaId },
-        }),
-      },
-      (old) => {
-        if (!old?.pages?.length) return old;
-        const pages = [...old.pages];
-        const primeira = pages[0]!;
-        if (primeira.itens.some((m) => m.id === nova.id)) return old;
-        pages[0] = { ...primeira, itens: [...primeira.itens, nova] };
-        return { ...old, pages };
-      },
-    );
-  }
-
   const markRead = useMutation(
     orpc.caixaEntrada.mensagens.marcarLido.mutationOptions({
       onSuccess: () => {
-        if (!listaQueryInput) return;
-        queryClient.invalidateQueries({
-          queryKey: orpc.caixaEntrada.conversas.lista.key({ input: listaQueryInput }),
-        });
+        void conversations.refetch?.();
       },
     }),
   );
@@ -285,15 +224,11 @@ function InboxOrgPage() {
     orpc.caixaEntrada.mensagens.enviar.mutationOptions({
       onSuccess: (nova) => {
         if (selectedId) {
-          anexarMensagemNaCache(selectedId, nova);
+          anexarMensagem(nova);
           ultimaMensagemEmRef.current = nova.criadoEm;
           setForcarRodapeToken((n) => n + 1);
         }
-        if (listaQueryInput) {
-          queryClient.invalidateQueries({
-            queryKey: orpc.caixaEntrada.conversas.lista.key({ input: listaQueryInput }),
-          });
-        }
+        void conversations.refetch?.();
       },
     }),
   );
@@ -301,18 +236,14 @@ function InboxOrgPage() {
   const fechar = useMutation(
     orpc.caixaEntrada.conversas.fechar.mutationOptions({
       onSuccess: () => {
-        if (listaQueryInput) {
-          queryClient.invalidateQueries({
-            queryKey: orpc.caixaEntrada.conversas.lista.key({ input: listaQueryInput }),
-          });
-        }
+        void conversations.refetch?.();
         setSelectedId(null);
       },
     }),
   );
 
   const conversasFiltradas = useMemo(() => {
-    let lista = conversations.data ?? [];
+    let lista = conversations.data;
     if (filtroAtivo === "Não lidas") {
       lista = lista.filter((c: ConversaItem) => c.naoLidas > 0);
     }
@@ -332,7 +263,7 @@ function InboxOrgPage() {
   const telefoneIniciarBusca = useMemo(() => {
     if (!eCandidatoTelefoneBr(busca)) return null;
     const normalizado = normalizarTelefoneBr(busca);
-    const temMatchExato = (conversations.data ?? []).some((c: ConversaItem) =>
+    const temMatchExato = conversations.data.some((c: ConversaItem) =>
       telefonesBrIguais(c.contatoTelefone, normalizado),
     );
     if (temMatchExato) return null;
@@ -512,11 +443,11 @@ function InboxOrgPage() {
           <WaMessageArea
             conversaId={selected.id}
             mensagens={mensagens}
-            temMaisAntigas={Boolean(messages.hasNextPage)}
-            isFetchingNextPage={messages.isFetchingNextPage}
+            temMaisAntigas={temMaisAntigas}
+            isFetchingNextPage={isFetchingNextPage}
             onNearTop={() => {
-              if (messages.hasNextPage && !messages.isFetchingNextPage) {
-                void messages.fetchNextPage();
+              if (temMaisAntigas && !isFetchingNextPage) {
+                void fetchNextPage();
               }
             }}
             forcarRodapeToken={forcarRodapeToken}

@@ -10,3 +10,12 @@ export function getOrpcErrorMessage(error: unknown, fallback: string): string {
   }
   return fallback;
 }
+
+/** True quando o ORPC / RPC retornou 401 (cookie JWT ausente ou inválido). */
+export function eSessaoNaoAutorizada(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const code = (error as { code?: unknown }).code;
+  if (code === "UNAUTHORIZED") return true;
+  const status = (error as { status?: unknown }).status;
+  return status === 401;
+}

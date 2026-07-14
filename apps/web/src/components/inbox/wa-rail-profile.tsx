@@ -14,6 +14,7 @@ import { searchAbrirAjustes } from "@/lib/abrir-ajustes";
 import { useSession } from "@/lib/auth";
 import { nomeExibicaoDoEmail } from "@/lib/inbox-utils";
 import { orpc } from "@/lib/orpc";
+import { limparEstadoClienteSessao } from "@/lib/sessao-cliente";
 
 export function WaRailProfile() {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ export function WaRailProfile() {
   const logout = useMutation(
     orpc.autenticacao.sair.mutationOptions({
       onSuccess: () => {
-        void queryClient.invalidateQueries({ queryKey: orpc.autenticacao.eu.key() });
+        void limparEstadoClienteSessao(queryClient);
       },
     }),
   );
