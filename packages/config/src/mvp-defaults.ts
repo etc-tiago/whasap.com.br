@@ -5,22 +5,52 @@
 export const mvpDefaults = {
   billing: {
     currency: "brl" as const,
-    /** Taxa base mensal da organização (inclui `conversationsIncludedBase`). */
-    orgBasePriceCents: 12_990,
-    /** Assinatura mensal por conexão WhatsApp adicional à base. */
-    connectionPriceCents: 2_000,
-    /**
-     * @deprecated Preferir `connectionPriceCents`. Mantido como alias para compat.
-     */
-    instancePriceCents: 2_000,
-    conversationPackPriceCents: 5_000,
-    conversationsIncludedBase: 1_000,
-    /** @deprecated Cota de conversas passou para a org (`conversationsIncludedBase`). */
-    conversationsPerInstance: 1_000,
-    conversationsPerPack: 1_000,
-    warnAtPercent: [80, 90] as const,
-    /** Após este uso contínuo, rateio manual gera boleto por uso (ver termo de adesão). */
-    billingAfterUsageDays: 3,
+    /** Após este uso contínuo (teste), rateio manual gera boleto por uso (ver termo de adesão). */
+    billingAfterUsageDays: 7,
+    /** Conexão WhatsApp além das inclusas no plano. */
+    extraConnectionPriceCents: 3_900,
+    /** Contatos únicos adicionais são vendidos em blocos deste tamanho. */
+    contactsPerExtraPack: 100,
+    referral: {
+      /** Meses grátis (crédito) para quem indicou. */
+      indicadorMesGratis: 1,
+      /** Desconto percentual no 1º mês do indicado. */
+      indicadoDescontoPercent: 25,
+    },
+    plans: [
+      {
+        id: "starter",
+        nome: "Starter",
+        priceCents: 12_900,
+        contactsIncluded: 600,
+        connectionsIncluded: 1,
+        extraContactsPackPriceCents: 1_500,
+      },
+      {
+        id: "profissional",
+        nome: "Profissional",
+        priceCents: 24_900,
+        contactsIncluded: 1_500,
+        connectionsIncluded: 1,
+        extraContactsPackPriceCents: 1_500,
+      },
+      {
+        id: "business",
+        nome: "Business",
+        priceCents: 39_900,
+        contactsIncluded: 4_000,
+        connectionsIncluded: 2,
+        extraContactsPackPriceCents: 1_500,
+      },
+      {
+        id: "enterprise",
+        nome: "Enterprise",
+        priceCents: 59_900,
+        contactsIncluded: 10_000,
+        connectionsIncluded: 3,
+        extraContactsPackPriceCents: 1_200,
+      },
+    ] as const,
   },
   conversations: {
     countOnFirstContactActivity: true,
@@ -76,7 +106,7 @@ export const mvpDefaults = {
     lgpdConsentRequired: true,
     termsPlaceholder: true,
     /** Versão gravada em `organizacao.aceiteAdesaoVersao` na criação. */
-    adesaoVersao: "2026-07",
+    adesaoVersao: "2026-07-precos",
   },
   cdn: {
     baseUrl: "https://cdn.whasap.com.br",

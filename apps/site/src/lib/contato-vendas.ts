@@ -1,3 +1,5 @@
+import { mvpDefaults } from "@whasap/config";
+
 import { formatarPrecoBrl, type OrcamentoCalculado } from "@/lib/orcamento";
 
 export const VENDAS_WHATSAPP = import.meta.env.VITE_VENDAS_WHATSAPP ?? "";
@@ -12,9 +14,10 @@ export function montarResumoOrcamento(orcamento: OrcamentoCalculado): string {
     : `${formatarPrecoBrl(orcamento.totalCents)}/mês`;
 
   return [
-    `${orcamento.numerosWhatsapp} número(s) do WhatsApp`,
+    `Plano ${orcamento.plano.nome}`,
+    `${orcamento.conexoes} número(s) do WhatsApp`,
     `${orcamento.atendentes} atendentes na equipe`,
-    `${orcamento.faixaConversas}`,
+    `${orcamento.faixaContatos} (contatos únicos)`,
     `Estimativa: ${total}`,
   ].join(" · ");
 }
@@ -26,16 +29,18 @@ export function montarMensagemWhatsapp(orcamento: OrcamentoCalculado): string {
     : `${formatarPrecoBrl(orcamento.totalCents)}/mês`;
 
   const numeros =
-    orcamento.numerosWhatsapp === 1
+    orcamento.conexoes === 1
       ? "1 número do WhatsApp"
-      : `${orcamento.numerosWhatsapp} números do WhatsApp`;
+      : `${orcamento.conexoes} números do WhatsApp`;
 
   return [
     "Olá! Fiz uma simulação no site do Whasap e queria validar com vocês:",
+    `• Plano sugerido: ${orcamento.plano.nome}`,
     `• ${numeros}`,
     `• ${orcamento.atendentes} atendentes na equipe`,
-    `• ${orcamento.faixaConversas}`,
+    `• ${orcamento.faixaContatos} (contatos únicos)`,
     `• Estimativa: ${total}`,
+    `• Teste de ${mvpDefaults.billing.billingAfterUsageDays} dias`,
     "",
     "Podem me ajudar a entender se esse plano faz sentido para minha operação?",
   ].join("\n");

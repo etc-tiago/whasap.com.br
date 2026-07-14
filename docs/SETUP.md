@@ -6,7 +6,7 @@ Guia para configurar Evolution API e Meta Cloud API.
 
 ## Cobrança
 
-Cobrança **manual** — boleto por uso após mais de 3 dias de uso da organização, conforme [termo de adesão](https://whasap.com.br/legal#adesao). Valores de referência em `mvpDefaults.billing` (taxa base da org, conexão adicional, pack de conversas). Não há integração Asaas nem checkout in-app.
+Cobrança **manual** — teste de 7 dias e boleto por uso após o período, conforme [termo de adesão](https://whasap.com.br/legal#adesao). Valores de referência em `mvpDefaults.billing` (planos Starter→Enterprise por contato único, conexão adicional, pacotes de 100 contatos). Não há integração Asaas nem checkout in-app.
 
 ## Webhooks WhatsApp
 

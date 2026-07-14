@@ -1,14 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { cnpjValido } from "@whasap/config";
 import { Button } from "@whasap/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/card";
 import { Input } from "@whasap/ui/components/input";
 import { Label } from "@whasap/ui/components/label";
+import { Link2 } from "lucide-react";
 
 import { orgInput } from "@/lib/org-input";
 import { orpc } from "@/lib/orpc";
 import { getOrpcErrorMessage } from "@/lib/orpc-error";
+import { SITE_URL } from "@/lib/site-url";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
 /**
@@ -83,6 +86,17 @@ export function BlocoOrganizacao() {
     razaoSocial.trim() !== (org.data.razaoSocial ?? "").trim();
   const podeSalvar = nomeOk && razaoOk && cnpjOk && alterado && !atualizar.isPending;
 
+  const linkIndicacao = `${SITE_URL.replace(/\/$/, "")}/indique?ref=${encodeURIComponent(organizacaoHash)}`;
+
+  const copiarLinkIndicacao = async () => {
+    try {
+      await navigator.clipboard.writeText(linkIndicacao);
+      toast.success("Link de indicação copiado");
+    } catch {
+      toast.error("Não foi possível copiar o link");
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -118,20 +132,26 @@ export function BlocoOrganizacao() {
             autoComplete="organization"
           />
         </div>
-        <Button
-          disabled={!podeSalvar}
-          onClick={() =>
-            atualizar.mutate({
-              organizacaoHash,
-              nome: nome.trim(),
-              documento,
-              tipoDocumento: "cnpj",
-              razaoSocial: razaoSocial.trim(),
-            })
-          }
-        >
-          {atualizar.isPending ? "Salvando…" : "Salvar"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            disabled={!podeSalvar}
+            onClick={() =>
+              atualizar.mutate({
+                organizacaoHash,
+                nome: nome.trim(),
+                documento,
+                tipoDocumento: "cnpj",
+                razaoSocial: razaoSocial.trim(),
+              })
+            }
+          >
+            {atualizar.isPending ? "Salvando…" : "Salvar"}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => void copiarLinkIndicacao()}>
+            <Link2 className="mr-2 h-4 w-4" />
+            Gerar link de indicação
+          </Button>
+        </div>
         {atualizar.isError && (
           <p className="text-sm text-destructive">
             {getOrpcErrorMessage(atualizar.error, "Não foi possível salvar a organização.")}
@@ -140,6 +160,10 @@ export function BlocoOrganizacao() {
         {atualizar.isSuccess && !alterado && (
           <p className="text-sm text-muted-foreground">Alterações salvas.</p>
         )}
+        <p className="text-xs text-muted-foreground">
+          Indique e Ganhe: compartilhe o link para indicar colegas ou clientes. Recompensas são
+          aplicadas pela equipe comercial.
+        </p>
       </CardContent>
     </Card>
   );

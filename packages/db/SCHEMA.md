@@ -47,7 +47,7 @@ Cadastro fiscal e aceite do termo de adesão na criação da org (`/integracao`)
 | `aceiteAdesaoVersao` | Versão do termo (`mvpDefaults.legal.adesaoVersao`) |
 | `limiteConversas` | Cota mensal de conversas únicas da org |
 
-Cobrança é manual (boleto por uso após mais de 3 dias — ver termo em `whasap.com.br/legal#adesao`). Não há campos Asaas nem trial no schema.
+Cobrança é manual (teste de 7 dias, depois boleto por uso — ver termo em `whasap.com.br/legal#adesao`). Não há campos Asaas; o trial é política comercial (não há coluna no schema).
 
 ## Acesso ao banco
 

@@ -76,7 +76,7 @@ bun run dev
 
 `web` expõe ORPC em `/rpc` via `@whasap/api-web` (cookie `whasap_web`, 15 dias). `office` expõe ORPC em `/rpc` via `@whasap/api-office` (cookie `whasap_office`, 3 dias). Webhooks WhatsApp em `webhook.whasap.com.br/evo` e `/cloud`.
 
-Cobrança é manual (boleto por uso após mais de 3 dias — ver [termo de adesão](https://whasap.com.br/legal#adesao)). Painel liberado desde o início.
+Cobrança é manual (teste de 7 dias, depois boleto por uso — ver [termo de adesão](https://whasap.com.br/legal#adesao)). Painel liberado desde o início.
 
 ### Office — seed inicial
 

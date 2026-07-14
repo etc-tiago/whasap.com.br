@@ -20,6 +20,13 @@ export {
   isIconeConexao,
   type IconeConexao,
 } from "./icones-conexao";
+export {
+  calcularInvestimentoMensal,
+  formatarPrecoBrl,
+  type InvestimentoMensalCalculado,
+  type PlanoBilling,
+  type PlanoBillingId,
+} from "./billing";
 export { mvpDefaults } from "./mvp-defaults";
 export { viteVarsProduction, workerVarsDevelopment, workerVarsProduction } from "./public-urls";
 export {

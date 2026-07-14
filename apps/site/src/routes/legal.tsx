@@ -1,7 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { mvpDefaults } from "@whasap/config";
 import { ArrowLeft, MessageCircle } from "lucide-react";
 
 import { seo } from "@/lib/seo";
+
+const { billing, legal } = mvpDefaults;
 
 export const Route = createFileRoute("/legal")({
   head: () => ({
@@ -69,7 +72,7 @@ function LegalPage() {
 
         <section id="adesao" className="mt-12 scroll-mt-8">
           <h2 className="text-2xl font-semibold">Termo de adesão da conta</h2>
-          <p className="mt-2 text-xs text-muted-foreground">Versão 2026-07</p>
+          <p className="mt-2 text-xs text-muted-foreground">Versão {legal.adesaoVersao}</p>
           <div className="mt-4 space-y-4 text-sm leading-relaxed text-muted-foreground">
             <p>
               Ao criar uma organização no Whasap, você declara que os dados cadastrais informados
@@ -77,20 +80,33 @@ function LegalPage() {
               autorizado a representar a pessoa jurídica perante a plataforma.
             </p>
             <p>
-              O acesso ao painel é liberado desde o início da adesão. Não há período grátis
-              garantido nem trial de produto: o uso do serviço está sujeito à cobrança conforme este
-              termo.
+              O acesso ao painel é liberado desde o início da adesão. Há um período de teste de{" "}
+              {billing.billingAfterUsageDays} (sete) dias corridos de uso da organização, durante o
+              qual é permitido o uso em paralelo com outras ferramentas de atendimento, sem
+              obrigação de desconectar a plataforma atual.
             </p>
             <p>
-              Após mais de 3 (três) dias de uso da organização, será gerado boleto por uso, com
-              rateio mensal manual com base no consumo do período (conexões, conversas e demais
-              itens contratados). O não pagamento pode resultar em suspensão ou encerramento do
+              Após o período de teste, será gerado boleto por uso, com rateio mensal manual com base
+              no plano contratado e no consumo do período (contatos únicos, conexões WhatsApp e
+              itens adicionais). O não pagamento pode resultar em suspensão ou encerramento do
               acesso.
+            </p>
+            <p>
+              Contato único: cada contato que interagiu no mês conta uma vez para fins de cota e
+              cobrança, independentemente da quantidade de mensagens trocadas.
             </p>
             <p>
               Valores informativos no site (calculadora e páginas comerciais) não substituem o
               boleto emitido com base no uso efetivo. Alterações de preço ou política de cobrança
               serão comunicadas com aviso prévio razoável.
+            </p>
+            <p>
+              Programa Indique e Ganhe: indicações elegíveis podem gerar crédito de{" "}
+              {billing.referral.indicadorMesGratis} mês para o indicador e desconto de{" "}
+              {billing.referral.indicadoDescontoPercent}% no primeiro mês para o indicado, conforme
+              regra comercial vigente, aplicada manualmente pela equipe Whasap. A participação não
+              altera as obrigações de pagamento após o período de teste, salvo o crédito/desconto
+              concedido.
             </p>
             <p>
               O aceite deste termo é registrado no momento da criação da organização, com a versão

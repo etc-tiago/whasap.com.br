@@ -46,7 +46,7 @@ Painel **liberado desde o início** — sem banner de trial nem lockout.
 | Aspecto | Comportamento |
 |---------|---------------|
 | Acesso | Total ao painel após login e criação da org |
-| Cobrança | Manual — boleto por uso após **mais de 3 dias** de uso da org |
+| Cobrança | Manual — teste de **7 dias**, boleto por uso após o período |
 | Referência | Termo de adesão em [whasap.com.br/legal#adesao](https://whasap.com.br/legal#adesao) |
 | Integração Asaas | Removida — sem checkout in-app, sem webhook de pagamento |
 

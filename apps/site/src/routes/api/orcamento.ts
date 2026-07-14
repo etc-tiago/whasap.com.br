@@ -10,7 +10,8 @@ function validarPayload(body: unknown): OrcamentoRegistro | null {
   if (typeof p.id !== "string" || !p.id) return null;
   if (typeof p.numerosWhatsapp !== "number" || p.numerosWhatsapp < 1) return null;
   if (typeof p.atendentes !== "number" || p.atendentes < 1) return null;
-  if (typeof p.faixaConversas !== "string") return null;
+  if (typeof p.faixaContatos !== "string") return null;
+  if (typeof p.planoId !== "string") return null;
   if (typeof p.totalCents !== "number") return null;
   return body as OrcamentoRegistro;
 }

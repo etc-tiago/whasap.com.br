@@ -65,7 +65,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 const defaultDescription =
-  "Whasap é a versão simplificada e sem limites do WhatsApp para equipes. Ideal para contabilidades, farmácias, distribuidoras e negócios com mais de 3 atendentes simultâneos.";
+  "Whasap é WhatsApp para equipes com cobrança por contato único. Ideal para contabilidades e negócios com 4 ou mais atendentes. Teste 7 dias com uso em paralelo.";
 
 export const Route = createRootRoute({
   head: () => ({

@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Button } from "@whasap/ui/components/button";
+import { mvpDefaults } from "@whasap/config";
 import {
   ArrowRight,
   Building2,
@@ -22,16 +24,29 @@ import {
   Users,
   UtensilsCrossed,
   Wrench,
+  RefreshCw,
+  Calculator,
+  BadgeCheck,
 } from "lucide-react";
 
 import { CalculadoraInvestimento } from "@/components/calculadora-investimento";
+import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { PANEL_URL } from "@/lib/panel-url";
+import { salvarRefIndicacao } from "@/lib/ref-indicacao";
 import { seo } from "@/lib/seo";
 
+const { billing } = mvpDefaults;
+
 const description =
-  "Whasap é a versão simplificada e sem limites do WhatsApp para equipes. Ideal para contabilidades, farmácias, distribuidoras e negócios com mais de 3 atendentes simultâneos. Conecte WhatsApp Comercial e Cloud API — ou ambos — e gerencie todos os chats em um só painel.";
+  "Whasap é WhatsApp para equipes com cobrança por contato único. Ideal para contabilidades e operações com 4+ atendentes. Teste 7 dias com uso em paralelo — sem desconectar sua plataforma atual.";
 
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>): { ref?: string } => {
+    if (typeof search.ref === "string" && search.ref.length > 0) {
+      return { ref: search.ref };
+    }
+    return {};
+  },
   head: () => ({
     meta: seo({
       title: "Whasap — WhatsApp sem limites para equipes",
@@ -136,7 +151,7 @@ const segmentos = [
   {
     title: "Equipe",
     description:
-      "Qualquer operação com 3 ou mais atendentes simultâneos — sem cobrança por usuário, com todo o time no mesmo painel.",
+      "Qualquer operação com 4 ou mais atendentes — sem cobrança por usuário, com todo o time no mesmo painel.",
     icon: Users,
     destaque: true,
   },
@@ -158,8 +173,28 @@ const steps = [
   {
     title: "Gerencie sua equipe",
     description:
-      "Distribua atendimentos entre 3 ou mais atendentes simultâneos e acompanhe tudo em um só painel.",
+      "Distribua atendimentos entre 4 ou mais atendentes simultâneos e acompanhe tudo em um só painel.",
     icon: Users,
+  },
+];
+
+const diferenciais = [
+  {
+    title: "Uso em paralelo",
+    description: `Teste ${billing.billingAfterUsageDays} dias sem risco: conecte o Whasap junto da plataforma atual — sem desconectar o que já funciona.`,
+    icon: RefreshCw,
+  },
+  {
+    title: "Cobrança por contato único",
+    description:
+      "Cliente que conversa várias vezes no mês conta apenas 1×. Diferente de modelos por mensagem ou janela (como Reportei, Como e Data Crazy).",
+    icon: BadgeCheck,
+  },
+  {
+    title: "Feito para equipes de contadores",
+    description:
+      "Nicho inicial: escritórios de contabilidade com alto volume de atendimento e vários atendentes — sem custo por usuário.",
+    icon: Calculator,
   },
 ];
 
@@ -183,35 +218,15 @@ const benefits = [
 ];
 
 function LandingPage() {
+  const { ref } = Route.useSearch();
+
+  useEffect(() => {
+    salvarRefIndicacao(ref);
+  }, [ref]);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border/60 bg-background/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link to="/" className="flex items-center gap-2 text-lg font-semibold text-foreground">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-wa-green text-white">
-              <MessageCircle className="h-5 w-5 fill-white" />
-            </span>
-            Whasap
-          </Link>
-          <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
-            <a href="#para-quem" className="transition-colors hover:text-foreground">
-              Para quem é
-            </a>
-            <a href="#como-funciona" className="transition-colors hover:text-foreground">
-              Como funciona
-            </a>
-            <a href="#beneficios" className="transition-colors hover:text-foreground">
-              Benefícios
-            </a>
-          </nav>
-          <Button asChild>
-            <a href={PANEL_URL}>
-              Começar agora
-              <ArrowRight />
-            </a>
-          </Button>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main>
         <section className="relative overflow-hidden border-b border-border/60">
@@ -235,16 +250,41 @@ function LandingPage() {
                     className="bg-wa-green text-white hover:bg-wa-green-dark"
                   >
                     <a href={PANEL_URL}>
-                      Começar agora
+                      Começar teste de {billing.billingAfterUsageDays} dias
                       <ArrowRight />
                     </a>
                   </Button>
                   <Button asChild size="lg" variant="outline">
-                    <a href="#como-funciona">Ver como funciona</a>
+                    <Link to="/precos">Ver preços</Link>
                   </Button>
                 </div>
               </div>
               <CalculadoraInvestimento />
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b border-border/60 py-20" id="diferenciais">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="max-w-2xl">
+              <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Diferenciais</h2>
+              <p className="mt-4 text-lg text-muted-foreground">
+                O que muda na operação do dia a dia — e na fatura do mês.
+              </p>
+            </div>
+            <div className="mt-12 grid gap-6 md:grid-cols-3">
+              {diferenciais.map((item) => (
+                <article
+                  key={item.title}
+                  className="rounded-2xl border border-border bg-card p-6 shadow-sm"
+                >
+                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-wa-green/15 text-wa-green-dark">
+                    <item.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-xl font-semibold">{item.title}</h3>
+                  <p className="mt-3 text-muted-foreground">{item.description}</p>
+                </article>
+              ))}
             </div>
           </div>
         </section>
@@ -296,7 +336,7 @@ function LandingPage() {
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
                 O Whasap foi pensado para contabilidades, farmácias, distribuidoras e equipes com
-                mais de 3 atendentes: conecte o WhatsApp Comercial, a Cloud API ou ambos juntos —
+                mais de 4 atendentes: conecte o WhatsApp Comercial, a Cloud API ou ambos juntos —
                 sem limite de atendentes e com uma experiência leve para gerenciar o dia a dia.
               </p>
             </div>
@@ -315,7 +355,7 @@ function LandingPage() {
           <div className="mx-auto max-w-6xl px-6">
             <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Como funciona</h2>
             <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-              Três passos para sair da fragmentação e colocar sua equipe — de 3 a dezenas de
+              Três passos para sair da fragmentação e colocar sua equipe — de 4 a dezenas de
               atendentes — no mesmo fluxo de atendimento.
             </p>
             <div className="mt-12 grid gap-6 md:grid-cols-3">
@@ -336,7 +376,7 @@ function LandingPage() {
           </div>
         </section>
 
-        <section className="py-20" id="beneficios">
+        <section className="border-b border-border/60 py-20" id="beneficios">
           <div className="mx-auto max-w-6xl px-6">
             <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
               Benefícios para sua equipe
@@ -362,11 +402,15 @@ function LandingPage() {
           <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 md:flex-row md:items-center">
             <div className="max-w-2xl">
               <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-                Comece agora — boleto por uso após 3 dias
+                Comece com {billing.billingAfterUsageDays} dias de teste
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Painel liberado desde o início. Após mais de 3 dias de uso, emitimos boleto por uso
-                (rateio mensal). Simule acima ou fale com nossa equipe.
+                Use em paralelo com sua plataforma atual. Depois do teste, emitimos boleto conforme
+                o plano e o uso (contatos únicos e conexões).{" "}
+                <Link to="/precos" className="font-medium text-wa-green-dark underline-offset-4 hover:underline">
+                  Ver tabela completa
+                </Link>
+                .
               </p>
             </div>
             <Button asChild size="lg" className="bg-wa-green text-white hover:bg-wa-green-dark">
@@ -379,12 +423,7 @@ function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-border/60 py-8">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-          <p>© {new Date().getFullYear()} Whasap. Todos os direitos reservados.</p>
-          <p>whasap.com.br — WhatsApp sem limites para equipes.</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

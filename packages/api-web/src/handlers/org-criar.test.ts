@@ -53,7 +53,7 @@ describe("organizacao.criar — validação de cadastro fiscal", () => {
     if (!r.ok) return;
     expect(r.persistido.documentoFiscal).toBe("11222333000181");
     expect(r.persistido.telefoneWhatsapp).toBe("5511988887777");
-    expect(r.persistido.aceiteAdesaoVersao).toBe("2026-07");
+    expect(r.persistido.aceiteAdesaoVersao).toBe("2026-07-precos");
   });
 
   it("rejeita CNPJ inválido", () => {

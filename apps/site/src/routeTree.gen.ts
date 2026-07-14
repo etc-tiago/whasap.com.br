@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as PrecosRouteImport } from './routes/precos'
 import { Route as LegalRouteImport } from './routes/legal'
+import { Route as IndiqueRouteImport } from './routes/indique'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiOrcamentoRouteImport } from './routes/api/orcamento'
 
@@ -25,9 +27,19 @@ const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
   path: '/robots.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrecosRoute = PrecosRouteImport.update({
+  id: '/precos',
+  path: '/precos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LegalRoute = LegalRouteImport.update({
   id: '/legal',
   path: '/legal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndiqueRoute = IndiqueRouteImport.update({
+  id: '/indique',
+  path: '/indique',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -43,14 +55,18 @@ const ApiOrcamentoRoute = ApiOrcamentoRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/indique': typeof IndiqueRoute
   '/legal': typeof LegalRoute
+  '/precos': typeof PrecosRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/orcamento': typeof ApiOrcamentoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/indique': typeof IndiqueRoute
   '/legal': typeof LegalRoute
+  '/precos': typeof PrecosRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/orcamento': typeof ApiOrcamentoRoute
@@ -58,20 +74,38 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/indique': typeof IndiqueRoute
   '/legal': typeof LegalRoute
+  '/precos': typeof PrecosRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/orcamento': typeof ApiOrcamentoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/legal' | '/robots.txt' | '/sitemap.xml' | '/api/orcamento'
+  fullPaths:
+    | '/'
+    | '/indique'
+    | '/legal'
+    | '/precos'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/api/orcamento'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/legal' | '/robots.txt' | '/sitemap.xml' | '/api/orcamento'
+  to:
+    | '/'
+    | '/indique'
+    | '/legal'
+    | '/precos'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/api/orcamento'
   id:
     | '__root__'
     | '/'
+    | '/indique'
     | '/legal'
+    | '/precos'
     | '/robots.txt'
     | '/sitemap.xml'
     | '/api/orcamento'
@@ -79,7 +113,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  IndiqueRoute: typeof IndiqueRoute
   LegalRoute: typeof LegalRoute
+  PrecosRoute: typeof PrecosRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiOrcamentoRoute: typeof ApiOrcamentoRoute
@@ -101,11 +137,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RobotsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/precos': {
+      id: '/precos'
+      path: '/precos'
+      fullPath: '/precos'
+      preLoaderRoute: typeof PrecosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/legal': {
       id: '/legal'
       path: '/legal'
       fullPath: '/legal'
       preLoaderRoute: typeof LegalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/indique': {
+      id: '/indique'
+      path: '/indique'
+      fullPath: '/indique'
+      preLoaderRoute: typeof IndiqueRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -127,7 +177,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  IndiqueRoute: IndiqueRoute,
   LegalRoute: LegalRoute,
+  PrecosRoute: PrecosRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiOrcamentoRoute: ApiOrcamentoRoute,

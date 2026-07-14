@@ -26,12 +26,13 @@ import { useState } from "react";
 import { montarUrlAgendamento, montarUrlWhatsapp, VENDAS_WHATSAPP } from "@/lib/contato-vendas";
 import {
   calcularOrcamento,
-  FAIXAS_CONVERSAS,
+  FAIXAS_CONTATOS,
   formatarPrecoBrl,
-  type FaixaConversasId,
+  type FaixaContatosId,
   type OrcamentoCalculado,
   type OrcamentoRegistro,
 } from "@/lib/orcamento";
+import { lerRefIndicacao } from "@/lib/ref-indicacao";
 
 const { billing } = mvpDefaults;
 
@@ -94,48 +95,76 @@ async function registrarOrcamento(registro: OrcamentoRegistro): Promise<void> {
   }
 }
 
-function TabelaPrecos() {
+function montarRegistro(
+  orcamento: OrcamentoCalculado,
+  id: string,
+  trilha?: "whatsapp" | "videoconferencia",
+): OrcamentoRegistro {
+  return {
+    id,
+    criadoEm: new Date().toISOString(),
+    numerosWhatsapp: orcamento.conexoes,
+    atendentes: orcamento.atendentes,
+    faixaContatos: orcamento.faixaContatos,
+    contatosEstimados: orcamento.contatosUnicos,
+    planoId: orcamento.plano.id,
+    planoNome: orcamento.plano.nome,
+    totalCents: orcamento.totalCents,
+    aPartirDe: orcamento.aPartirDe,
+    trilha,
+    referrer: typeof document !== "undefined" ? document.referrer : undefined,
+    refIndicacao: lerRefIndicacao(),
+  };
+}
+
+export function TabelaPrecosPlanos({ compact = false }: { compact?: boolean }) {
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Item</TableHead>
-          <TableHead className="text-right">Valor</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        <TableRow>
-          <TableCell className="text-muted-foreground">Plano base da organização</TableCell>
-          <TableCell className="text-right text-sm">
-            {formatarPrecoBrl(billing.orgBasePriceCents)}/mês ·{" "}
-            {billing.conversationsIncludedBase.toLocaleString("pt-BR")} conversas incluídas
-          </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell className="text-muted-foreground">Conexão WhatsApp</TableCell>
-          <TableCell className="text-right text-sm">
-            {formatarPrecoBrl(billing.connectionPriceCents)}/mês por número
-          </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell className="text-muted-foreground">Pacote de conversas</TableCell>
-          <TableCell className="text-right text-sm">
-            {formatarPrecoBrl(billing.conversationPackPriceCents)}/mês · +
-            {billing.conversationsPerPack.toLocaleString("pt-BR")} conversas
-          </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell className="text-muted-foreground">Atendentes</TableCell>
-          <TableCell className="text-right text-sm">Ilimitados · sem custo</TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell className="text-muted-foreground">Cobrança</TableCell>
-          <TableCell className="text-right text-sm">
-            Boleto por uso após {billing.billingAfterUsageDays} dias
-          </TableCell>
-        </TableRow>
-      </TableBody>
-    </Table>
+    <div className="space-y-3">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Plano</TableHead>
+            <TableHead className="text-right">Mensal</TableHead>
+            {!compact && <TableHead className="text-right">Contatos</TableHead>}
+            {!compact && <TableHead className="text-right">Conexões</TableHead>}
+            {!compact && <TableHead className="text-right">Extra/100</TableHead>}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {billing.plans.map((plano) => (
+            <TableRow key={plano.id}>
+              <TableCell className="font-medium">{plano.nome}</TableCell>
+              <TableCell className="text-right text-sm">
+                {formatarPrecoBrl(plano.priceCents)}
+              </TableCell>
+              {!compact && (
+                <TableCell className="text-right text-sm">
+                  {plano.contactsIncluded.toLocaleString("pt-BR")}
+                </TableCell>
+              )}
+              {!compact && (
+                <TableCell className="text-right text-sm">{plano.connectionsIncluded}</TableCell>
+              )}
+              {!compact && (
+                <TableCell className="text-right text-sm">
+                  {formatarPrecoBrl(plano.extraContactsPackPriceCents)}
+                </TableCell>
+              )}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      <ul className="space-y-1 text-xs text-muted-foreground">
+        <li>
+          Conexão adicional: {formatarPrecoBrl(billing.extraConnectionPriceCents)}/mês por número
+        </li>
+        <li>
+          Contatos extras: a cada {billing.contactsPerExtraPack} contatos únicos (preço no plano)
+        </li>
+        <li>Atendentes ilimitados · sem custo por usuário</li>
+        <li>Teste de {billing.billingAfterUsageDays} dias · uso em paralelo permitido</li>
+      </ul>
+    </div>
   );
 }
 
@@ -151,19 +180,7 @@ function ResultadoOrcamento({
     : `${formatarPrecoBrl(orcamento.totalCents)}/mês`;
 
   const registrarTrilha = (trilha: "whatsapp" | "videoconferencia") => {
-    const registro: OrcamentoRegistro = {
-      id: orcamentoId,
-      criadoEm: new Date().toISOString(),
-      numerosWhatsapp: orcamento.numerosWhatsapp,
-      atendentes: orcamento.atendentes,
-      faixaConversas: orcamento.faixaConversas,
-      conversasEstimadas: orcamento.conversasEstimadas,
-      totalCents: orcamento.totalCents,
-      aPartirDe: orcamento.aPartirDe,
-      trilha,
-      referrer: typeof document !== "undefined" ? document.referrer : undefined,
-    };
-    void registrarOrcamento(registro);
+    void registrarOrcamento(montarRegistro(orcamento, orcamentoId, trilha));
   };
 
   return (
@@ -171,10 +188,28 @@ function ResultadoOrcamento({
       <div>
         <p className="text-sm font-medium text-wa-green-dark">Seu orçamento estimado</p>
         <p className="mt-1 text-3xl font-bold tracking-tight">{totalLabel}</p>
+        <p className="mt-2 text-sm font-medium">Plano sugerido: {orcamento.plano.nome}</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          {orcamento.numerosWhatsapp} número{orcamento.numerosWhatsapp > 1 ? "s" : ""} do WhatsApp ·{" "}
-          {orcamento.atendentes} atendentes · {orcamento.faixaConversas}
+          {orcamento.conexoes} número{orcamento.conexoes > 1 ? "s" : ""} do WhatsApp ·{" "}
+          {orcamento.atendentes} atendentes · {orcamento.faixaContatos}
         </p>
+        {(orcamento.conexoesExtras > 0 || orcamento.pacotesContatosExtras > 0) && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            {orcamento.conexoesExtras > 0 && (
+              <span>
+                +{orcamento.conexoesExtras} conexão(ões) ·{" "}
+                {formatarPrecoBrl(orcamento.precoConexoesExtrasCents)}
+              </span>
+            )}
+            {orcamento.conexoesExtras > 0 && orcamento.pacotesContatosExtras > 0 && " · "}
+            {orcamento.pacotesContatosExtras > 0 && (
+              <span>
+                +{orcamento.pacotesContatosExtras} pacote(s) de contatos ·{" "}
+                {formatarPrecoBrl(orcamento.precoContatosExtrasCents)}
+              </span>
+            )}
+          </p>
+        )}
         <p className="mt-3 text-sm text-muted-foreground">
           Esse valor é uma estimativa transparente. Para fechar o plano certo — sem pagar a mais —
           escolha como prefere falar com a gente:
@@ -184,7 +219,7 @@ function ResultadoOrcamento({
       <div className="grid gap-4 sm:grid-cols-2">
         <Card className="border-wa-green/20 bg-wa-green/5">
           <CardHeader className="pb-2">
-            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-wa-green/15 text-wa-green-dark">
+            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-wa-green/20 text-wa-green-dark">
               <MessageCircle className="h-5 w-5" />
             </div>
             <CardTitle className="text-lg">Falar com a gente no WhatsApp</CardTitle>
@@ -248,10 +283,16 @@ function ResultadoOrcamento({
   );
 }
 
-export function CalculadoraInvestimento() {
+export function CalculadoraInvestimento({
+  mostrarTabela = true,
+  compactTable = true,
+}: {
+  mostrarTabela?: boolean;
+  compactTable?: boolean;
+}) {
   const [numerosWhatsapp, setNumerosWhatsapp] = useState(1);
-  const [atendentes, setAtendentes] = useState(3);
-  const [faixaId, setFaixaId] = useState<FaixaConversasId>("500-1000");
+  const [atendentes, setAtendentes] = useState(4);
+  const [faixaId, setFaixaId] = useState<FaixaContatosId>("500-1000");
   const [orcamento, setOrcamento] = useState<OrcamentoCalculado | null>(null);
   const [orcamentoId, setOrcamentoId] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
@@ -262,19 +303,7 @@ export function CalculadoraInvestimento() {
     const id = crypto.randomUUID();
     setOrcamento(calculado);
     setOrcamentoId(id);
-
-    await registrarOrcamento({
-      id,
-      criadoEm: new Date().toISOString(),
-      numerosWhatsapp: calculado.numerosWhatsapp,
-      atendentes: calculado.atendentes,
-      faixaConversas: calculado.faixaConversas,
-      conversasEstimadas: calculado.conversasEstimadas,
-      totalCents: calculado.totalCents,
-      aPartirDe: calculado.aPartirDe,
-      referrer: typeof document !== "undefined" ? document.referrer : undefined,
-    });
-
+    await registrarOrcamento(montarRegistro(calculado, id));
     setCarregando(false);
   };
 
@@ -283,11 +312,11 @@ export function CalculadoraInvestimento() {
       <CardHeader>
         <CardTitle className="text-xl">Simule seu investimento</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Veja quanto custa operar com transparência — sem surpresas na fatura.
+          Cobrança por contato único — cliente que conversa várias vezes no mês conta apenas 1×.
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
-        <TabelaPrecos />
+        {mostrarTabela && <TabelaPrecosPlanos compact={compactTable} />}
 
         <div className="space-y-4">
           <div className="space-y-2">
@@ -321,7 +350,7 @@ export function CalculadoraInvestimento() {
                 setOrcamento(null);
               }}
             />
-            {atendentes >= 3 && (
+            {atendentes >= 4 && (
               <p className="text-xs text-muted-foreground">
                 Sua equipe de {atendentes} atendentes — sem custo adicional por usuário.
               </p>
@@ -329,31 +358,34 @@ export function CalculadoraInvestimento() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="faixa-conversas">Conversas por mês</Label>
+            <Label htmlFor="faixa-contatos">Contatos únicos por mês</Label>
             <Select
               value={faixaId}
               onValueChange={(v) => {
-                setFaixaId(v as FaixaConversasId);
+                setFaixaId(v as FaixaContatosId);
                 setOrcamento(null);
               }}
             >
-              <SelectTrigger id="faixa-conversas">
+              <SelectTrigger id="faixa-contatos">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {FAIXAS_CONVERSAS.map((faixa) => (
+                {FAIXAS_CONTATOS.map((faixa) => (
                   <SelectItem key={faixa.id} value={faixa.id}>
                     {faixa.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Contato único: quem interagiu no mês conta 1×, independentemente de quantas mensagens.
+            </p>
           </div>
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Pacotes extras são contratados por número do WhatsApp conforme a necessidade. Meta cobra
-          separadamente o uso da Cloud API.
+          Teste de {billing.billingAfterUsageDays} dias com uso em paralelo — sem desconectar sua
+          plataforma atual. Meta cobra separadamente o uso da Cloud API.
         </p>
 
         <Button
