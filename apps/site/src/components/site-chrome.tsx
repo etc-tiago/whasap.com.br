@@ -64,6 +64,9 @@ export function SiteFooter() {
           <Link to="/indique" className="hover:text-foreground">
             Indique e Ganhe
           </Link>
+          <Link to="/webinars/02-07-2026" className="hover:text-foreground">
+            Webinar
+          </Link>
           <Link to="/legal" className="hover:text-foreground">
             Termos
           </Link>

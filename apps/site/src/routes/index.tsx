@@ -398,6 +398,27 @@ function LandingPage() {
           </div>
         </section>
 
+        <section className="border-b border-border/60 py-20" id="webinar">
+          <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 md:flex-row md:items-center">
+            <div className="max-w-2xl">
+              <p className="mb-3 text-sm font-medium text-wa-green-dark">Webinar · 02/07/2026</p>
+              <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+                Assista à gravação do webinar
+              </h2>
+              <p className="mt-4 text-lg text-muted-foreground">
+                Conheça o Whasap em detalhes: WhatsApp para equipes, cobrança por contato único e
+                como testar em paralelo sem desconectar sua operação atual.
+              </p>
+            </div>
+            <Button asChild size="lg" variant="outline">
+              <Link to="/webinars/02-07-2026">
+                Ver gravação
+                <ArrowRight />
+              </Link>
+            </Button>
+          </div>
+        </section>
+
         <section className="border-t border-border/60 bg-[oklch(0.97_0.03_155)] py-20">
           <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 md:flex-row md:items-center">
             <div className="max-w-2xl">

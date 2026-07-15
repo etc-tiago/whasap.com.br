@@ -16,6 +16,7 @@ import { Route as LegalRouteImport } from './routes/legal'
 import { Route as IndiqueRouteImport } from './routes/indique'
 import { Route as EnvioEmMassaRouteImport } from './routes/envio-em-massa'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as Webinars02072026RouteImport } from './routes/webinars/02-07-2026'
 import { Route as ApiOrcamentoRouteImport } from './routes/api/orcamento'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -53,6 +54,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Webinars02072026Route = Webinars02072026RouteImport.update({
+  id: '/webinars/02-07-2026',
+  path: '/webinars/02-07-2026',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiOrcamentoRoute = ApiOrcamentoRouteImport.update({
   id: '/api/orcamento',
   path: '/api/orcamento',
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/orcamento': typeof ApiOrcamentoRoute
+  '/webinars/02-07-2026': typeof Webinars02072026Route
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/orcamento': typeof ApiOrcamentoRoute
+  '/webinars/02-07-2026': typeof Webinars02072026Route
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/orcamento': typeof ApiOrcamentoRoute
+  '/webinars/02-07-2026': typeof Webinars02072026Route
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/api/orcamento'
+    | '/webinars/02-07-2026'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/api/orcamento'
+    | '/webinars/02-07-2026'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/api/orcamento'
+    | '/webinars/02-07-2026'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +144,7 @@ export interface RootRouteChildren {
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiOrcamentoRoute: typeof ApiOrcamentoRoute
+  Webinars02072026Route: typeof Webinars02072026Route
 }
 
 declare module '@tanstack/react-router' {
@@ -185,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/webinars/02-07-2026': {
+      id: '/webinars/02-07-2026'
+      path: '/webinars/02-07-2026'
+      fullPath: '/webinars/02-07-2026'
+      preLoaderRoute: typeof Webinars02072026RouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/orcamento': {
       id: '/api/orcamento'
       path: '/api/orcamento'
@@ -204,6 +224,7 @@ const rootRouteChildren: RootRouteChildren = {
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiOrcamentoRoute: ApiOrcamentoRoute,
+  Webinars02072026Route: Webinars02072026Route,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
