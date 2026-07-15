@@ -30,7 +30,7 @@ import { janelaCloudAberta, podeEnviarMensagem } from "@/lib/inbox-permissoes";
 import { formatarHorarioConversa, formatarPreviewMensagem } from "@/lib/inbox-utils";
 import { instanciaOperacional } from "@/lib/instancia-status";
 import { orgInput } from "@/lib/org-input";
-import { orpc, type ConversaItem } from "@/lib/orpc";
+import { orpc, type ConversaItem, type MensagemItem } from "@/lib/orpc";
 import { eCandidatoTelefoneBr, normalizarTelefoneBr, telefonesBrIguais } from "@/lib/telefone-br";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
@@ -61,6 +61,7 @@ function InboxOrgPage() {
   const [filaRespostaRapida, setFilaRespostaRapida] = useState<ItemFilaRespostaRapida[] | null>(
     null,
   );
+  const [mensagemResposta, setMensagemResposta] = useState<MensagemItem | null>(null);
   const [iniciarConversaExterna, setIniciarConversaExterna] = useState<{
     telefone: string;
     instanciaId?: string;
@@ -297,6 +298,7 @@ function InboxOrgPage() {
     });
     setMessage("");
     setFilaRespostaRapida(null);
+    setMensagemResposta(null);
   }, [selectedId]);
 
   useEffect(() => {
@@ -315,15 +317,19 @@ function InboxOrgPage() {
   async function handleSend() {
     if (!selectedId) return;
 
+    const contextoMensagemId = mensagemResposta?.idExterno ?? undefined;
+
     if (filaRespostaRapida && filaRespostaRapida.length > 0) {
       // Sequência deve ir em ordem no WhatsApp — não paralelizar.
-      for (const item of filaRespostaRapida) {
+      for (const [idx, item] of filaRespostaRapida.entries()) {
+        const contexto = idx === 0 ? contextoMensagemId : undefined;
         if (item.tipo === "text") {
           // oxlint-disable-next-line eslint/no-await-in-loop -- envio sequencial da fila
           await sendMessage.mutateAsync({
             conversaId: selectedId,
             tipo: "text",
             body: item.corpo,
+            ...(contexto ? { contextoMensagemId: contexto } : {}),
           });
         } else {
           // oxlint-disable-next-line eslint/no-await-in-loop -- envio sequencial da fila
@@ -333,12 +339,14 @@ function InboxOrgPage() {
             mediaR2Key: item.mediaR2Key!,
             filename: item.nomeArquivo ?? undefined,
             body: item.corpo || undefined,
+            ...(contexto ? { contextoMensagemId: contexto } : {}),
           });
         }
       }
       setFilaRespostaRapida(null);
       setMessage("");
       setMidia(null);
+      setMensagemResposta(null);
       return;
     }
 
@@ -349,14 +357,21 @@ function InboxOrgPage() {
         mediaR2Key: midia.mediaR2Key,
         filename: midia.filename,
         body: message || undefined,
+        ...(contextoMensagemId ? { contextoMensagemId } : {}),
       });
     } else {
       if (!message.trim()) return;
-      await sendMessage.mutateAsync({ conversaId: selectedId, tipo: "text", body: message });
+      await sendMessage.mutateAsync({
+        conversaId: selectedId,
+        tipo: "text",
+        body: message,
+        ...(contextoMensagemId ? { contextoMensagemId } : {}),
+      });
     }
     if (midia?.previewUrl) URL.revokeObjectURL(midia.previewUrl);
     setMessage("");
     setMidia(null);
+    setMensagemResposta(null);
   }
 
   const listaConversas = conversations.isPending ? (
@@ -459,6 +474,8 @@ function InboxOrgPage() {
               }
             }}
             forcarRodapeToken={forcarRodapeToken}
+            podeResponder={canSend && !composerDisabled}
+            onResponder={setMensagemResposta}
           />
         ) : undefined
       }
@@ -475,12 +492,14 @@ function InboxOrgPage() {
               message={message}
               midia={midia}
               fila={filaRespostaRapida}
+              mensagemResposta={mensagemResposta}
               disabled={!canSend}
               pending={sendMessage.isPending}
               podeUsarRespostasRapidas={podeEscrever}
               onChange={setMessage}
               onMidiaChange={setMidia}
               onFilaChange={setFilaRespostaRapida}
+              onLimparResposta={() => setMensagemResposta(null)}
               onSend={handleSend}
             />
           )

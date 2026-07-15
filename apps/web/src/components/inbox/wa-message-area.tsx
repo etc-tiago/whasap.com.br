@@ -16,6 +16,8 @@ type WaMessageAreaProps = {
   onNearTop: () => void;
   /** Incrementa ao enviar — força scroll no rodapé. */
   forcarRodapeToken?: number;
+  podeResponder?: boolean;
+  onResponder?: (mensagem: MensagemItem) => void;
 };
 
 export function WaMessageArea({
@@ -25,6 +27,8 @@ export function WaMessageArea({
   isFetchingNextPage,
   onNearTop,
   forcarRodapeToken = 0,
+  podeResponder = true,
+  onResponder,
 }: WaMessageAreaProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const pertoDoRodapeRef = useRef(true);
@@ -147,9 +151,19 @@ export function WaMessageArea({
           <WaDayLabel time={grupo.dia} />
           {grupo.mensagens.map((m) =>
             m.direction === "outbound" ? (
-              <WaBubbleOut key={m.id} mensagem={m} />
+              <WaBubbleOut
+                key={m.id}
+                mensagem={m}
+                podeResponder={podeResponder}
+                onResponder={onResponder}
+              />
             ) : (
-              <WaBubbleIn key={m.id} mensagem={m} />
+              <WaBubbleIn
+                key={m.id}
+                mensagem={m}
+                podeResponder={podeResponder}
+                onResponder={onResponder}
+              />
             ),
           )}
         </div>

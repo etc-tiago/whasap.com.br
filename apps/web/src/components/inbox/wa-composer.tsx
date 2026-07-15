@@ -9,6 +9,7 @@ import {
   MessageSquareText,
   Mic,
   Plus,
+  Reply,
   Send,
   Sticker,
   X,
@@ -16,9 +17,10 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { WaIconButton } from "@/components/inbox/wa-icon-button";
+import { formatarPreviewMensagem } from "@/lib/inbox-utils";
 import { arquivoParaBase64 } from "@/lib/midia-upload";
 import { orgInput } from "@/lib/org-input";
-import { orpc, orpcClient } from "@/lib/orpc";
+import { orpc, orpcClient, type MensagemItem } from "@/lib/orpc";
 import { getOrpcErrorMessage } from "@/lib/orpc-error";
 
 export type TipoMidia = "image" | "audio" | "video" | "document";
@@ -46,12 +48,14 @@ type WaComposerProps = {
   message: string;
   midia: MidiaAnexada | null;
   fila: ItemFilaRespostaRapida[] | null;
+  mensagemResposta?: MensagemItem | null;
   disabled?: boolean;
   pending?: boolean;
   podeUsarRespostasRapidas?: boolean;
   onChange: (value: string) => void;
   onMidiaChange: (midia: MidiaAnexada | null) => void;
   onFilaChange: (fila: ItemFilaRespostaRapida[] | null) => void;
+  onLimparResposta?: () => void;
   onSend: () => void;
 };
 
@@ -137,6 +141,43 @@ function BotaoOpcaoMidia({
         <span className="block truncate text-xs text-wa-text-muted">{descricao}</span>
       </span>
     </button>
+  );
+}
+
+function PreviewMensagemResposta({
+  mensagem,
+  onLimpar,
+  disabled,
+}: {
+  mensagem: MensagemItem;
+  onLimpar: () => void;
+  disabled?: boolean;
+}) {
+  const preview = formatarPreviewMensagem(mensagem.body, mensagem.type) || "Mensagem";
+  const autor =
+    mensagem.direction === "outbound"
+      ? (mensagem.enviadoPorNome ?? "Você")
+      : "Contato";
+
+  return (
+    <div className="flex items-stretch gap-2 border-b border-wa-divider bg-wa-panel-header px-3 py-2 md:px-4">
+      <div className="flex min-w-0 flex-1 items-start gap-2 rounded-md border-l-4 border-wa-green bg-wa-input px-2.5 py-2">
+        <Reply className="mt-0.5 h-3.5 w-3.5 shrink-0 text-wa-green" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-medium text-wa-green">{autor}</p>
+          <p className="truncate text-sm text-wa-text-muted">{preview}</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={onLimpar}
+        className="rounded-full p-1.5 text-wa-icon hover:bg-wa-hover disabled:opacity-40"
+        aria-label="Cancelar resposta"
+      >
+        <X className="h-4 w-4" />
+      </button>
+    </div>
   );
 }
 
@@ -381,12 +422,14 @@ export function WaComposer({
   message,
   midia,
   fila,
+  mensagemResposta = null,
   disabled,
   pending,
   podeUsarRespostasRapidas = true,
   onChange,
   onMidiaChange,
   onFilaChange,
+  onLimparResposta,
   onSend,
 }: WaComposerProps) {
   const [plusOpen, setPlusOpen] = useState(false);
@@ -505,6 +548,13 @@ export function WaComposer({
 
   return (
     <div className="border-l border-wa-divider">
+      {mensagemResposta && onLimparResposta ? (
+        <PreviewMensagemResposta
+          mensagem={mensagemResposta}
+          onLimpar={onLimparResposta}
+          disabled={disabled || pending}
+        />
+      ) : null}
       {temFila && fila ? (
         <PreviewFila fila={fila} disabled={disabled || pending} onFilaChange={onFilaChange} />
       ) : midia ? (

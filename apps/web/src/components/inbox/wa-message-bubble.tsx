@@ -1,8 +1,27 @@
-import { Check, CheckCheck, FileText, Mic, Play } from "lucide-react";
-import type { ReactNode } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@whasap/ui/components/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@whasap/ui/components/dropdown-menu";
+import { cn } from "@whasap/ui/lib/utils";
+import { Check, CheckCheck, ChevronDown, FileText, Info, Mic, Play, Reply } from "lucide-react";
+import { useState, type ReactNode } from "react";
 
+import {
+  formatarDataHoraMensagem,
+  formatarHorarioMensagem,
+  formatarPreviewMensagem,
+  isCorpoPlaceholderMidia,
+  rotuloStatusEntrega,
+} from "@/lib/inbox-utils";
 import type { MensagemItem } from "@/lib/orpc";
-import { formatarHorarioMensagem, isCorpoPlaceholderMidia } from "@/lib/inbox-utils";
 
 function StatusTick({ status }: { status: string }) {
   const lido = status === "read" || status === "played";
@@ -170,12 +189,123 @@ function BubbleBody({
   );
 }
 
-export function WaBubbleOut({ mensagem }: { mensagem: MensagemItem }) {
+function DetalheLinha({ rotulo, valor }: { rotulo: string; valor: string }) {
+  return (
+    <div className="grid grid-cols-[7.5rem_1fr] gap-x-3 gap-y-1 text-sm">
+      <dt className="text-muted-foreground">{rotulo}</dt>
+      <dd className="min-w-0 break-all text-foreground">{valor}</dd>
+    </div>
+  );
+}
+
+function MensagemDetalhesDialog({
+  mensagem,
+  open,
+  onOpenChange,
+}: {
+  mensagem: MensagemItem;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Detalhes da mensagem</DialogTitle>
+        </DialogHeader>
+        <dl className="space-y-3">
+          <DetalheLinha rotulo="Data/hora" valor={formatarDataHoraMensagem(mensagem.criadoEm)} />
+          <DetalheLinha rotulo="Status" valor={rotuloStatusEntrega(mensagem.statusEntrega)} />
+          <DetalheLinha
+            rotulo="Direção"
+            valor={mensagem.direction === "outbound" ? "Enviada" : "Recebida"}
+          />
+          <DetalheLinha rotulo="Tipo" valor={mensagem.type} />
+          {mensagem.enviadoPorNome ? (
+            <DetalheLinha rotulo="Enviado por" valor={mensagem.enviadoPorNome} />
+          ) : null}
+          {mensagem.templateNome ? (
+            <DetalheLinha rotulo="Template" valor={mensagem.templateNome} />
+          ) : null}
+          <DetalheLinha
+            rotulo="Conteúdo"
+            valor={formatarPreviewMensagem(mensagem.body, mensagem.type) || "—"}
+          />
+          <DetalheLinha rotulo="ID" valor={mensagem.id} />
+        </dl>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type BubbleAcoesProps = {
+  mensagem: MensagemItem;
+  podeResponder?: boolean;
+  onResponder?: (mensagem: MensagemItem) => void;
+  align: "start" | "end";
+};
+
+function BubbleMenu({ mensagem, podeResponder = true, onResponder, align }: BubbleAcoesProps) {
+  const [detalhesAberto, setDetalhesAberto] = useState(false);
+  const podeCitar = Boolean(mensagem.idExterno) && podeResponder && Boolean(onResponder);
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label="Opções da mensagem"
+            className={cn(
+              "absolute top-0.5 z-10 flex h-6 w-6 items-center justify-center rounded-md text-wa-text-muted opacity-0 transition-opacity hover:bg-black/10 group-hover:opacity-100 data-[state=open]:bg-black/10 data-[state=open]:opacity-100",
+              align === "end" ? "left-0.5" : "right-0.5",
+            )}
+          >
+            <ChevronDown className="h-4 w-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align={align === "end" ? "end" : "start"}
+          side="bottom"
+          className="w-44"
+        >
+          <DropdownMenuItem disabled={!podeCitar} onSelect={() => onResponder?.(mensagem)}>
+            <Reply />
+            Responder
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setDetalhesAberto(true)}>
+            <Info />
+            Ver detalhes
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <MensagemDetalhesDialog
+        mensagem={mensagem}
+        open={detalhesAberto}
+        onOpenChange={setDetalhesAberto}
+      />
+    </>
+  );
+}
+
+type BubbleProps = {
+  mensagem: MensagemItem;
+  podeResponder?: boolean;
+  onResponder?: (mensagem: MensagemItem) => void;
+};
+
+export function WaBubbleOut({ mensagem, podeResponder, onResponder }: BubbleProps) {
   const time = formatarHorarioMensagem(mensagem.criadoEm);
 
   return (
-    <div className="mb-1 flex justify-end">
+    <div className="group mb-1 flex justify-end">
       <div className="relative max-w-[65%] rounded-lg rounded-tr-none bg-wa-bubble-out px-2 py-1.5 shadow-sm">
+        <BubbleMenu
+          mensagem={mensagem}
+          podeResponder={podeResponder}
+          onResponder={onResponder}
+          align="end"
+        />
         <BubbleBody
           mensagem={mensagem}
           alignEnd
@@ -191,12 +321,18 @@ export function WaBubbleOut({ mensagem }: { mensagem: MensagemItem }) {
   );
 }
 
-export function WaBubbleIn({ mensagem }: { mensagem: MensagemItem }) {
+export function WaBubbleIn({ mensagem, podeResponder, onResponder }: BubbleProps) {
   const time = formatarHorarioMensagem(mensagem.criadoEm);
 
   return (
-    <div className="mb-1 flex justify-start">
+    <div className="group mb-1 flex justify-start">
       <div className="relative max-w-[65%] rounded-lg rounded-tl-none bg-wa-bubble-in px-2 py-1.5 shadow-sm">
+        <BubbleMenu
+          mensagem={mensagem}
+          podeResponder={podeResponder}
+          onResponder={onResponder}
+          align="start"
+        />
         <BubbleBody mensagem={mensagem} footer={time} />
       </div>
     </div>
