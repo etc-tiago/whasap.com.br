@@ -72,27 +72,29 @@ export function WaShell({
         </WaChatListPanel>
 
         <PanelMain className="relative min-h-0 overflow-hidden bg-wa-chat-bg">
-          <div aria-hidden className="pointer-events-none absolute inset-0 wa-wallpaper" />
-          {conversaAberta ? (
-            <>
-              {chatHeader}
-              {chatBody}
-              {composer}
-            </>
-          ) : (
-            <WaEmptyChat>
-              <div className="mb-4 rounded-full bg-wa-panel p-6 shadow-sm">
-                <Send className="h-10 w-10 text-wa-text-muted" />
-              </div>
-              <h2 className="text-lg font-medium text-wa-text">Whasap Web</h2>
-              <p className="mt-2 max-w-sm text-sm text-wa-text-muted">
-                Envie e receba mensagens sem manter seu celular conectado à internet.
-              </p>
-              <p className="mt-4 max-w-sm text-xs text-wa-text-muted">
-                Selecione uma conversa à esquerda para começar.
-              </p>
-            </WaEmptyChat>
-          )}
+          <div aria-hidden className="pointer-events-none absolute inset-0 z-0 wa-wallpaper" />
+          <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+            {conversaAberta ? (
+              <>
+                {chatHeader}
+                {chatBody}
+                {composer}
+              </>
+            ) : (
+              <WaEmptyChat>
+                <div className="mb-4 rounded-full bg-wa-panel p-6 shadow-sm">
+                  <Send className="h-10 w-10 text-wa-text-muted" />
+                </div>
+                <h2 className="text-lg font-medium text-wa-text">Whasap Web</h2>
+                <p className="mt-2 max-w-sm text-sm text-wa-text-muted">
+                  Envie e receba mensagens sem manter seu celular conectado à internet.
+                </p>
+                <p className="mt-4 max-w-sm text-xs text-wa-text-muted">
+                  Selecione uma conversa à esquerda para começar.
+                </p>
+              </WaEmptyChat>
+            )}
+          </div>
         </PanelMain>
       </Panel>
 
