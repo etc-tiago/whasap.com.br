@@ -37,10 +37,7 @@ export function GestaoEtiquetas() {
       <Panel activePane={selecionadaId ? "main" : "sidebar"} className="h-full w-full">
         <PanelSidebar className="border-wa-divider bg-wa-panel md:w-80 xl:w-96">
           <PanelSidebarHeader>
-            <div className="min-w-0">
-              <PanelSidebarTitle className="text-lg text-wa-text">Etiquetas</PanelSidebarTitle>
-              <p className="mt-1 text-xs text-wa-text-muted">Organize contatos por categoria.</p>
-            </div>
+            <PanelSidebarTitle className="text-wa-text">Etiquetas</PanelSidebarTitle>
             <PanelSidebarActions>
               {podeEditar ? (
                 <Button size="sm" onClick={() => setDialogNova(true)}>
