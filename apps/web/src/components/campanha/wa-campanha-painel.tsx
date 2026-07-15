@@ -1,10 +1,7 @@
 import { cn } from "@whasap/ui/lib/utils";
 import { X } from "lucide-react";
 
-import {
-  WaCampanhaForm,
-  type InstanciaCampanha,
-} from "@/components/campanha/wa-campanha-form";
+import { WaCampanhaForm, type InstanciaCampanha } from "@/components/campanha/wa-campanha-form";
 import { WaIconButton } from "@/components/inbox/wa-icon-button";
 
 type WaCampanhaPainelProps = {

@@ -28,9 +28,7 @@ function CampanhaHistoricoPage() {
 
   const lista = useQuery(
     orpc.campanha.listaEnvios.queryOptions({
-      input: organizacaoHash
-        ? { organizacaoHash, pagina: 1, porPagina: 50 }
-        : skipToken,
+      input: organizacaoHash ? { organizacaoHash, pagina: 1, porPagina: 50 } : skipToken,
     }),
   );
 

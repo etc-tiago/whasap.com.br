@@ -83,10 +83,14 @@ function PrecosPage() {
                 Calculadora interativa
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Informe quantos números e contatos únicos você espera por mês. Sugerimos o plano mais
-                econômico automaticamente.
+                Informe quantos números e contatos únicos você espera por mês. Sugerimos o plano
+                mais econômico automaticamente.
               </p>
-              <Button asChild className="mt-8 bg-wa-green text-white hover:bg-wa-green-dark" size="lg">
+              <Button
+                asChild
+                className="mt-8 bg-wa-green text-white hover:bg-wa-green-dark"
+                size="lg"
+              >
                 <a href={PANEL_URL}>
                   Começar teste de {billing.billingAfterUsageDays} dias
                   <ArrowRight />

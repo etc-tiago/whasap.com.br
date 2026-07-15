@@ -29,9 +29,7 @@ export function montarMensagemWhatsapp(orcamento: OrcamentoCalculado): string {
     : `${formatarPrecoBrl(orcamento.totalCents)}/mês`;
 
   const numeros =
-    orcamento.conexoes === 1
-      ? "1 número do WhatsApp"
-      : `${orcamento.conexoes} números do WhatsApp`;
+    orcamento.conexoes === 1 ? "1 número do WhatsApp" : `${orcamento.conexoes} números do WhatsApp`;
 
   return [
     "Olá! Fiz uma simulação no site do Whasap e queria validar com vocês:",

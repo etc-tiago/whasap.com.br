@@ -260,10 +260,7 @@ export const campanhaHandlers = {
       instanciaInternaId = inst.id;
     }
 
-    const condicoes = [
-      eq(campanhaEnvio.organizacaoId, org.id),
-      isNull(campanhaEnvio.excluidoEm),
-    ];
+    const condicoes = [eq(campanhaEnvio.organizacaoId, org.id), isNull(campanhaEnvio.excluidoEm)];
     if (input.status) condicoes.push(eq(campanhaEnvio.status, input.status));
     if (instanciaInternaId !== undefined) {
       condicoes.push(eq(campanhaEnvio.instanciaId, instanciaInternaId));
@@ -357,10 +354,7 @@ export const campanhaHandlers = {
   },
 
   templatesMemorizados: {
-    lista: async (
-      ctx: WebContext,
-      input: { organizacaoHash: string; instanciaId?: string },
-    ) => {
+    lista: async (ctx: WebContext, input: { organizacaoHash: string; instanciaId?: string }) => {
       exigirAutenticacao(ctx);
       const { org } = await exigirCampanhaHabilitada(ctx, input.organizacaoHash);
 

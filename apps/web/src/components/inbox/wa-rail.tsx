@@ -32,8 +32,7 @@ const orgRouteApi = getRouteApi("/_panel/$organizacaoHash");
 /** `/inbox` e `/chat/$conversaId` compartilham o destaque “Conversas”. */
 function eRotaConversas(pathname: string, organizacaoHash: string): boolean {
   return (
-    pathname.includes(`/${organizacaoHash}/inbox`) ||
-    pathname.includes(`/${organizacaoHash}/chat/`)
+    pathname.includes(`/${organizacaoHash}/inbox`) || pathname.includes(`/${organizacaoHash}/chat/`)
   );
 }
 
@@ -76,9 +75,7 @@ export function WaRail({ organizacaoHash }: WaRailProps) {
             params={{ organizacaoHash }}
             title="Conversas"
             className={
-              conversasAtivo
-                ? waRailLinkActiveProps.className
-                : waRailLinkInactiveProps.className
+              conversasAtivo ? waRailLinkActiveProps.className : waRailLinkInactiveProps.className
             }
           >
             <MessageCircle className="size-5" />
@@ -126,11 +123,7 @@ export function WaRail({ organizacaoHash }: WaRailProps) {
         </WaRailLink>
 
         {campanhaHabilitada ? (
-          <WaRailLink
-            to="/$organizacaoHash/campanha"
-            params={{ organizacaoHash }}
-            title="Campanha"
-          >
+          <WaRailLink to="/$organizacaoHash/campanha" params={{ organizacaoHash }} title="Campanha">
             <Megaphone className="size-5" />
           </WaRailLink>
         ) : null}

@@ -39,9 +39,7 @@ export function GestaoEtiquetas() {
           <PanelSidebarHeader>
             <div className="min-w-0">
               <PanelSidebarTitle className="text-lg text-wa-text">Etiquetas</PanelSidebarTitle>
-              <p className="mt-1 text-xs text-wa-text-muted">
-                Organize contatos por categoria.
-              </p>
+              <p className="mt-1 text-xs text-wa-text-muted">Organize contatos por categoria.</p>
             </div>
             <PanelSidebarActions>
               {podeEditar ? (

@@ -54,9 +54,7 @@ export function WaCampanhaPanelNav({ organizacaoHash }: WaCampanhaPanelNavProps)
               params={{ organizacaoHash }}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                ativo
-                  ? "bg-wa-chip-active text-wa-green-dark"
-                  : "text-wa-text hover:bg-wa-hover",
+                ativo ? "bg-wa-chip-active text-wa-green-dark" : "text-wa-text hover:bg-wa-hover",
               )}
             >
               <Icone className="h-5 w-5 shrink-0 text-wa-icon" />

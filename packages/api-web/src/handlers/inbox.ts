@@ -1316,10 +1316,7 @@ export const caixaEntradaHandlers = {
       }));
     },
 
-    obter: async (
-      ctx: WebContext,
-      input: { organizacaoHash: string; etiquetaId: string },
-    ) => {
+    obter: async (ctx: WebContext, input: { organizacaoHash: string; etiquetaId: string }) => {
       exigirAutenticacao(ctx);
       await resolverMembro(ctx, input.organizacaoHash);
       const organizacaoId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
@@ -1648,10 +1645,7 @@ export const caixaEntradaHandlers = {
       return montarDetalheEtiqueta(ctx, atualizada!);
     },
 
-    excluir: async (
-      ctx: WebContext,
-      input: { organizacaoHash: string; etiquetaId: string },
-    ) => {
+    excluir: async (ctx: WebContext, input: { organizacaoHash: string; etiquetaId: string }) => {
       exigirAutenticacao(ctx);
       const { role } = await resolverMembro(ctx, input.organizacaoHash);
       verificarPodeEscreverCaixaEntrada(role);

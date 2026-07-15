@@ -32,9 +32,7 @@ export function SiteHeader({ highlight }: { highlight?: "precos" | "indique" }) 
                 to={link.to}
                 hash={link.hash}
                 className={
-                  ativo
-                    ? "font-medium text-foreground"
-                    : "transition-colors hover:text-foreground"
+                  ativo ? "font-medium text-foreground" : "transition-colors hover:text-foreground"
                 }
               >
                 {link.label}

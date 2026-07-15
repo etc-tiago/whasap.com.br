@@ -50,9 +50,7 @@ describe("detectarEventosInbox", () => {
   });
 
   it("ignora mensagem em conversa de outro atendente", () => {
-    const prev = snapshotDeConversas([
-      conv({ id: "c1", usuarioAtribuidoId: OUTRO, naoLidas: 0 }),
-    ]);
+    const prev = snapshotDeConversas([conv({ id: "c1", usuarioAtribuidoId: OUTRO, naoLidas: 0 })]);
     const next = [conv({ id: "c1", usuarioAtribuidoId: OUTRO, naoLidas: 3 })];
     expect(detectarEventosInbox(prev, next, MEU)).toEqual([]);
   });
@@ -87,13 +85,11 @@ describe("detectarEventosInbox", () => {
       }),
     ];
     const eventos = detectarEventosInbox(prev, next, MEU);
-    expect(eventos.map((e) => e.tipo).sort()).toEqual(["atribuicao", "mensagem"]);
+    expect(eventos.map((e) => e.tipo).toSorted()).toEqual(["atribuicao", "mensagem"]);
   });
 
   it("usa telefone quando nome está vazio", () => {
-    const prev = snapshotDeConversas([
-      conv({ id: "c1", contatoNome: null, naoLidas: 0 }),
-    ]);
+    const prev = snapshotDeConversas([conv({ id: "c1", contatoNome: null, naoLidas: 0 })]);
     const next = [conv({ id: "c1", contatoNome: null, naoLidas: 1 })];
     expect(detectarEventosInbox(prev, next, MEU)[0]?.titulo).toBe("5511999999999");
   });

@@ -63,7 +63,9 @@ export function GestaoRespostasRapidas() {
       <PanelSidebar className="border-wa-divider bg-wa-panel md:w-80 xl:w-96">
         <PanelSidebarHeader>
           <div className="min-w-0">
-            <PanelSidebarTitle className="text-lg text-wa-text">Respostas rápidas</PanelSidebarTitle>
+            <PanelSidebarTitle className="text-lg text-wa-text">
+              Respostas rápidas
+            </PanelSidebarTitle>
             <p className="mt-1 text-xs text-wa-text-muted">
               Textos, imagens ou documentos para a caixa de entrada.
             </p>

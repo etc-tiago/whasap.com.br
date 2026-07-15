@@ -4,18 +4,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 
-const limparColecoesInbox = vi.fn();
-const limparCachePersistido = vi.fn(async () => undefined);
-const solicitarWipePersistenciaSqliteInbox = vi.fn(async () => undefined);
+const { limparColecoesInbox, limparCachePersistido, solicitarWipePersistenciaSqliteInbox } =
+  vi.hoisted(() => ({
+    limparColecoesInbox: vi.fn(),
+    limparCachePersistido: vi.fn(async (): Promise<void> => {}),
+    solicitarWipePersistenciaSqliteInbox: vi.fn(async (): Promise<void> => {}),
+  }));
 
 vi.mock("@/lib/inbox-db", () => ({
-  limparColecoesInbox: (...args: unknown[]) => limparColecoesInbox(...args),
-  solicitarWipePersistenciaSqliteInbox: (...args: unknown[]) =>
-    solicitarWipePersistenciaSqliteInbox(...args),
+  limparColecoesInbox,
+  solicitarWipePersistenciaSqliteInbox,
 }));
 
 vi.mock("@/lib/query-persist", () => ({
-  limparCachePersistido: (...args: unknown[]) => limparCachePersistido(...args),
+  limparCachePersistido,
 }));
 
 describe("limparEstadoClienteSessao", () => {

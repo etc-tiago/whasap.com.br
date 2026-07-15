@@ -78,16 +78,14 @@ export const campanhaContract = {
       }),
     ),
 
-  resumo: oc
-    .input(z.object({ organizacaoHash: organizacaoHashSchema }))
-    .output(
-      z.object({
-        enviadosHoje: z.number().int(),
-        enviadosHora: z.number().int(),
-        errosHoje: z.number().int(),
-        totalHoje: z.number().int(),
-      }),
-    ),
+  resumo: oc.input(z.object({ organizacaoHash: organizacaoHashSchema })).output(
+    z.object({
+      enviadosHoje: z.number().int(),
+      enviadosHora: z.number().int(),
+      errosHoje: z.number().int(),
+      totalHoje: z.number().int(),
+    }),
+  ),
 
   templatesMemorizados: {
     lista: oc

@@ -407,7 +407,10 @@ function LandingPage() {
               <p className="mt-4 text-lg text-muted-foreground">
                 Use em paralelo com sua plataforma atual. Depois do teste, emitimos boleto conforme
                 o plano e o uso (contatos únicos e conexões).{" "}
-                <Link to="/precos" className="font-medium text-wa-green-dark underline-offset-4 hover:underline">
+                <Link
+                  to="/precos"
+                  className="font-medium text-wa-green-dark underline-offset-4 hover:underline"
+                >
                   Ver tabela completa
                 </Link>
                 .

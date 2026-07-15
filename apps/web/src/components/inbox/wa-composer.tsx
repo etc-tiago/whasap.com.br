@@ -154,10 +154,7 @@ function PreviewMensagemResposta({
   disabled?: boolean;
 }) {
   const preview = formatarPreviewMensagem(mensagem.body, mensagem.type) || "Mensagem";
-  const autor =
-    mensagem.direction === "outbound"
-      ? (mensagem.enviadoPorNome ?? "Você")
-      : "Contato";
+  const autor = mensagem.direction === "outbound" ? (mensagem.enviadoPorNome ?? "Você") : "Contato";
 
   return (
     <div className="flex items-stretch gap-2 border-b border-wa-divider bg-wa-panel-header px-3 py-2 md:px-4">

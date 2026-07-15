@@ -85,9 +85,7 @@ function CampanhaTemplatesPage() {
                       size="icon"
                       variant="ghost"
                       disabled={remover.isPending}
-                      onClick={() =>
-                        remover.mutate({ organizacaoHash, id: item.id })
-                      }
+                      onClick={() => remover.mutate({ organizacaoHash, id: item.id })}
                       aria-label={`Remover ${item.nome}`}
                     >
                       <Trash2 className="h-4 w-4" />

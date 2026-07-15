@@ -97,16 +97,17 @@ const PanelSidebarHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes
 );
 PanelSidebarHeader.displayName = "PanelSidebarHeader";
 
-const PanelSidebarTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadingElement>>(
-  ({ className, ...props }, ref) => (
-    <h2
-      ref={ref}
-      data-slot="panel-sidebar-title"
-      className={cn("text-2xl font-semibold leading-none tracking-tight text-foreground", className)}
-      {...props}
-    />
-  ),
-);
+const PanelSidebarTitle = React.forwardRef<
+  HTMLHeadingElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, ...props }, ref) => (
+  <h2
+    ref={ref}
+    data-slot="panel-sidebar-title"
+    className={cn("text-2xl font-semibold leading-none tracking-tight text-foreground", className)}
+    {...props}
+  />
+));
 PanelSidebarTitle.displayName = "PanelSidebarTitle";
 
 const PanelSidebarActions = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(

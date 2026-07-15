@@ -215,9 +215,7 @@ export function WaCampanhaForm({
           : undefined,
       confirmarAlertaVolume,
       memorizarTemplate:
-        isMetaCloud && memorizar && nomeMemoria.trim()
-          ? { nome: nomeMemoria.trim() }
-          : undefined,
+        isMetaCloud && memorizar && nomeMemoria.trim() ? { nome: nomeMemoria.trim() } : undefined,
     });
   }
 
@@ -360,7 +358,9 @@ export function WaCampanhaForm({
               {templates.isLoading ? (
                 <p className="text-xs text-muted-foreground">Carregando modelos…</p>
               ) : templatesAprovados.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Nenhum modelo aprovado nesta conexão.</p>
+                <p className="text-xs text-muted-foreground">
+                  Nenhum modelo aprovado nesta conexão.
+                </p>
               ) : (
                 <Select
                   value={templateId}
@@ -424,9 +424,7 @@ export function WaCampanhaForm({
                 <Input
                   id={`var-${indice}`}
                   value={variaveis[indice] ?? ""}
-                  onChange={(e) =>
-                    setVariaveis((prev) => ({ ...prev, [indice]: e.target.value }))
-                  }
+                  onChange={(e) => setVariaveis((prev) => ({ ...prev, [indice]: e.target.value }))}
                 />
               </div>
             ))}

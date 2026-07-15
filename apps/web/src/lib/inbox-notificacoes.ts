@@ -45,10 +45,7 @@ export function detectarEventosInbox(
     if (!anterior) {
       // Conversa nova na lista: notificar mensagem se já tem não-lidas e é relevante;
       // atribuição se já veio atribuída a mim.
-      if (
-        atual.naoLidas > 0 &&
-        conversaRelevanteParaNotificacao(atual.usuarioAtribuidoId, meuId)
-      ) {
+      if (atual.naoLidas > 0 && conversaRelevanteParaNotificacao(atual.usuarioAtribuidoId, meuId)) {
         eventos.push({
           tipo: "mensagem",
           conversaId: atual.id,

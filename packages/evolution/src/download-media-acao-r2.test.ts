@@ -16,6 +16,10 @@ const corpusOk = corpusAcaoR2Disponivel("message_downloadmedia");
 
 describe.skipIf(!corpusOk)("downloadmedia corpus R2 (acao)", () => {
   const fixtures = corpusOk ? carregarAcaoR2({ acao: "message_downloadmedia" }) : [];
+  /** Subconjunto do corpus: falhas CDN 403 via history-sync (matriz forbidden). */
+  const fixturesForbidden = fixtures.filter(
+    (f) => f.envelope.meta.worker === "whasap-history-sync" && f.envelope.response.status === 500,
+  );
 
   it("1) corpus message_downloadmedia não vazio", () => {
     expect(fixtures.length).toBeGreaterThanOrEqual(1);
@@ -35,14 +39,16 @@ describe.skipIf(!corpusOk)("downloadmedia corpus R2 (acao)", () => {
   });
 
   it("3) worker history-sync + rpc media.download", () => {
-    for (const f of fixtures) {
+    expect(fixturesForbidden.length).toBeGreaterThanOrEqual(1);
+    for (const f of fixturesForbidden) {
       expect(f.envelope.meta.worker, f.arquivo).toBe("whasap-history-sync");
       expect(f.envelope.meta.rpc, f.arquivo).toBe("webhook.media.download");
     }
   });
 
   it("4) 500 Failed to download … 403 => forbidden (sticker e audio)", () => {
-    for (const f of fixtures) {
+    expect(fixturesForbidden.length).toBeGreaterThanOrEqual(1);
+    for (const f of fixturesForbidden) {
       const { status, body } = f.envelope.response;
       expect(status, f.arquivo).toBe(500);
       expect(classificarErroDownloadMedia(status ?? 0, body), f.arquivo).toBe("forbidden");
@@ -70,7 +76,8 @@ describe.skipIf(!corpusOk)("downloadmedia corpus R2 (acao)", () => {
   });
 
   it("6) oe= do corpus está expirado em relação a envelope.at", () => {
-    for (const f of fixtures) {
+    expect(fixturesForbidden.length).toBeGreaterThanOrEqual(1);
+    for (const f of fixturesForbidden) {
       const body = f.envelope.request.body as { message?: unknown };
       const agora = Date.parse(f.envelope.at);
       expect(Number.isFinite(agora), f.arquivo).toBe(true);

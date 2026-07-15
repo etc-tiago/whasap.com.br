@@ -12,14 +12,7 @@ import {
 } from "@whasap/ui/components/alert-dialog";
 import { Badge } from "@whasap/ui/components/badge";
 import { Button } from "@whasap/ui/components/button";
-import {
-  ChevronLeft,
-  ChevronRight,
-  MessageCircle,
-  Pencil,
-  Trash2,
-  UserRound,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, MessageCircle, Pencil, Trash2, UserRound } from "lucide-react";
 import { useState } from "react";
 
 import { DialogEtiqueta } from "@/components/etiquetas/dialog-etiqueta";
@@ -164,7 +157,12 @@ export function DetalheEtiqueta({
 
         {podeEditar ? (
           <div className="flex shrink-0 items-center gap-2">
-            <Button type="button" size="sm" variant="secondary" onClick={() => setDialogEditar(true)}>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => setDialogEditar(true)}
+            >
               <Pencil className="mr-1.5 size-3.5" />
               Editar
             </Button>

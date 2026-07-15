@@ -268,7 +268,9 @@ export function InboxOrgPage({
   const podeIniciarConversa = org.data?.meuPapel === "admin" || org.data?.meuPapel === "usuario";
 
   const campanhaDisponivel =
-    org.data?.campanhaHabilitada === true && podeIniciarConversa && instanciasParaNovaConversa.length > 0;
+    org.data?.campanhaHabilitada === true &&
+    podeIniciarConversa &&
+    instanciasParaNovaConversa.length > 0;
 
   const composerDisabled = isMetaCloud && !cloudWindowOpen;
 

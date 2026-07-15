@@ -5,7 +5,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@whasap/ui/components/dropdown-menu";
-import { Check, CheckCheck, ChartNoAxesColumn, FileText, Info, Mic, Play, Reply } from "lucide-react";
+import {
+  Check,
+  CheckCheck,
+  ChartNoAxesColumn,
+  FileText,
+  Info,
+  Mic,
+  Play,
+  Reply,
+} from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import {
@@ -91,9 +100,9 @@ function PollContent({ poll }: { poll: PollPayload }) {
       <p className="mb-2 whitespace-pre-wrap wrap-break-word font-medium leading-snug">{nome}</p>
       {poll.options.length > 0 ? (
         <ul className="space-y-1.5">
-          {poll.options.map((opcao, i) => (
+          {poll.options.map((opcao) => (
             <li
-              key={`${i}-${opcao}`}
+              key={opcao}
               className="flex items-center gap-2 rounded-md border border-wa-border/60 bg-black/5 px-2.5 py-1.5 text-[13px] dark:bg-white/5"
             >
               <span
@@ -278,17 +287,11 @@ function MensagemDetalhesDialog({
             <>
               <DetalheLinha
                 rotulo="Pergunta"
-                valor={
-                  mensagem.poll.name === "[enquete]" ? "Enquete" : mensagem.poll.name
-                }
+                valor={mensagem.poll.name === "[enquete]" ? "Enquete" : mensagem.poll.name}
               />
               <DetalheLinha
                 rotulo="Opções"
-                valor={
-                  mensagem.poll.options.length > 0
-                    ? mensagem.poll.options.join(", ")
-                    : "—"
-                }
+                valor={mensagem.poll.options.length > 0 ? mensagem.poll.options.join(", ") : "—"}
               />
             </>
           ) : (

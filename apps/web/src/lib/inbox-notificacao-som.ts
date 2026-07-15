@@ -10,7 +10,9 @@ let listenersAtivos = false;
 function obterContexto(): AudioContext | null {
   if (typeof window === "undefined") return null;
   if (!ctx) {
-    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const Ctx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!Ctx) return null;
     ctx = new Ctx();
   }

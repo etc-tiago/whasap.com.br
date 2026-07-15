@@ -42,9 +42,9 @@ function EnvioEmMassaPage() {
           Envio em massa no WhatsApp: riscos e boas práticas
         </h1>
         <p className="mt-4 text-muted-foreground">
-          O módulo de campanha do Whasap permite disparos manuais e rápidos. Use com responsabilidade
-          — principalmente no WhatsApp Comercial (business), onde o volume agressivo eleva o risco
-          de restrição ou bloqueio do número pela Meta/WhatsApp.
+          O módulo de campanha do Whasap permite disparos manuais e rápidos. Use com
+          responsabilidade — principalmente no WhatsApp Comercial (business), onde o volume
+          agressivo eleva o risco de restrição ou bloqueio do número pela Meta/WhatsApp.
         </p>
 
         <section className="mt-12 scroll-mt-8 space-y-4 text-sm leading-relaxed text-muted-foreground">
@@ -81,10 +81,12 @@ function EnvioEmMassaPage() {
             <li>Envie apenas para contatos que autorizaram ou com quem já há relação comercial.</li>
             <li>Espaçe os disparos; evite dezenas de mensagens em poucos minutos.</li>
             <li>Personalize o texto; mensagens idênticas em massa aumentam o risco.</li>
-            <li>Respeite horários comerciais e pause se o número apresentar falhas ou denúncias.</li>
             <li>
-              Configure no Whasap limites por minuto/hora e o alerta de envios consecutivos compatíveis
-              com o seu volume seguro.
+              Respeite horários comerciais e pause se o número apresentar falhas ou denúncias.
+            </li>
+            <li>
+              Configure no Whasap limites por minuto/hora e o alerta de envios consecutivos
+              compatíveis com o seu volume seguro.
             </li>
           </ul>
         </section>

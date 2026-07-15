@@ -25,8 +25,7 @@ const MAX_EVENTOS_UI = 3;
 function eRotaInbox(pathname: string, organizacaoHash: string | undefined): boolean {
   if (!organizacaoHash) return false;
   return (
-    pathname.includes(`/${organizacaoHash}/inbox`) ||
-    pathname.includes(`/${organizacaoHash}/chat/`)
+    pathname.includes(`/${organizacaoHash}/inbox`) || pathname.includes(`/${organizacaoHash}/chat/`)
   );
 }
 
@@ -41,20 +40,17 @@ async function garantirPermissaoNotification(): Promise<NotificationPermission> 
   }
 }
 
-function mostrarBrowserNotification(
-  evento: EventoInboxNotificacao,
-  onClick: () => void,
-) {
+function mostrarBrowserNotification(evento: EventoInboxNotificacao, onClick: () => void) {
   if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
   const n = new Notification(evento.titulo, {
     body: evento.corpo,
     tag: `inbox-${evento.tipo}-${evento.conversaId}`,
   });
-  n.onclick = () => {
+  n.addEventListener("click", () => {
     window.focus();
     onClick();
     n.close();
-  };
+  });
 }
 
 /**
