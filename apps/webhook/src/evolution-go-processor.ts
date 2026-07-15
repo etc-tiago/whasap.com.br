@@ -139,6 +139,7 @@ async function processarMensagemGo(
       origemGo: true,
       isGroup: parsed.isGroup,
       ...(mediaInfo ? { waMessage: parsed.messageObj } : {}),
+      ...(parsed.poll ? { poll: parsed.poll } : {}),
     },
     status: direcao === "outbound" ? "sent" : "delivered",
   });

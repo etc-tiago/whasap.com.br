@@ -94,6 +94,7 @@ export {
   type GoMensagemNormalizada,
   type GoPhoneLidMapping,
   type GoPictureUpdate,
+  type GoPollPayload,
   type GoPushName,
   type GoReceiptNormalizado,
 } from "./webhook-go";

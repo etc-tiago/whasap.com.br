@@ -17,6 +17,13 @@ export type EvolutionGoWebhookPayload = {
   data?: Record<string, unknown>;
 };
 
+/** Enquete estruturada (pollCreationMessage / V3). */
+export type GoPollPayload = {
+  name: string;
+  options: string[];
+  selectableOptionsCount?: number;
+};
+
 export type GoMensagemNormalizada = {
   chatJid: string;
   messageId: string;
@@ -27,6 +34,7 @@ export type GoMensagemNormalizada = {
   timestamp: Date | null;
   isGroup: boolean;
   messageObj: Record<string, unknown>;
+  poll?: GoPollPayload;
 };
 
 export type GoHistorySyncConversa = {
@@ -42,7 +50,14 @@ export type GoHistorySyncConversa = {
     timestamp: Date | null;
     status: string | null;
     messageObj: Record<string, unknown>;
+    poll?: GoPollPayload;
   }>;
+};
+
+type GoCorpoParseado = {
+  body: string;
+  type: string;
+  poll?: GoPollPayload;
 };
 
 /**
@@ -267,15 +282,26 @@ function textoNaoVazio(value: unknown): string | null {
 }
 
 function parsePollCreation(
-  part: { name?: string; options?: Array<{ optionName?: string }> } | undefined,
-): { body: string; type: string } | null {
+  part:
+    | {
+        name?: string;
+        options?: Array<{ optionName?: string }>;
+        selectableOptionsCount?: number;
+      }
+    | undefined,
+): GoCorpoParseado | null {
   if (!part) return null;
-  const options = part.options?.map((option) => option.optionName).filter(Boolean) ?? [];
-  const body =
-    options.length > 0
-      ? `${part.name ?? "[enquete]"}: ${options.join(", ")}`
-      : (part.name ?? "[enquete]");
-  return { body, type: "poll" };
+  const options =
+    part.options
+      ?.map((option) => option.optionName)
+      .filter((nome): nome is string => typeof nome === "string" && nome.length > 0) ?? [];
+  const name = part.name?.trim() || "[enquete]";
+  const body = options.length > 0 ? `${name}: ${options.join(", ")}` : name;
+  const poll: GoPollPayload = { name, options };
+  if (typeof part.selectableOptionsCount === "number") {
+    poll.selectableOptionsCount = part.selectableOptionsCount;
+  }
+  return { body, type: "poll", poll };
 }
 
 function textoTemplateMessage(part: Record<string, unknown>): string {
@@ -330,9 +356,7 @@ function desaninharMensagem(
   return messageObj;
 }
 
-function parseGoMessageBody(
-  messageObj: Record<string, unknown>,
-): { body: string; type: string } | null {
+function parseGoMessageBody(messageObj: Record<string, unknown>): GoCorpoParseado | null {
   const obj = desaninharMensagem(messageObj);
 
   if (obj.conversation !== undefined && obj.conversation !== null) {
@@ -547,6 +571,7 @@ export function parseGoMessageEvent(data: Record<string, unknown>): GoMensagemNo
     timestamp: timestampFromGo(info.Timestamp),
     isGroup,
     messageObj,
+    ...(parsed.poll ? { poll: parsed.poll } : {}),
   };
 }
 
@@ -578,6 +603,7 @@ function parseHistorySyncMessage(
     timestamp: timestampFromGo(inner.messageTimestamp),
     status: normalizarStatusWmi(inner.status),
     messageObj,
+    ...(parsed.poll ? { poll: parsed.poll } : {}),
   };
 }
 

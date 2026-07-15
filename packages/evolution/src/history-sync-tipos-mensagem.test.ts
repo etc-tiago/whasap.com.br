@@ -59,6 +59,7 @@ describe("HistorySync tipos de mensagem (sintetico)", () => {
       pollCreationMessageV3: {
         name: "Horario?",
         options: [{ optionName: "Manha" }, { optionName: "Tarde" }],
+        selectableOptionsCount: 1,
       },
     });
     const m = c.conversations[0]!.messages[0]!;
@@ -66,16 +67,28 @@ describe("HistorySync tipos de mensagem (sintetico)", () => {
     expect(m.body).toContain("Horario?");
     expect(m.body).toContain("Manha");
     expect(m.body).toContain("Tarde");
+    expect(m.poll).toEqual({
+      name: "Horario?",
+      options: ["Manha", "Tarde"],
+      selectableOptionsCount: 1,
+    });
   });
 
   it("6) poll sem opcoes usa so o nome", () => {
     const c = chunkCom({ pollCreationMessageV3: { name: "So nome" } });
-    expect(c.conversations[0]!.messages[0]).toMatchObject({ type: "poll", body: "So nome" });
+    expect(c.conversations[0]!.messages[0]).toMatchObject({
+      type: "poll",
+      body: "So nome",
+      poll: { name: "So nome", options: [] },
+    });
   });
 
   it("7) poll vazio usa placeholder", () => {
     const c = chunkCom({ pollCreationMessageV3: {} });
-    expect(c.conversations[0]!.messages[0]!.body).toBe("[enquete]");
+    expect(c.conversations[0]!.messages[0]).toMatchObject({
+      body: "[enquete]",
+      poll: { name: "[enquete]", options: [] },
+    });
   });
 
   it("8) contactMessage com displayName", () => {
@@ -204,6 +217,7 @@ describe("HistorySync tipos de mensagem (sintetico)", () => {
     });
     expect(p?.type).toBe("poll");
     expect(p?.body).toContain("Sim");
+    expect(p?.poll).toEqual({ name: "A?", options: ["Sim"] });
   });
 
   it("26) parseGoMessageEvent reaction live", () => {

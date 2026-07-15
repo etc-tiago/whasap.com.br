@@ -7,6 +7,8 @@ describe("formatarPreviewMensagem", () => {
     expect(formatarPreviewMensagem("[sticker]", "sticker")).toBe("Figurinha");
     expect(formatarPreviewMensagem("👍", "reaction")).toBe("Reagiu com 👍");
     expect(formatarPreviewMensagem("Qual horário?", "poll")).toBe("Enquete: Qual horário?");
+    expect(formatarPreviewMensagem("Aba: 1, 2", "poll")).toBe("Enquete: Aba");
+    expect(formatarPreviewMensagem("[enquete]", "poll")).toBe("Enquete");
     expect(formatarPreviewMensagem("Maria", "contacts")).toBe("Contato: Maria");
     expect(formatarPreviewMensagem("Consulta", "event")).toBe("Evento: Consulta");
     expect(formatarPreviewMensagem("Confirmar", "interactive")).toBe("Confirmar");

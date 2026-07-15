@@ -74,6 +74,15 @@ const mensagemSchema = z.object({
   enviadoEm: z.string().datetime(),
   /** Quando o Whasap persistiu a linha. */
   criadoEm: z.string().datetime(),
+  /** Enquete estruturada (tipo poll); null se não for poll ou sem dados. */
+  poll: z
+    .object({
+      name: z.string(),
+      options: z.array(z.string()),
+      selectableOptionsCount: z.number().optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 export const caixaEntradaContract = {

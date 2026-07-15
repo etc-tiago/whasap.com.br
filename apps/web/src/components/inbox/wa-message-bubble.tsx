@@ -5,7 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@whasap/ui/components/dropdown-menu";
-import { Check, CheckCheck, FileText, Info, Mic, Play, Reply } from "lucide-react";
+import { Check, CheckCheck, ChartNoAxesColumn, FileText, Info, Mic, Play, Reply } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import {
@@ -16,6 +16,8 @@ import {
   rotuloStatusEntrega,
 } from "@/lib/inbox-utils";
 import type { MensagemItem } from "@/lib/orpc";
+
+type PollPayload = NonNullable<MensagemItem["poll"]>;
 
 function StatusTick({ status }: { status: string }) {
   const lido = status === "read" || status === "played";
@@ -78,6 +80,35 @@ function MediaPendente({ tipo }: { tipo: string }) {
   return <p className="text-[13px] text-wa-text-muted">{rotulo} indisponível</p>;
 }
 
+function PollContent({ poll }: { poll: PollPayload }) {
+  const nome = poll.name === "[enquete]" ? "Enquete" : poll.name;
+  return (
+    <div className="min-w-48 max-w-[18rem]">
+      <div className="mb-1.5 flex items-center gap-1.5 text-[12px] font-medium text-wa-text-muted">
+        <ChartNoAxesColumn className="h-3.5 w-3.5 shrink-0" />
+        <span>Enquete</span>
+      </div>
+      <p className="mb-2 whitespace-pre-wrap wrap-break-word font-medium leading-snug">{nome}</p>
+      {poll.options.length > 0 ? (
+        <ul className="space-y-1.5">
+          {poll.options.map((opcao, i) => (
+            <li
+              key={`${i}-${opcao}`}
+              className="flex items-center gap-2 rounded-md border border-wa-border/60 bg-black/5 px-2.5 py-1.5 text-[13px] dark:bg-white/5"
+            >
+              <span
+                className="h-3.5 w-3.5 shrink-0 rounded-full border border-wa-text-muted/50"
+                aria-hidden
+              />
+              <span className="min-w-0 wrap-break-word">{opcao}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 function MediaContent({ mensagem }: { mensagem: MensagemItem }) {
   const url = mensagem.mediaUrl;
 
@@ -136,6 +167,7 @@ function MediaContent({ mensagem }: { mensagem: MensagemItem }) {
 }
 
 function corpoVisivel(mensagem: MensagemItem): string | null {
+  if (mensagem.type === "poll" && mensagem.poll) return null;
   const corpo = mensagem.body?.trim();
   if (!corpo) return null;
   if (isCorpoPlaceholderMidia(corpo)) return null;
@@ -177,8 +209,14 @@ function BubbleBody({
   return (
     <div className={`flex flex-wrap items-end gap-x-2${alignEnd ? " justify-end" : ""}`}>
       <div className="min-w-0 pl-1 text-[14.2px] text-wa-text">
-        <MediaContent mensagem={mensagem} />
-        {texto ? <p className="whitespace-pre-wrap wrap-break-word">{texto}</p> : null}
+        {mensagem.type === "poll" && mensagem.poll ? (
+          <PollContent poll={mensagem.poll} />
+        ) : (
+          <>
+            <MediaContent mensagem={mensagem} />
+            {texto ? <p className="whitespace-pre-wrap wrap-break-word">{texto}</p> : null}
+          </>
+        )}
         {mensagem.enviadoPorNome ? (
           <p className="mt-0.5 text-[10px] opacity-70">{mensagem.enviadoPorNome}</p>
         ) : null}
@@ -236,10 +274,29 @@ function MensagemDetalhesDialog({
           {mensagem.templateNome ? (
             <DetalheLinha rotulo="Template" valor={mensagem.templateNome} />
           ) : null}
-          <DetalheLinha
-            rotulo="Conteúdo"
-            valor={formatarPreviewMensagem(mensagem.body, mensagem.type) || "—"}
-          />
+          {mensagem.type === "poll" && mensagem.poll ? (
+            <>
+              <DetalheLinha
+                rotulo="Pergunta"
+                valor={
+                  mensagem.poll.name === "[enquete]" ? "Enquete" : mensagem.poll.name
+                }
+              />
+              <DetalheLinha
+                rotulo="Opções"
+                valor={
+                  mensagem.poll.options.length > 0
+                    ? mensagem.poll.options.join(", ")
+                    : "—"
+                }
+              />
+            </>
+          ) : (
+            <DetalheLinha
+              rotulo="Conteúdo"
+              valor={formatarPreviewMensagem(mensagem.body, mensagem.type) || "—"}
+            />
+          )}
           <DetalheLinha rotulo="ID" valor={mensagem.id} />
         </dl>
       </DialogContent>

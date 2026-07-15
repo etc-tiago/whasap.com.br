@@ -197,8 +197,12 @@ export function formatarPreviewMensagem(
       return "Figurinha";
     case "reaction":
       return texto ? `Reagiu com ${texto}` : "Reação";
-    case "poll":
-      return texto ? `Enquete: ${texto}` : "Enquete";
+    case "poll": {
+      if (!texto || texto === "[enquete]") return "Enquete";
+      const sep = texto.indexOf(": ");
+      const nome = sep === -1 ? texto : texto.slice(0, sep);
+      return `Enquete: ${nome}`;
+    }
     case "contacts":
       return texto ? `Contato: ${texto}` : "Contato";
     case "event":

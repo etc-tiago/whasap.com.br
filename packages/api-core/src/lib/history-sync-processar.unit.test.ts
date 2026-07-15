@@ -691,9 +691,14 @@ describe("processarHistorySyncChunk (unit)", () => {
         ],
       },
     });
-    const args = ingerirMensagem.mock.calls[0]![1] as { type: string; body: string };
+    const args = ingerirMensagem.mock.calls[0]![1] as {
+      type: string;
+      body: string;
+      metadados?: { poll?: { name: string; options: string[] } };
+    };
     expect(args.type).toBe("poll");
     expect(args.body).toContain("Dia?");
+    expect(args.metadados?.poll).toEqual({ name: "Dia?", options: ["Seg"] });
   });
 
   it("25) reaction e ingerida", async () => {

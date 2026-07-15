@@ -11,6 +11,7 @@ import {
   parseGoHistorySyncChunk,
   resolverJidHistoricoSync,
   rotuloHistorySyncType,
+  type GoPollPayload,
 } from "@whasap/evolution";
 import { comTimestampAtualizacao, type Db, instanciaEvo } from "@whasap/db";
 import { and, eq, isNotNull, lt, or } from "drizzle-orm";
@@ -212,6 +213,7 @@ type ItemHistorySyncPlano = {
     timestamp: Date | null;
     status: string | null;
     messageObj: Record<string, unknown>;
+    poll?: GoPollPayload;
   };
 };
 
@@ -249,6 +251,7 @@ function listarItensHistorySyncOrdenados(
           timestamp: msg.timestamp,
           status: msg.status,
           messageObj: msg.messageObj,
+          ...(msg.poll ? { poll: msg.poll } : {}),
         },
       });
     }
@@ -365,6 +368,7 @@ export async function processarHistorySyncChunkLote(
         syncType: item.syncType,
         syncFase: rotuloHistorySyncType(item.syncType),
         ...(isMidia ? { waMessage: msg.messageObj } : {}),
+        ...(msg.poll ? { poll: msg.poll } : {}),
       },
       status: msg.status ?? (direcao === "outbound" ? "sent" : "delivered"),
     });

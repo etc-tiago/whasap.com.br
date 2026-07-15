@@ -72,6 +72,7 @@ import {
 } from "../lib/evolution-etiquetas";
 import { isInstanceOperational } from "../lib/instance-operational";
 import { garantirMidiasDaConversa } from "../lib/garantir-midia-conversa";
+import { mapearPollMensagem } from "../lib/mensagem-poll";
 import type { MemberRole } from "../types";
 
 function base64ParaArrayBuffer(base64: string): ArrayBuffer {
@@ -425,6 +426,7 @@ function mapearMensagemParaSaida(
     templateNome: string | null;
     enviadoEm: Date;
     criadoEm: Date;
+    metadados?: unknown;
     enviadoPorUsuario?: { uuid: string; nome: string } | null;
   },
   cdnUrl?: string,
@@ -442,6 +444,7 @@ function mapearMensagemParaSaida(
     statusEntrega: m.status,
     enviadoEm: m.enviadoEm.toISOString(),
     criadoEm: m.criadoEm.toISOString(),
+    poll: mapearPollMensagem(m.tipo, m.corpo, m.metadados ?? null),
   };
 }
 
