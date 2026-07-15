@@ -31,6 +31,8 @@ type WaChatListPanelProps = {
   organizacaoHash?: string;
   podeIniciarConversa?: boolean;
   onConversaIniciada?: (conversaId: string) => void;
+  /** Chamado após sucesso do iniciar, antes de navegar (ex.: limpar busca). */
+  onAntesDeNavegarNovaConversa?: () => void;
   /** Telefone normalizado da busca sem match exato — exibe chip "Iniciar conversa". */
   telefoneIniciarBusca?: string | null;
   /** Abre o popover de nova conversa com telefone/instância pré-preenchidos (ex.: deep-link de Contatos). */
@@ -49,6 +51,7 @@ export function WaChatListPanel({
   organizacaoHash,
   podeIniciarConversa,
   onConversaIniciada,
+  onAntesDeNavegarNovaConversa,
   telefoneIniciarBusca,
   iniciarConversaExterna,
   onIniciarConversaExternaConsumida,
@@ -96,6 +99,7 @@ export function WaChatListPanel({
               instanciaPadraoId={instanciaPadraoId}
               disabled={!podeIniciarConversa}
               onConversaIniciada={onConversaIniciada}
+              onAntesDeNavegar={onAntesDeNavegarNovaConversa}
               open={novaConversaOpen}
               onOpenChange={handleNovaConversaOpenChange}
               telefoneInicial={telefoneInicial}

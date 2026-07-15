@@ -13,6 +13,8 @@ import {
   isIconeConexao,
   isMetaCloudProvider,
   mimeToExtension,
+  normalizarTelefoneWhatsappBr,
+  telefoneWhatsappBrValido,
   type IconeConexao,
 } from "@whasap/config";
 import type { MetaTemplate } from "@whasap/meta";
@@ -281,10 +283,14 @@ function verificarPodeEscreverCaixaEntrada(role: MemberRole) {
 }
 
 /**
- * Normaliza telefone e monta o id externo WhatsApp (`{digits}@s.whatsapp.net`).
+ * Normaliza telefone BR (DDI 55) e monta o id externo WhatsApp (`{digits}@s.whatsapp.net`).
+ * @throws preconditionFailed se o número não for um WhatsApp BR válido (10/11 ou 12/13 com 55).
  */
 function normalizarTelefoneContato(telefone: string) {
-  const phone = telefone.replace(/\D/g, "");
+  if (!telefoneWhatsappBrValido(telefone)) {
+    preconditionFailed("Telefone inválido");
+  }
+  const phone = normalizarTelefoneWhatsappBr(telefone);
   return { phone, idExterno: `${phone}@s.whatsapp.net` };
 }
 
@@ -690,8 +696,7 @@ export const caixaEntradaHandlers = {
         preconditionFailed("Informe a mensagem inicial");
       }
 
-      const phone = input.telefone.replace(/\D/g, "");
-      const idExterno = `${phone}@s.whatsapp.net`;
+      const { phone, idExterno } = normalizarTelefoneContato(input.telefone);
 
       let contact = await ctx.db.query.contato.findFirst({
         where: and(
@@ -1757,7 +1762,6 @@ export const caixaEntradaHandlers = {
       const organizacaoId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
       if (organizacaoId === null || instance.organizacaoId !== organizacaoId) notFound();
       const { phone, idExterno } = normalizarTelefoneContato(input.telefone);
-      if (phone.length < 8) preconditionFailed("Telefone inválido");
 
       const nome = input.nome?.trim() || null;
 

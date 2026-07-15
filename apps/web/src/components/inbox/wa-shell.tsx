@@ -18,6 +18,7 @@ type WaShellProps = {
   organizacaoHash?: string;
   podeIniciarConversa?: boolean;
   onConversaIniciada?: (conversaId: string) => void;
+  onAntesDeNavegarNovaConversa?: () => void;
   telefoneIniciarBusca?: string | null;
   iniciarConversaExterna?: { telefone: string; instanciaId?: string } | null;
   onIniciarConversaExternaConsumida?: () => void;
@@ -40,6 +41,7 @@ export function WaShell({
   organizacaoHash,
   podeIniciarConversa,
   onConversaIniciada,
+  onAntesDeNavegarNovaConversa,
   telefoneIniciarBusca,
   iniciarConversaExterna,
   onIniciarConversaExternaConsumida,
@@ -61,6 +63,7 @@ export function WaShell({
           organizacaoHash={organizacaoHash}
           podeIniciarConversa={podeIniciarConversa}
           onConversaIniciada={onConversaIniciada}
+          onAntesDeNavegarNovaConversa={onAntesDeNavegarNovaConversa}
           telefoneIniciarBusca={telefoneIniciarBusca}
           iniciarConversaExterna={iniciarConversaExterna}
           onIniciarConversaExternaConsumida={onIniciarConversaExternaConsumida}
@@ -68,7 +71,8 @@ export function WaShell({
           {listaConversas}
         </WaChatListPanel>
 
-        <PanelMain className="wa-wallpaper">
+        <PanelMain className="relative min-h-0 overflow-hidden bg-wa-chat-bg">
+          <div aria-hidden className="pointer-events-none absolute inset-0 wa-wallpaper" />
           {conversaAberta ? (
             <>
               {chatHeader}

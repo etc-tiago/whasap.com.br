@@ -415,6 +415,7 @@ export function InboxOrgPage({
       organizacaoHash={organizacaoHash}
       podeIniciarConversa={podeIniciarConversa && instanciasParaNovaConversa.length > 0}
       onConversaIniciada={onSelecionarConversa}
+      onAntesDeNavegarNovaConversa={() => setBusca("")}
       telefoneIniciarBusca={
         podeIniciarConversa && instanciasParaNovaConversa.length > 0 ? telefoneIniciarBusca : null
       }

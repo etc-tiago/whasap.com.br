@@ -19,6 +19,7 @@ import { WaIconButton } from "@/components/inbox/wa-icon-button";
 import { IconeConexaoLucide } from "@/lib/icones-conexao";
 import { orpc } from "@/lib/orpc";
 import { getOrpcErrorMessage } from "@/lib/orpc-error";
+import { eCandidatoTelefoneBr, normalizarTelefoneBr } from "@/lib/telefone-br";
 import { extrairIndicesVariaveisTemplate, textoCorpoTemplate } from "@/lib/template-variaveis";
 
 export type InstanciaNovaConversa = {
@@ -35,6 +36,8 @@ type WaNovaConversaPopoverProps = {
   instanciaPadraoId?: string;
   disabled?: boolean;
   onConversaIniciada: (conversaId: string) => void;
+  /** Chamado após sucesso, antes de navegar (ex.: limpar busca da lista). */
+  onAntesDeNavegar?: () => void;
   /** Controle externo do popover (compartilhado com o chip da busca). */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -48,6 +51,7 @@ export function WaNovaConversaPopover({
   instanciaPadraoId,
   disabled,
   onConversaIniciada,
+  onAntesDeNavegar,
   open: openControlado,
   onOpenChange: onOpenChangeControlado,
   telefoneInicial,
@@ -124,12 +128,13 @@ export function WaNovaConversaPopover({
 
   const iniciar = useMutation(
     orpc.caixaEntrada.conversas.iniciar.mutationOptions({
-      onSuccess: (data) => {
-        queryClient.invalidateQueries({
+      onSuccess: async (data) => {
+        await queryClient.invalidateQueries({
           queryKey: orpc.caixaEntrada.conversas.lista.key({
             input: { organizacaoHash },
           }),
         });
+        onAntesDeNavegar?.();
         setOpen(false);
         resetForm();
         onConversaIniciada(data.conversaId);
@@ -162,7 +167,7 @@ export function WaNovaConversaPopover({
 
   function podeEnviar(): boolean {
     if (!instanciaId) return false;
-    if (telefone.replace(/\D/g, "").length < 8) return false;
+    if (!eCandidatoTelefoneBr(telefone)) return false;
     if (isEvo) return corpo.trim().length > 0;
     if (isMetaCloud) {
       if (!templateId) return false;
@@ -177,7 +182,7 @@ export function WaNovaConversaPopover({
 
     iniciar.mutate({
       instanciaId,
-      telefone,
+      telefone: normalizarTelefoneBr(telefone),
       nome: nome.trim() || undefined,
       corpo: isEvo ? corpo.trim() : undefined,
       templateId: isMetaCloud ? templateId : undefined,
