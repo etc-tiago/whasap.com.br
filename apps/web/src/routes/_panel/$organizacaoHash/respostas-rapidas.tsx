@@ -8,7 +8,7 @@ export const Route = createFileRoute("/_panel/$organizacaoHash/respostas-rapidas
 
 function RespostasRapidasPage() {
   return (
-    <div className="h-full min-h-0 overflow-auto">
+    <div className="h-full min-h-0 overflow-hidden">
       <GestaoRespostasRapidas />
     </div>
   );

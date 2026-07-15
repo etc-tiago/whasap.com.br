@@ -1,6 +1,6 @@
 import { Send } from "lucide-react";
 import type { ReactNode } from "react";
-import { cn } from "@whasap/ui/lib/utils";
+import { Panel, PanelMain } from "@whasap/ui/components/panel";
 
 import { WaChatListPanel, type FiltroConversa } from "@/components/inbox/wa-chat-list-panel";
 import type { InstanciaNovaConversa } from "@/components/inbox/wa-nova-conversa-popover";
@@ -50,51 +50,47 @@ export function WaShell({
 }: WaShellProps) {
   return (
     <div className="flex h-full min-h-0 w-full overflow-hidden">
-      <WaChatListPanel
-        busca={busca}
-        onBuscaChange={onBuscaChange}
-        filtroAtivo={filtroAtivo}
-        onFiltroChange={onFiltroChange}
-        mobileHidden={conversaAberta}
-        instancias={instancias}
-        instanciaPadraoId={iniciarConversaExterna?.instanciaId ?? instanciaPadraoId}
-        organizacaoHash={organizacaoHash}
-        podeIniciarConversa={podeIniciarConversa}
-        onConversaIniciada={onConversaIniciada}
-        telefoneIniciarBusca={telefoneIniciarBusca}
-        iniciarConversaExterna={iniciarConversaExterna}
-        onIniciarConversaExternaConsumida={onIniciarConversaExternaConsumida}
-      >
-        {listaConversas}
-      </WaChatListPanel>
+      <Panel activePane={conversaAberta ? "main" : "sidebar"} className="min-w-0 flex-1">
+        <WaChatListPanel
+          busca={busca}
+          onBuscaChange={onBuscaChange}
+          filtroAtivo={filtroAtivo}
+          onFiltroChange={onFiltroChange}
+          instancias={instancias}
+          instanciaPadraoId={iniciarConversaExterna?.instanciaId ?? instanciaPadraoId}
+          organizacaoHash={organizacaoHash}
+          podeIniciarConversa={podeIniciarConversa}
+          onConversaIniciada={onConversaIniciada}
+          telefoneIniciarBusca={telefoneIniciarBusca}
+          iniciarConversaExterna={iniciarConversaExterna}
+          onIniciarConversaExternaConsumida={onIniciarConversaExternaConsumida}
+        >
+          {listaConversas}
+        </WaChatListPanel>
 
-      <section
-        className={cn(
-          "min-w-0 flex-1 flex-col wa-wallpaper",
-          conversaAberta ? "flex" : "hidden md:flex",
-        )}
-      >
-        {conversaAberta ? (
-          <>
-            {chatHeader}
-            {chatBody}
-            {composer}
-          </>
-        ) : (
-          <WaEmptyChat>
-            <div className="mb-4 rounded-full bg-wa-panel p-6 shadow-sm">
-              <Send className="h-10 w-10 text-wa-text-muted" />
-            </div>
-            <h2 className="text-lg font-medium text-wa-text">Whasap Web</h2>
-            <p className="mt-2 max-w-sm text-sm text-wa-text-muted">
-              Envie e receba mensagens sem manter seu celular conectado à internet.
-            </p>
-            <p className="mt-4 max-w-sm text-xs text-wa-text-muted">
-              Selecione uma conversa à esquerda para começar.
-            </p>
-          </WaEmptyChat>
-        )}
-      </section>
+        <PanelMain className="wa-wallpaper">
+          {conversaAberta ? (
+            <>
+              {chatHeader}
+              {chatBody}
+              {composer}
+            </>
+          ) : (
+            <WaEmptyChat>
+              <div className="mb-4 rounded-full bg-wa-panel p-6 shadow-sm">
+                <Send className="h-10 w-10 text-wa-text-muted" />
+              </div>
+              <h2 className="text-lg font-medium text-wa-text">Whasap Web</h2>
+              <p className="mt-2 max-w-sm text-sm text-wa-text-muted">
+                Envie e receba mensagens sem manter seu celular conectado à internet.
+              </p>
+              <p className="mt-4 max-w-sm text-xs text-wa-text-muted">
+                Selecione uma conversa à esquerda para começar.
+              </p>
+            </WaEmptyChat>
+          )}
+        </PanelMain>
+      </Panel>
 
       {painelDireito}
     </div>

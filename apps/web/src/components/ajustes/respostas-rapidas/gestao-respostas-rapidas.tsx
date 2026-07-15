@@ -1,4 +1,13 @@
 import { Button } from "@whasap/ui/components/button";
+import {
+  Panel,
+  PanelMain,
+  PanelSidebar,
+  PanelSidebarActions,
+  PanelSidebarContent,
+  PanelSidebarHeader,
+  PanelSidebarTitle,
+} from "@whasap/ui/components/panel";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 
@@ -9,8 +18,8 @@ import { EditorRespostaRapida } from "./editor-resposta-rapida";
 import { ListaRespostasRapidas } from "./lista-respostas-rapidas";
 
 /**
- * Shell da gestão de respostas rápidas.
- * Papel via `useSession` (sem query extra); lista e editor em filhos.
+ * Gestão de respostas rápidas em layout master-detail (`Panel*`).
+ * Papel via `useSession` (sem query extra); lista na sidebar, editor no main.
  */
 export function GestaoRespostasRapidas() {
   const organizacaoHash = useOrganizacaoHash();
@@ -50,33 +59,53 @@ export function GestaoRespostasRapidas() {
   }
 
   return (
-    <div className="flex h-full flex-col p-6">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-wa-text">Respostas rápidas</h2>
-          <p className="mt-1 text-sm text-wa-text-muted">
-            Cadastre textos, imagens ou documentos — sozinhos ou em sequência — para usar na caixa
-            de entrada.
-          </p>
-        </div>
-        <Button size="sm" onClick={abrirCriar} disabled={!podeEditar}>
-          <Plus className="mr-1.5 h-4 w-4" />
-          Nova
-        </Button>
-      </div>
+    <Panel activePane={editorAberto ? "main" : "sidebar"} className="h-full w-full">
+      <PanelSidebar className="border-wa-divider bg-wa-panel md:w-80 xl:w-96">
+        <PanelSidebarHeader>
+          <div className="min-w-0">
+            <PanelSidebarTitle className="text-lg text-wa-text">Respostas rápidas</PanelSidebarTitle>
+            <p className="mt-1 text-xs text-wa-text-muted">
+              Textos, imagens ou documentos para a caixa de entrada.
+            </p>
+          </div>
+          <PanelSidebarActions>
+            <Button size="sm" onClick={abrirCriar} disabled={!podeEditar}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              Nova
+            </Button>
+          </PanelSidebarActions>
+        </PanelSidebarHeader>
 
-      <ListaRespostasRapidas
-        organizacaoHash={organizacaoHash}
-        enabled={podeEditar}
-        onEditar={abrirEditar}
-      />
+        <PanelSidebarContent className="px-3 pb-4">
+          <ListaRespostasRapidas
+            organizacaoHash={organizacaoHash}
+            enabled={podeEditar}
+            onEditar={abrirEditar}
+          />
+        </PanelSidebarContent>
+      </PanelSidebar>
 
-      <EditorRespostaRapida
-        organizacaoHash={organizacaoHash}
-        aberto={editorAberto}
-        respostaId={editandoId}
-        onFechar={fecharEditor}
-      />
-    </div>
+      <PanelMain className="bg-wa-panel">
+        {editorAberto ? (
+          <EditorRespostaRapida
+            key={editandoId ?? "nova"}
+            organizacaoHash={organizacaoHash}
+            respostaId={editandoId}
+            onFechar={fecharEditor}
+          />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+            <h2 className="text-lg font-medium text-wa-text">Nenhuma resposta selecionada</h2>
+            <p className="mt-2 max-w-sm text-sm text-wa-text-muted">
+              Escolha uma resposta na lista ou crie uma nova para editar aqui.
+            </p>
+            <Button className="mt-4" size="sm" onClick={abrirCriar} disabled={!podeEditar}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              Nova resposta
+            </Button>
+          </div>
+        )}
+      </PanelMain>
+    </Panel>
   );
 }

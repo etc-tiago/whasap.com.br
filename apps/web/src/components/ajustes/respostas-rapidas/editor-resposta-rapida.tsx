@@ -1,15 +1,8 @@
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@whasap/ui/components/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@whasap/ui/components/dialog";
 import { Input } from "@whasap/ui/components/input";
 import { Label } from "@whasap/ui/components/label";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 
 import { orpc, orpcClient } from "@/lib/orpc";
@@ -22,7 +15,6 @@ import { criarItemVazio, type ItemForm, type TipoItem } from "./tipos";
 
 type EditorRespostaRapidaProps = {
   organizacaoHash: string;
-  aberto: boolean;
   /** `null` = criar; uuid = editar */
   respostaId: string | null;
   onFechar: () => void;
@@ -41,12 +33,11 @@ type PayloadSalvar = {
 };
 
 /**
- * Dialog criar/editar.
+ * Formulário criar/editar no painel principal (master-detail).
  * Hooks: `useQuery` obter (só edição) + `useMutation` salvar unificado.
  */
 export function EditorRespostaRapida({
   organizacaoHash,
-  aberto,
   respostaId,
   onFechar,
 }: EditorRespostaRapidaProps) {
@@ -59,12 +50,11 @@ export function EditorRespostaRapida({
 
   const detalhe = useQuery(
     orpc.caixaEntrada.respostasRapidas.obter.queryOptions({
-      input: aberto && respostaId ? { organizacaoHash, id: respostaId } : skipToken,
+      input: respostaId ? { organizacaoHash, id: respostaId } : skipToken,
     }),
   );
 
   useEffect(() => {
-    if (!aberto) return;
     if (!respostaId) {
       setTitulo("");
       setItens([criarItemVazio("text")]);
@@ -74,10 +64,10 @@ export function EditorRespostaRapida({
     }
     setFormPronto(false);
     setErroForm(null);
-  }, [aberto, respostaId]);
+  }, [respostaId]);
 
   useEffect(() => {
-    if (!aberto || !respostaId || !detalhe.data) return;
+    if (!respostaId || !detalhe.data) return;
     setTitulo(detalhe.data.titulo);
     setItens(
       detalhe.data.itens.map((item) => ({
@@ -90,13 +80,13 @@ export function EditorRespostaRapida({
       })),
     );
     setFormPronto(true);
-  }, [aberto, respostaId, detalhe.data]);
+  }, [respostaId, detalhe.data]);
 
   useEffect(() => {
-    if (!aberto || !respostaId || !detalhe.isError) return;
+    if (!respostaId || !detalhe.isError) return;
     setErroForm(getOrpcErrorMessage(detalhe.error, "Não foi possível carregar a resposta."));
     setFormPronto(true);
-  }, [aberto, respostaId, detalhe.isError, detalhe.error]);
+  }, [respostaId, detalhe.isError, detalhe.error]);
 
   const salvar = useMutation({
     mutationFn: async (payload: PayloadSalvar) => {
@@ -176,19 +166,42 @@ export function EditorRespostaRapida({
   const podeSalvar = formPronto && !carregandoDetalhe && !salvar.isPending;
 
   return (
-    <Dialog open={aberto} onOpenChange={(proximo) => (!proximo ? onFechar() : null)}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{respostaId ? "Editar resposta" : "Nova resposta rápida"}</DialogTitle>
-        </DialogHeader>
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-wa-divider px-4 py-3 md:px-6">
+        <div className="flex min-w-0 items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={onFechar}
+            aria-label="Voltar"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h2 className="truncate text-lg font-semibold text-wa-text">
+            {respostaId ? "Editar resposta" : "Nova resposta rápida"}
+          </h2>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <Button variant="outline" size="sm" onClick={onFechar} disabled={salvar.isPending}>
+            Cancelar
+          </Button>
+          <Button size="sm" onClick={submeter} disabled={!podeSalvar}>
+            {salvar.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
+            Salvar
+          </Button>
+        </div>
+      </header>
 
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
         {carregandoDetalhe ? (
           <p className="flex items-center gap-2 text-sm text-wa-text-muted">
             <Loader2 className="h-4 w-4 animate-spin" />
             Carregando…
           </p>
         ) : (
-          <div className="space-y-4">
+          <div className="mx-auto max-w-lg space-y-4">
             <div className="space-y-2">
               <Label htmlFor={tituloId}>Título</Label>
               <Input
@@ -203,7 +216,7 @@ export function EditorRespostaRapida({
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <Label>Mensagens</Label>
-                <div className="flex gap-1">
+                <div className="flex flex-wrap gap-1">
                   <Button
                     type="button"
                     variant="outline"
@@ -270,17 +283,7 @@ export function EditorRespostaRapida({
             )}
           </div>
         )}
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onFechar} disabled={salvar.isPending}>
-            Cancelar
-          </Button>
-          <Button onClick={submeter} disabled={!podeSalvar}>
-            {salvar.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
-            Salvar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
