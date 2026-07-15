@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 
 import { sessao, usuario } from "./autenticacao";
+import { campanhaEnvio, campanhaTemplateMemorizado } from "./campanha";
 import { instanciaEvo } from "./instancia-evo";
 import { instanciaMetaCloud } from "./instancia-meta-cloud";
 import { instancia } from "./instancias";
@@ -25,6 +26,7 @@ export const usuarioRelations = relations(usuario, ({ many }) => ({
   conversasAtribuidas: many(conversa),
   mensagensEnviadas: many(mensagem),
   conversaAnotacoes: many(conversaAnotacao),
+  campanhaEnvios: many(campanhaEnvio),
 }));
 
 export const sessaoRelations = relations(sessao, ({ one }) => ({
@@ -55,7 +57,38 @@ export const organizacaoRelations = relations(organizacao, ({ many }) => ({
   instancias: many(instancia),
   contatos: many(contato),
   respostasRapidas: many(respostaRapida),
+  campanhaEnvios: many(campanhaEnvio),
+  campanhaTemplatesMemorizados: many(campanhaTemplateMemorizado),
 }));
+
+export const campanhaEnvioRelations = relations(campanhaEnvio, ({ one }) => ({
+  organizacao: one(organizacao, {
+    fields: [campanhaEnvio.organizacaoId],
+    references: [organizacao.id],
+  }),
+  instancia: one(instancia, {
+    fields: [campanhaEnvio.instanciaId],
+    references: [instancia.id],
+  }),
+  usuario: one(usuario, {
+    fields: [campanhaEnvio.usuarioId],
+    references: [usuario.id],
+  }),
+}));
+
+export const campanhaTemplateMemorizadoRelations = relations(
+  campanhaTemplateMemorizado,
+  ({ one }) => ({
+    organizacao: one(organizacao, {
+      fields: [campanhaTemplateMemorizado.organizacaoId],
+      references: [organizacao.id],
+    }),
+    instancia: one(instancia, {
+      fields: [campanhaTemplateMemorizado.instanciaId],
+      references: [instancia.id],
+    }),
+  }),
+);
 
 export const organizacaoMembroRelations = relations(organizacaoMembro, ({ one }) => ({
   organizacao: one(organizacao, {
@@ -95,6 +128,8 @@ export const instanciaRelations = relations(instancia, ({ one, many }) => ({
   conversas: many(conversa),
   contatoInstancias: many(contatoInstancia),
   mensagemTemplates: many(mensagemTemplate),
+  campanhaEnvios: many(campanhaEnvio),
+  campanhaTemplatesMemorizados: many(campanhaTemplateMemorizado),
 }));
 
 export const instanciaEvoRelations = relations(instanciaEvo, ({ one }) => ({

@@ -1,5 +1,5 @@
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
-import { Loader2, Plug, Settings, Tag, Users } from "lucide-react";
+import { Loader2, Megaphone, Plug, Settings, Tag, Users } from "lucide-react";
 import { lazy, Suspense, type ComponentType } from "react";
 import {
   Dialog,
@@ -32,6 +32,11 @@ const SecaoEtiquetas = lazy(() =>
     default: m.SecaoAjustesEtiquetas,
   })),
 );
+const SecaoCampanha = lazy(() =>
+  import("@/components/ajustes/secoes/secao-campanha").then((m) => ({
+    default: m.SecaoAjustesCampanha,
+  })),
+);
 
 const NAV: Array<{
   secao: AjustesSecao;
@@ -42,6 +47,7 @@ const NAV: Array<{
   { secao: "usuarios", rotulo: "Usuários", icone: Users },
   { secao: "etiquetas", rotulo: "Etiquetas", icone: Tag },
   { secao: "conexao", rotulo: "Conexões", icone: Plug },
+  { secao: "campanha", rotulo: "Campanha", icone: Megaphone },
 ];
 
 function FallbackSecao() {
@@ -131,6 +137,7 @@ export function WaAjustesModal() {
               ) : null}
               {secaoAtiva === "conexao" ? <SecaoConexao /> : null}
               {secaoAtiva === "etiquetas" ? <SecaoEtiquetas /> : null}
+              {secaoAtiva === "campanha" ? <SecaoCampanha /> : null}
             </Suspense>
           </div>
         </div>

@@ -24,6 +24,8 @@ type WaShellProps = {
   chatHeader?: ReactNode;
   chatBody?: ReactNode;
   composer?: ReactNode;
+  /** Painel direito (ex.: campanha). */
+  painelDireito?: ReactNode;
 };
 
 export function WaShell({
@@ -44,6 +46,7 @@ export function WaShell({
   chatHeader,
   chatBody,
   composer,
+  painelDireito,
 }: WaShellProps) {
   return (
     <div className="flex h-full min-h-0 w-full overflow-hidden">
@@ -92,6 +95,8 @@ export function WaShell({
           </WaEmptyChat>
         )}
       </section>
+
+      {painelDireito}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { acoesContract } from "./contracts/web/acoes";
 import { autenticacaoContract } from "./contracts/web/autenticacao";
 import { caixaEntradaContract } from "./contracts/web/caixa-entrada";
+import { campanhaContract } from "./contracts/web/campanha";
 import { instanciaContract } from "./contracts/web/instancia";
 import { organizacaoContract } from "./contracts/web/organizacao";
 import { relatoriosContract } from "./contracts/web/relatorios";
@@ -14,6 +15,7 @@ export const webContract = {
   caixaEntrada: caixaEntradaContract,
   relatorios: relatoriosContract,
   acoes: acoesContract,
+  campanha: campanhaContract,
 };
 
 export type WebContract = typeof webContract;

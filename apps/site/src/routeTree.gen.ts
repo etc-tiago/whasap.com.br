@@ -14,6 +14,7 @@ import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as PrecosRouteImport } from './routes/precos'
 import { Route as LegalRouteImport } from './routes/legal'
 import { Route as IndiqueRouteImport } from './routes/indique'
+import { Route as EnvioEmMassaRouteImport } from './routes/envio-em-massa'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiOrcamentoRouteImport } from './routes/api/orcamento'
 
@@ -42,6 +43,11 @@ const IndiqueRoute = IndiqueRouteImport.update({
   path: '/indique',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EnvioEmMassaRoute = EnvioEmMassaRouteImport.update({
+  id: '/envio-em-massa',
+  path: '/envio-em-massa',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -55,6 +61,7 @@ const ApiOrcamentoRoute = ApiOrcamentoRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/envio-em-massa': typeof EnvioEmMassaRoute
   '/indique': typeof IndiqueRoute
   '/legal': typeof LegalRoute
   '/precos': typeof PrecosRoute
@@ -64,6 +71,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/envio-em-massa': typeof EnvioEmMassaRoute
   '/indique': typeof IndiqueRoute
   '/legal': typeof LegalRoute
   '/precos': typeof PrecosRoute
@@ -74,6 +82,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/envio-em-massa': typeof EnvioEmMassaRoute
   '/indique': typeof IndiqueRoute
   '/legal': typeof LegalRoute
   '/precos': typeof PrecosRoute
@@ -85,6 +94,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/envio-em-massa'
     | '/indique'
     | '/legal'
     | '/precos'
@@ -94,6 +104,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/envio-em-massa'
     | '/indique'
     | '/legal'
     | '/precos'
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/envio-em-massa'
     | '/indique'
     | '/legal'
     | '/precos'
@@ -113,6 +125,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  EnvioEmMassaRoute: typeof EnvioEmMassaRoute
   IndiqueRoute: typeof IndiqueRoute
   LegalRoute: typeof LegalRoute
   PrecosRoute: typeof PrecosRoute
@@ -158,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndiqueRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/envio-em-massa': {
+      id: '/envio-em-massa'
+      path: '/envio-em-massa'
+      fullPath: '/envio-em-massa'
+      preLoaderRoute: typeof EnvioEmMassaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -177,6 +197,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  EnvioEmMassaRoute: EnvioEmMassaRoute,
   IndiqueRoute: IndiqueRoute,
   LegalRoute: LegalRoute,
   PrecosRoute: PrecosRoute,
@@ -187,13 +208,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

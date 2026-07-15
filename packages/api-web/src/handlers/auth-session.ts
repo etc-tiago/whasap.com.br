@@ -136,6 +136,10 @@ export function mapearSessaoParaSaida(
     | "aceiteAdesaoVersao"
     | "horasAutoFecharInatividade"
     | "exibirNomeAtendenteMensagens"
+    | "campanhaHabilitada"
+    | "campanhaLimitePorMinuto"
+    | "campanhaLimitePorHora"
+    | "campanhaAlertaConsecutivos"
   > | null,
 ) {
   if (!ctx.usuario) {

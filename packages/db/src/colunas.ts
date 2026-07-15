@@ -50,6 +50,43 @@ export const colunasOrganizacaoPublica = {
   limiteConversas: true,
   horasAutoFecharInatividade: true,
   exibirNomeAtendenteMensagens: true,
+  campanhaHabilitada: true,
+  campanhaLimitePorMinuto: true,
+  campanhaLimitePorHora: true,
+  campanhaAlertaConsecutivos: true,
+} as const;
+
+/** Envio de campanha para listagem e relatório. */
+export const colunasCampanhaEnvio = {
+  id: true,
+  uuid: true,
+  organizacaoId: true,
+  instanciaId: true,
+  usuarioId: true,
+  nomeDestinatario: true,
+  telefone: true,
+  corpo: true,
+  templateNome: true,
+  templateIdioma: true,
+  templateVariaveis: true,
+  status: true,
+  erroMensagem: true,
+  conversaUuid: true,
+  criadoEm: true,
+} as const;
+
+/** Template memorizado de campanha (Cloud API). */
+export const colunasCampanhaTemplateMemorizado = {
+  id: true,
+  uuid: true,
+  organizacaoId: true,
+  instanciaId: true,
+  nome: true,
+  templateNome: true,
+  templateIdioma: true,
+  variaveis: true,
+  criadoEm: true,
+  atualizadoEm: true,
 } as const;
 
 /** Checagem de slug / existência — retorna só PK interna. */

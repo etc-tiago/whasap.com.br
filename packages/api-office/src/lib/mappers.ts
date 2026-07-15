@@ -21,6 +21,10 @@ export function mapearOrganizacaoParaSaida(org: {
   aceiteAdesaoVersao: string | null;
   horasAutoFecharInatividade?: string | null;
   exibirNomeAtendenteMensagens?: boolean | null;
+  campanhaHabilitada?: boolean | null;
+  campanhaLimitePorMinuto?: number | null;
+  campanhaLimitePorHora?: number | null;
+  campanhaAlertaConsecutivos?: number | null;
 }) {
   return {
     id: org.uuid,
@@ -34,6 +38,10 @@ export function mapearOrganizacaoParaSaida(org: {
     aceiteAdesaoVersao: org.aceiteAdesaoVersao,
     horasAutoFecharInatividade: org.horasAutoFecharInatividade ?? "72",
     exibirNomeAtendenteMensagens: org.exibirNomeAtendenteMensagens ?? false,
+    campanhaHabilitada: org.campanhaHabilitada ?? false,
+    campanhaLimitePorMinuto: org.campanhaLimitePorMinuto ?? 10,
+    campanhaLimitePorHora: org.campanhaLimitePorHora ?? 60,
+    campanhaAlertaConsecutivos: org.campanhaAlertaConsecutivos ?? 5,
   };
 }
 

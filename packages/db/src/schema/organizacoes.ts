@@ -33,6 +33,14 @@ export const organizacao = pgTable("organizacao", {
    * enviado ao WhatsApp (`Nome\nconteúdo`). Áudio/sticker: texto só com o nome antes da mídia.
    */
   exibirNomeAtendenteMensagens: boolean().notNull().default(false),
+  /** Módulo de campanha (envio rápido / histórico). Padrão desligado. */
+  campanhaHabilitada: boolean().notNull().default(false),
+  /** Soft-block: máximo de envios de campanha por minuto (0 = sem limite). */
+  campanhaLimitePorMinuto: integer().notNull().default(10),
+  /** Soft-block: máximo de envios de campanha por hora (0 = sem limite). */
+  campanhaLimitePorHora: integer().notNull().default(60),
+  /** Alerta de UI quando N envios ocorrem em janela curta (não bloqueia). */
+  campanhaAlertaConsecutivos: integer().notNull().default(5),
   excluidoEm: timestamp(),
   criadoEm: timestamp().notNull(),
   atualizadoEm: timestamp().notNull(),

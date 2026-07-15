@@ -60,6 +60,10 @@ export const organizacaoContract = {
           .regex(/^\d+$/, "Informe um número inteiro de horas")
           .optional(),
         exibirNomeAtendenteMensagens: z.boolean().optional(),
+        campanhaHabilitada: z.boolean().optional(),
+        campanhaLimitePorMinuto: z.number().int().min(0).max(1000).optional(),
+        campanhaLimitePorHora: z.number().int().min(0).max(10000).optional(),
+        campanhaAlertaConsecutivos: z.number().int().min(1).max(1000).optional(),
       }),
     )
     .output(organizacaoSchema),

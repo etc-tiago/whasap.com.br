@@ -1,5 +1,7 @@
 export { criarDb, type Db, schema } from "./client";
 export {
+  colunasCampanhaEnvio,
+  colunasCampanhaTemplateMemorizado,
   colunasCodigoOtpVerificacao,
   colunasContatoCaixaEntrada,
   colunasContatoTag,

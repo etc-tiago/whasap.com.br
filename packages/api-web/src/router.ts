@@ -1,6 +1,7 @@
 import autenticacao from "./procedures/autenticacao";
 import acoes from "./procedures/acoes";
 import caixaEntrada from "./procedures/caixa-entrada";
+import campanha from "./procedures/campanha";
 import instancia from "./procedures/instancia";
 import organizacao from "./procedures/organizacao";
 import relatorios from "./procedures/relatorios";
@@ -17,4 +18,5 @@ export const router = os.router({
   caixaEntrada,
   relatorios,
   acoes,
+  campanha,
 });

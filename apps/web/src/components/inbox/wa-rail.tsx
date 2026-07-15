@@ -2,7 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { isEvoProvider } from "@whasap/config";
 import { cn } from "@whasap/ui/lib/utils";
-import { ChartArea, MessageCircle, MessageSquareText, Settings, Users, Zap } from "lucide-react";
+import {
+  ChartArea,
+  Megaphone,
+  MessageCircle,
+  MessageSquareText,
+  Settings,
+  Users,
+  Zap,
+} from "lucide-react";
 
 import { WaRailHistoricoSync } from "@/components/inbox/wa-rail-historico-sync";
 import {
@@ -35,6 +43,11 @@ export function WaRail({ organizacaoHash }: WaRailProps) {
       return lista.some((i) => historicoSyncEmAndamento(i)) ? 5_000 : false;
     },
   });
+  const org = useQuery(
+    orpc.organizacao.obter.queryOptions({
+      input: orgInput(organizacaoHash),
+    }),
+  );
 
   const instanciaInbox = instancias.data?.find((i) => instanciaOperacional(i.status));
   const instanciaEvo =
@@ -42,6 +55,7 @@ export function WaRail({ organizacaoHash }: WaRailProps) {
       (i) =>
         isEvoProvider(i.provider) && (i.status === "connected" || i.status === "pending_payment"),
     ) ?? null;
+  const campanhaHabilitada = org.data?.campanhaHabilitada === true;
 
   return (
     <aside className="hidden w-14 shrink-0 flex-col items-center justify-between border-r border-wa-divider bg-wa-sidebar py-3 md:flex">
@@ -96,6 +110,16 @@ export function WaRail({ organizacaoHash }: WaRailProps) {
         <WaRailLink to="/$organizacaoHash/acoes" params={{ organizacaoHash }} title="Ações">
           <Zap className="size-5" />
         </WaRailLink>
+
+        {campanhaHabilitada ? (
+          <WaRailLink
+            to="/$organizacaoHash/campanha"
+            params={{ organizacaoHash }}
+            title="Campanha"
+          >
+            <Megaphone className="size-5" />
+          </WaRailLink>
+        ) : null}
       </div>
       <div className="flex flex-col items-center gap-1">
         <WaRailTheme />

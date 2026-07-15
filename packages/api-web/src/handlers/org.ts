@@ -142,6 +142,10 @@ export const organizacaoHandlers = {
       telefoneWhatsapp?: string;
       horasAutoFecharInatividade?: string;
       exibirNomeAtendenteMensagens?: boolean;
+      campanhaHabilitada?: boolean;
+      campanhaLimitePorMinuto?: number;
+      campanhaLimitePorHora?: number;
+      campanhaAlertaConsecutivos?: number;
     },
   ) => {
     await exigirAdmin(ctx, input.organizacaoHash);
@@ -164,6 +168,33 @@ export const organizacaoHandlers = {
         badRequest("Horas de auto-fechar deve ser entre 1 e 8760");
       }
     }
+    if (input.campanhaLimitePorMinuto !== undefined) {
+      if (
+        !Number.isFinite(input.campanhaLimitePorMinuto) ||
+        input.campanhaLimitePorMinuto < 0 ||
+        input.campanhaLimitePorMinuto > 1000
+      ) {
+        badRequest("Limite por minuto deve ser entre 0 e 1000");
+      }
+    }
+    if (input.campanhaLimitePorHora !== undefined) {
+      if (
+        !Number.isFinite(input.campanhaLimitePorHora) ||
+        input.campanhaLimitePorHora < 0 ||
+        input.campanhaLimitePorHora > 10000
+      ) {
+        badRequest("Limite por hora deve ser entre 0 e 10000");
+      }
+    }
+    if (input.campanhaAlertaConsecutivos !== undefined) {
+      if (
+        !Number.isFinite(input.campanhaAlertaConsecutivos) ||
+        input.campanhaAlertaConsecutivos < 1 ||
+        input.campanhaAlertaConsecutivos > 1000
+      ) {
+        badRequest("Alerta de consecutivos deve ser entre 1 e 1000");
+      }
+    }
 
     const [org] = await ctx.db
       .update(organizacao)
@@ -176,6 +207,10 @@ export const organizacaoHandlers = {
           telefoneWhatsapp,
           horasAutoFecharInatividade: input.horasAutoFecharInatividade,
           exibirNomeAtendenteMensagens: input.exibirNomeAtendenteMensagens,
+          campanhaHabilitada: input.campanhaHabilitada,
+          campanhaLimitePorMinuto: input.campanhaLimitePorMinuto,
+          campanhaLimitePorHora: input.campanhaLimitePorHora,
+          campanhaAlertaConsecutivos: input.campanhaAlertaConsecutivos,
         }),
       )
       .where(and(eq(organizacao.uuid, input.organizacaoHash), isNull(organizacao.excluidoEm)))

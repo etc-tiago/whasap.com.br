@@ -6,7 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@whasap/ui/components/dropdown-menu";
-import { ArrowLeft, History, MoreVertical, Search, Video } from "lucide-react";
+import { ArrowLeft, History, Megaphone, MoreVertical, Search, Video } from "lucide-react";
 
 import { WaAtribuirPopover } from "@/components/inbox/wa-atribuir-popover";
 import { WaEtiquetasPopover } from "@/components/inbox/wa-etiquetas-popover";
@@ -35,6 +35,10 @@ type WaChatHeaderProps = {
   podeEtiquetar?: boolean;
   onFechar: () => void;
   onVoltarMobile?: () => void;
+  /** Exibe botão para abrir/fechar o painel de campanha. */
+  campanhaDisponivel?: boolean;
+  campanhaAberta?: boolean;
+  onToggleCampanha?: () => void;
 };
 
 export function WaChatHeader({
@@ -47,6 +51,9 @@ export function WaChatHeader({
   podeEtiquetar = true,
   onFechar,
   onVoltarMobile,
+  campanhaDisponivel,
+  campanhaAberta,
+  onToggleCampanha,
 }: WaChatHeaderProps) {
   const queryClient = useQueryClient();
   const nome = conversa.contatoNome ?? conversa.contatoTelefone;
@@ -116,6 +123,15 @@ export function WaChatHeader({
           </div>
         </div>
         <div className="flex items-center gap-1 text-wa-icon">
+          {campanhaDisponivel && onToggleCampanha ? (
+            <WaIconButton
+              label={campanhaAberta ? "Fechar campanha" : "Abrir campanha"}
+              onClick={onToggleCampanha}
+              className={campanhaAberta ? "bg-wa-hover text-wa-green-dark" : undefined}
+            >
+              <Megaphone className="h-5 w-5" />
+            </WaIconButton>
+          ) : null}
           <WaEtiquetasPopover.Icone />
           <WaIconButton disabled label="Chamada de vídeo">
             <Video className="h-5 w-5" />

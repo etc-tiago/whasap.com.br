@@ -25,12 +25,16 @@ import { Route as PanelOrganizacaoHashIntegracaoRouteImport } from './routes/_pa
 import { Route as PanelOrganizacaoHashInstanciasRouteImport } from './routes/_panel/$organizacaoHash/instancias'
 import { Route as PanelOrganizacaoHashEquipeRouteImport } from './routes/_panel/$organizacaoHash/equipe'
 import { Route as PanelOrganizacaoHashContatosRouteImport } from './routes/_panel/$organizacaoHash/contatos'
+import { Route as PanelOrganizacaoHashCampanhaRouteRouteImport } from './routes/_panel/$organizacaoHash/campanha/route'
 import { Route as PanelOrganizacaoHashAjustesRouteRouteImport } from './routes/_panel/$organizacaoHash/ajustes/route'
 import { Route as PanelOrganizacaoHashAcoesRouteRouteImport } from './routes/_panel/$organizacaoHash/acoes/route'
 import { Route as PanelOrganizacaoHashInboxIndexRouteImport } from './routes/_panel/$organizacaoHash/inbox/index'
+import { Route as PanelOrganizacaoHashCampanhaIndexRouteImport } from './routes/_panel/$organizacaoHash/campanha/index'
 import { Route as PanelOrganizacaoHashAjustesIndexRouteImport } from './routes/_panel/$organizacaoHash/ajustes/index'
 import { Route as PanelOrganizacaoHashAcoesIndexRouteImport } from './routes/_panel/$organizacaoHash/acoes/index'
 import { Route as Char126EmailEmailHashBloqueadoRouteImport } from './routes/~/email/$emailHash/bloqueado'
+import { Route as PanelOrganizacaoHashCampanhaTemplatesRouteImport } from './routes/_panel/$organizacaoHash/campanha/templates'
+import { Route as PanelOrganizacaoHashCampanhaHistoricoRouteImport } from './routes/_panel/$organizacaoHash/campanha/historico'
 import { Route as PanelOrganizacaoHashAjustesUsuariosRouteImport } from './routes/_panel/$organizacaoHash/ajustes/usuarios'
 import { Route as PanelOrganizacaoHashAjustesRespostasRapidasRouteImport } from './routes/_panel/$organizacaoHash/ajustes/respostas-rapidas'
 import { Route as PanelOrganizacaoHashAjustesEtiquetasRouteImport } from './routes/_panel/$organizacaoHash/ajustes/etiquetas'
@@ -129,6 +133,12 @@ const PanelOrganizacaoHashContatosRoute =
     path: '/contatos',
     getParentRoute: () => PanelOrganizacaoHashRouteRoute,
   } as any)
+const PanelOrganizacaoHashCampanhaRouteRoute =
+  PanelOrganizacaoHashCampanhaRouteRouteImport.update({
+    id: '/campanha',
+    path: '/campanha',
+    getParentRoute: () => PanelOrganizacaoHashRouteRoute,
+  } as any)
 const PanelOrganizacaoHashAjustesRouteRoute =
   PanelOrganizacaoHashAjustesRouteRouteImport.update({
     id: '/ajustes',
@@ -147,6 +157,12 @@ const PanelOrganizacaoHashInboxIndexRoute =
     path: '/inbox/',
     getParentRoute: () => PanelOrganizacaoHashRouteRoute,
   } as any)
+const PanelOrganizacaoHashCampanhaIndexRoute =
+  PanelOrganizacaoHashCampanhaIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => PanelOrganizacaoHashCampanhaRouteRoute,
+  } as any)
 const PanelOrganizacaoHashAjustesIndexRoute =
   PanelOrganizacaoHashAjustesIndexRouteImport.update({
     id: '/',
@@ -164,6 +180,18 @@ const Char126EmailEmailHashBloqueadoRoute =
     id: '/~/email/$emailHash/bloqueado',
     path: '/~/email/$emailHash/bloqueado',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const PanelOrganizacaoHashCampanhaTemplatesRoute =
+  PanelOrganizacaoHashCampanhaTemplatesRouteImport.update({
+    id: '/templates',
+    path: '/templates',
+    getParentRoute: () => PanelOrganizacaoHashCampanhaRouteRoute,
+  } as any)
+const PanelOrganizacaoHashCampanhaHistoricoRoute =
+  PanelOrganizacaoHashCampanhaHistoricoRouteImport.update({
+    id: '/historico',
+    path: '/historico',
+    getParentRoute: () => PanelOrganizacaoHashCampanhaRouteRoute,
   } as any)
 const PanelOrganizacaoHashAjustesUsuariosRoute =
   PanelOrganizacaoHashAjustesUsuariosRouteImport.update({
@@ -236,6 +264,7 @@ export interface FileRoutesByFullPath {
   '/~/': typeof Char126IndexRoute
   '/$organizacaoHash/acoes': typeof PanelOrganizacaoHashAcoesRouteRouteWithChildren
   '/$organizacaoHash/ajustes': typeof PanelOrganizacaoHashAjustesRouteRouteWithChildren
+  '/$organizacaoHash/campanha': typeof PanelOrganizacaoHashCampanhaRouteRouteWithChildren
   '/$organizacaoHash/contatos': typeof PanelOrganizacaoHashContatosRoute
   '/$organizacaoHash/equipe': typeof PanelOrganizacaoHashEquipeRoute
   '/$organizacaoHash/instancias': typeof PanelOrganizacaoHashInstanciasRoute
@@ -252,9 +281,12 @@ export interface FileRoutesByFullPath {
   '/$organizacaoHash/ajustes/etiquetas': typeof PanelOrganizacaoHashAjustesEtiquetasRoute
   '/$organizacaoHash/ajustes/respostas-rapidas': typeof PanelOrganizacaoHashAjustesRespostasRapidasRoute
   '/$organizacaoHash/ajustes/usuarios': typeof PanelOrganizacaoHashAjustesUsuariosRoute
+  '/$organizacaoHash/campanha/historico': typeof PanelOrganizacaoHashCampanhaHistoricoRoute
+  '/$organizacaoHash/campanha/templates': typeof PanelOrganizacaoHashCampanhaTemplatesRoute
   '/~/email/$emailHash/bloqueado': typeof Char126EmailEmailHashBloqueadoRoute
   '/$organizacaoHash/acoes/': typeof PanelOrganizacaoHashAcoesIndexRoute
   '/$organizacaoHash/ajustes/': typeof PanelOrganizacaoHashAjustesIndexRoute
+  '/$organizacaoHash/campanha/': typeof PanelOrganizacaoHashCampanhaIndexRoute
   '/$organizacaoHash/inbox/': typeof PanelOrganizacaoHashInboxIndexRoute
   '/$organizacaoHash/inbox/$instanceId/': typeof PanelOrganizacaoHashInboxInstanceIdIndexRoute
   '/$organizacaoHash/inbox/$instanceId/relatorios/': typeof PanelOrganizacaoHashInboxInstanceIdRelatoriosIndexRoute
@@ -282,9 +314,12 @@ export interface FileRoutesByTo {
   '/$organizacaoHash/ajustes/etiquetas': typeof PanelOrganizacaoHashAjustesEtiquetasRoute
   '/$organizacaoHash/ajustes/respostas-rapidas': typeof PanelOrganizacaoHashAjustesRespostasRapidasRoute
   '/$organizacaoHash/ajustes/usuarios': typeof PanelOrganizacaoHashAjustesUsuariosRoute
+  '/$organizacaoHash/campanha/historico': typeof PanelOrganizacaoHashCampanhaHistoricoRoute
+  '/$organizacaoHash/campanha/templates': typeof PanelOrganizacaoHashCampanhaTemplatesRoute
   '/~/email/$emailHash/bloqueado': typeof Char126EmailEmailHashBloqueadoRoute
   '/$organizacaoHash/acoes': typeof PanelOrganizacaoHashAcoesIndexRoute
   '/$organizacaoHash/ajustes': typeof PanelOrganizacaoHashAjustesIndexRoute
+  '/$organizacaoHash/campanha': typeof PanelOrganizacaoHashCampanhaIndexRoute
   '/$organizacaoHash/inbox': typeof PanelOrganizacaoHashInboxIndexRoute
   '/$organizacaoHash/inbox/$instanceId': typeof PanelOrganizacaoHashInboxInstanceIdIndexRoute
   '/$organizacaoHash/inbox/$instanceId/relatorios': typeof PanelOrganizacaoHashInboxInstanceIdRelatoriosIndexRoute
@@ -301,6 +336,7 @@ export interface FileRoutesById {
   '/~/': typeof Char126IndexRoute
   '/_panel/$organizacaoHash/acoes': typeof PanelOrganizacaoHashAcoesRouteRouteWithChildren
   '/_panel/$organizacaoHash/ajustes': typeof PanelOrganizacaoHashAjustesRouteRouteWithChildren
+  '/_panel/$organizacaoHash/campanha': typeof PanelOrganizacaoHashCampanhaRouteRouteWithChildren
   '/_panel/$organizacaoHash/contatos': typeof PanelOrganizacaoHashContatosRoute
   '/_panel/$organizacaoHash/equipe': typeof PanelOrganizacaoHashEquipeRoute
   '/_panel/$organizacaoHash/instancias': typeof PanelOrganizacaoHashInstanciasRoute
@@ -317,9 +353,12 @@ export interface FileRoutesById {
   '/_panel/$organizacaoHash/ajustes/etiquetas': typeof PanelOrganizacaoHashAjustesEtiquetasRoute
   '/_panel/$organizacaoHash/ajustes/respostas-rapidas': typeof PanelOrganizacaoHashAjustesRespostasRapidasRoute
   '/_panel/$organizacaoHash/ajustes/usuarios': typeof PanelOrganizacaoHashAjustesUsuariosRoute
+  '/_panel/$organizacaoHash/campanha/historico': typeof PanelOrganizacaoHashCampanhaHistoricoRoute
+  '/_panel/$organizacaoHash/campanha/templates': typeof PanelOrganizacaoHashCampanhaTemplatesRoute
   '/~/email/$emailHash/bloqueado': typeof Char126EmailEmailHashBloqueadoRoute
   '/_panel/$organizacaoHash/acoes/': typeof PanelOrganizacaoHashAcoesIndexRoute
   '/_panel/$organizacaoHash/ajustes/': typeof PanelOrganizacaoHashAjustesIndexRoute
+  '/_panel/$organizacaoHash/campanha/': typeof PanelOrganizacaoHashCampanhaIndexRoute
   '/_panel/$organizacaoHash/inbox/': typeof PanelOrganizacaoHashInboxIndexRoute
   '/_panel/$organizacaoHash/inbox/$instanceId/': typeof PanelOrganizacaoHashInboxInstanceIdIndexRoute
   '/_panel/$organizacaoHash/inbox/$instanceId/relatorios/': typeof PanelOrganizacaoHashInboxInstanceIdRelatoriosIndexRoute
@@ -336,6 +375,7 @@ export interface FileRouteTypes {
     | '/~/'
     | '/$organizacaoHash/acoes'
     | '/$organizacaoHash/ajustes'
+    | '/$organizacaoHash/campanha'
     | '/$organizacaoHash/contatos'
     | '/$organizacaoHash/equipe'
     | '/$organizacaoHash/instancias'
@@ -352,9 +392,12 @@ export interface FileRouteTypes {
     | '/$organizacaoHash/ajustes/etiquetas'
     | '/$organizacaoHash/ajustes/respostas-rapidas'
     | '/$organizacaoHash/ajustes/usuarios'
+    | '/$organizacaoHash/campanha/historico'
+    | '/$organizacaoHash/campanha/templates'
     | '/~/email/$emailHash/bloqueado'
     | '/$organizacaoHash/acoes/'
     | '/$organizacaoHash/ajustes/'
+    | '/$organizacaoHash/campanha/'
     | '/$organizacaoHash/inbox/'
     | '/$organizacaoHash/inbox/$instanceId/'
     | '/$organizacaoHash/inbox/$instanceId/relatorios/'
@@ -382,9 +425,12 @@ export interface FileRouteTypes {
     | '/$organizacaoHash/ajustes/etiquetas'
     | '/$organizacaoHash/ajustes/respostas-rapidas'
     | '/$organizacaoHash/ajustes/usuarios'
+    | '/$organizacaoHash/campanha/historico'
+    | '/$organizacaoHash/campanha/templates'
     | '/~/email/$emailHash/bloqueado'
     | '/$organizacaoHash/acoes'
     | '/$organizacaoHash/ajustes'
+    | '/$organizacaoHash/campanha'
     | '/$organizacaoHash/inbox'
     | '/$organizacaoHash/inbox/$instanceId'
     | '/$organizacaoHash/inbox/$instanceId/relatorios'
@@ -400,6 +446,7 @@ export interface FileRouteTypes {
     | '/~/'
     | '/_panel/$organizacaoHash/acoes'
     | '/_panel/$organizacaoHash/ajustes'
+    | '/_panel/$organizacaoHash/campanha'
     | '/_panel/$organizacaoHash/contatos'
     | '/_panel/$organizacaoHash/equipe'
     | '/_panel/$organizacaoHash/instancias'
@@ -416,9 +463,12 @@ export interface FileRouteTypes {
     | '/_panel/$organizacaoHash/ajustes/etiquetas'
     | '/_panel/$organizacaoHash/ajustes/respostas-rapidas'
     | '/_panel/$organizacaoHash/ajustes/usuarios'
+    | '/_panel/$organizacaoHash/campanha/historico'
+    | '/_panel/$organizacaoHash/campanha/templates'
     | '/~/email/$emailHash/bloqueado'
     | '/_panel/$organizacaoHash/acoes/'
     | '/_panel/$organizacaoHash/ajustes/'
+    | '/_panel/$organizacaoHash/campanha/'
     | '/_panel/$organizacaoHash/inbox/'
     | '/_panel/$organizacaoHash/inbox/$instanceId/'
     | '/_panel/$organizacaoHash/inbox/$instanceId/relatorios/'
@@ -549,6 +599,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelOrganizacaoHashContatosRouteImport
       parentRoute: typeof PanelOrganizacaoHashRouteRoute
     }
+    '/_panel/$organizacaoHash/campanha': {
+      id: '/_panel/$organizacaoHash/campanha'
+      path: '/campanha'
+      fullPath: '/$organizacaoHash/campanha'
+      preLoaderRoute: typeof PanelOrganizacaoHashCampanhaRouteRouteImport
+      parentRoute: typeof PanelOrganizacaoHashRouteRoute
+    }
     '/_panel/$organizacaoHash/ajustes': {
       id: '/_panel/$organizacaoHash/ajustes'
       path: '/ajustes'
@@ -570,6 +627,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelOrganizacaoHashInboxIndexRouteImport
       parentRoute: typeof PanelOrganizacaoHashRouteRoute
     }
+    '/_panel/$organizacaoHash/campanha/': {
+      id: '/_panel/$organizacaoHash/campanha/'
+      path: '/'
+      fullPath: '/$organizacaoHash/campanha/'
+      preLoaderRoute: typeof PanelOrganizacaoHashCampanhaIndexRouteImport
+      parentRoute: typeof PanelOrganizacaoHashCampanhaRouteRoute
+    }
     '/_panel/$organizacaoHash/ajustes/': {
       id: '/_panel/$organizacaoHash/ajustes/'
       path: '/'
@@ -590,6 +654,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/~/email/$emailHash/bloqueado'
       preLoaderRoute: typeof Char126EmailEmailHashBloqueadoRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_panel/$organizacaoHash/campanha/templates': {
+      id: '/_panel/$organizacaoHash/campanha/templates'
+      path: '/templates'
+      fullPath: '/$organizacaoHash/campanha/templates'
+      preLoaderRoute: typeof PanelOrganizacaoHashCampanhaTemplatesRouteImport
+      parentRoute: typeof PanelOrganizacaoHashCampanhaRouteRoute
+    }
+    '/_panel/$organizacaoHash/campanha/historico': {
+      id: '/_panel/$organizacaoHash/campanha/historico'
+      path: '/historico'
+      fullPath: '/$organizacaoHash/campanha/historico'
+      preLoaderRoute: typeof PanelOrganizacaoHashCampanhaHistoricoRouteImport
+      parentRoute: typeof PanelOrganizacaoHashCampanhaRouteRoute
     }
     '/_panel/$organizacaoHash/ajustes/usuarios': {
       id: '/_panel/$organizacaoHash/ajustes/usuarios'
@@ -716,9 +794,31 @@ const PanelOrganizacaoHashAjustesRouteRouteWithChildren =
     PanelOrganizacaoHashAjustesRouteRouteChildren,
   )
 
+interface PanelOrganizacaoHashCampanhaRouteRouteChildren {
+  PanelOrganizacaoHashCampanhaHistoricoRoute: typeof PanelOrganizacaoHashCampanhaHistoricoRoute
+  PanelOrganizacaoHashCampanhaTemplatesRoute: typeof PanelOrganizacaoHashCampanhaTemplatesRoute
+  PanelOrganizacaoHashCampanhaIndexRoute: typeof PanelOrganizacaoHashCampanhaIndexRoute
+}
+
+const PanelOrganizacaoHashCampanhaRouteRouteChildren: PanelOrganizacaoHashCampanhaRouteRouteChildren =
+  {
+    PanelOrganizacaoHashCampanhaHistoricoRoute:
+      PanelOrganizacaoHashCampanhaHistoricoRoute,
+    PanelOrganizacaoHashCampanhaTemplatesRoute:
+      PanelOrganizacaoHashCampanhaTemplatesRoute,
+    PanelOrganizacaoHashCampanhaIndexRoute:
+      PanelOrganizacaoHashCampanhaIndexRoute,
+  }
+
+const PanelOrganizacaoHashCampanhaRouteRouteWithChildren =
+  PanelOrganizacaoHashCampanhaRouteRoute._addFileChildren(
+    PanelOrganizacaoHashCampanhaRouteRouteChildren,
+  )
+
 interface PanelOrganizacaoHashRouteRouteChildren {
   PanelOrganizacaoHashAcoesRouteRoute: typeof PanelOrganizacaoHashAcoesRouteRouteWithChildren
   PanelOrganizacaoHashAjustesRouteRoute: typeof PanelOrganizacaoHashAjustesRouteRouteWithChildren
+  PanelOrganizacaoHashCampanhaRouteRoute: typeof PanelOrganizacaoHashCampanhaRouteRouteWithChildren
   PanelOrganizacaoHashContatosRoute: typeof PanelOrganizacaoHashContatosRoute
   PanelOrganizacaoHashEquipeRoute: typeof PanelOrganizacaoHashEquipeRoute
   PanelOrganizacaoHashInstanciasRoute: typeof PanelOrganizacaoHashInstanciasRoute
@@ -737,6 +837,8 @@ const PanelOrganizacaoHashRouteRouteChildren: PanelOrganizacaoHashRouteRouteChil
       PanelOrganizacaoHashAcoesRouteRouteWithChildren,
     PanelOrganizacaoHashAjustesRouteRoute:
       PanelOrganizacaoHashAjustesRouteRouteWithChildren,
+    PanelOrganizacaoHashCampanhaRouteRoute:
+      PanelOrganizacaoHashCampanhaRouteRouteWithChildren,
     PanelOrganizacaoHashContatosRoute: PanelOrganizacaoHashContatosRoute,
     PanelOrganizacaoHashEquipeRoute: PanelOrganizacaoHashEquipeRoute,
     PanelOrganizacaoHashInstanciasRoute: PanelOrganizacaoHashInstanciasRoute,
@@ -784,13 +886,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

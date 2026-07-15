@@ -12,6 +12,7 @@ import { Badge } from "@whasap/ui/components/badge";
 import { Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { WaCampanhaPainel } from "@/components/campanha/wa-campanha-painel";
 import { WaChatHeader } from "@/components/inbox/wa-chat-header";
 import type { FiltroConversa } from "@/components/inbox/wa-chat-list-panel";
 import { WaChatRow } from "@/components/inbox/wa-chat-row";
@@ -65,6 +66,7 @@ function InboxOrgPage() {
     instanciaId?: string;
   } | null>(null);
   const [forcarRodapeToken, setForcarRodapeToken] = useState(0);
+  const [campanhaPainelAberto, setCampanhaPainelAberto] = useState(false);
   const ultimaMensagemEmRef = useRef<string | null>(null);
 
   const { data: session } = useSession();
@@ -283,6 +285,9 @@ function InboxOrgPage() {
 
   const podeIniciarConversa = org.data?.meuPapel === "admin" || org.data?.meuPapel === "usuario";
 
+  const campanhaDisponivel =
+    org.data?.campanhaHabilitada === true && podeIniciarConversa && instanciasParaNovaConversa.length > 0;
+
   const composerDisabled = isMetaCloud && !cloudWindowOpen;
 
   useEffect(() => {
@@ -435,6 +440,9 @@ function InboxOrgPage() {
             podeEtiquetar={podeEscrever}
             onFechar={() => fechar.mutate({ conversaId: selected.id })}
             onVoltarMobile={() => setSelectedId(null)}
+            campanhaDisponivel={campanhaDisponivel}
+            campanhaAberta={campanhaPainelAberto}
+            onToggleCampanha={() => setCampanhaPainelAberto((v) => !v)}
           />
         ) : undefined
       }
@@ -476,6 +484,22 @@ function InboxOrgPage() {
               onSend={handleSend}
             />
           )
+        ) : undefined
+      }
+      painelDireito={
+        campanhaDisponivel && organizacaoHash ? (
+          <WaCampanhaPainel
+            aberto={campanhaPainelAberto}
+            onFechar={() => setCampanhaPainelAberto(false)}
+            organizacaoHash={organizacaoHash}
+            instancias={instanciasParaNovaConversa}
+            instanciaPadraoId={instanciaPadraoNovaConversa}
+            nomeInicial={selected?.contatoNome ?? undefined}
+            telefoneInicial={selected?.contatoTelefone ?? undefined}
+            alertaConsecutivos={org.data?.campanhaAlertaConsecutivos}
+            className="hidden lg:flex"
+            onEnviado={(conversaId) => setSelectedId(conversaId)}
+          />
         ) : undefined
       }
     />

@@ -48,6 +48,14 @@ export const organizacaoSchema = z.object({
   horasAutoFecharInatividade: z.string(),
   /** Prefixa o nome do atendente nas mensagens outbound do WhatsApp. */
   exibirNomeAtendenteMensagens: z.boolean(),
+  /** Módulo de campanha ativo para a organização. */
+  campanhaHabilitada: z.boolean(),
+  /** Soft-block: máximo de envios de campanha por minuto (0 = sem limite). */
+  campanhaLimitePorMinuto: z.number().int(),
+  /** Soft-block: máximo de envios de campanha por hora (0 = sem limite). */
+  campanhaLimitePorHora: z.number().int(),
+  /** Alerta de UI quando N envios ocorrem em janela curta. */
+  campanhaAlertaConsecutivos: z.number().int(),
 });
 
 export const organizacaoComPapelSchema = organizacaoSchema.extend({

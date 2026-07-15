@@ -1,5 +1,5 @@
 /** Seções do modal global de Ajustes (`?ajustes=`). */
-export const AJUSTES_SECOES = ["geral", "usuarios", "conexao", "etiquetas"] as const;
+export const AJUSTES_SECOES = ["geral", "usuarios", "conexao", "etiquetas", "campanha"] as const;
 
 export type AjustesSecao = (typeof AJUSTES_SECOES)[number];
 

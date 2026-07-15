@@ -5,5 +5,6 @@ export * from "./instancias";
 export * from "./instancia-evo";
 export * from "./instancia-meta-cloud";
 export * from "./mensageria";
+export * from "./campanha";
 export * from "./webhook";
 export * from "./relacoes";
