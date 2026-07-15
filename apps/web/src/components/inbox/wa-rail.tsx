@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getRouteApi, useNavigate } from "@tanstack/react-router";
+import { getRouteApi, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { isEvoProvider } from "@whasap/config";
 import { cn } from "@whasap/ui/lib/utils";
 import {
@@ -29,12 +29,21 @@ import { orpc } from "@/lib/orpc";
 
 const orgRouteApi = getRouteApi("/_panel/$organizacaoHash");
 
+/** `/inbox` e `/chat/$conversaId` compartilham o destaque “Conversas”. */
+function eRotaConversas(pathname: string, organizacaoHash: string): boolean {
+  return (
+    pathname.includes(`/${organizacaoHash}/inbox`) ||
+    pathname.includes(`/${organizacaoHash}/chat/`)
+  );
+}
+
 type WaRailProps = {
   organizacaoHash: string;
 };
 
 export function WaRail({ organizacaoHash }: WaRailProps) {
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { ajustes } = orgRouteApi.useSearch();
   const instancias = useQuery({
     ...orpc.instancia.lista.queryOptions({ input: orgInput(organizacaoHash) }),
@@ -56,19 +65,24 @@ export function WaRail({ organizacaoHash }: WaRailProps) {
         isEvoProvider(i.provider) && (i.status === "connected" || i.status === "pending_payment"),
     ) ?? null;
   const campanhaHabilitada = org.data?.campanhaHabilitada === true;
+  const conversasAtivo = eRotaConversas(pathname, organizacaoHash);
 
   return (
     <aside className="hidden w-14 shrink-0 flex-col items-center justify-between border-r border-wa-divider bg-wa-sidebar py-3 md:flex">
       <div className="flex flex-col items-center gap-1">
         {instanciaInbox ? (
-          <WaRailLink
+          <Link
             to="/$organizacaoHash/inbox"
             params={{ organizacaoHash }}
             title="Conversas"
-            activeOptions={waRailLinkActiveOptionsExact}
+            className={
+              conversasAtivo
+                ? waRailLinkActiveProps.className
+                : waRailLinkInactiveProps.className
+            }
           >
             <MessageCircle className="size-5" />
-          </WaRailLink>
+          </Link>
         ) : (
           <WaRailLink
             to="/$organizacaoHash"

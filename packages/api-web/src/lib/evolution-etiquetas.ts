@@ -101,3 +101,38 @@ export async function garantirEtiquetaEvolution(
   }
   return labelId;
 }
+
+/** Atualiza nome/cor da etiqueta no WhatsApp via Evolution GO. */
+export async function atualizarEtiquetaEvolution(
+  ctx: WebContext,
+  instance: InstanciaComProvedor,
+  labelId: string,
+  nome: string,
+  cor: string | null | undefined,
+): Promise<void> {
+  const client = await clienteEvolutionInstancia(ctx, instance);
+  if (!client) return;
+
+  await client.editLabel({
+    labelId,
+    name: nome,
+    color: corPainelParaIndiceWhatsapp(cor),
+  });
+}
+
+/** Remove etiqueta no WhatsApp via Evolution GO (`deleted: true`). */
+export async function excluirEtiquetaEvolution(
+  ctx: WebContext,
+  instance: InstanciaComProvedor,
+  labelId: string,
+): Promise<void> {
+  const client = await clienteEvolutionInstancia(ctx, instance);
+  if (!client) return;
+
+  await client.editLabel({
+    labelId,
+    name: "",
+    color: 0,
+    deleted: true,
+  });
+}

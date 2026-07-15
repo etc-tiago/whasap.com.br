@@ -3,7 +3,6 @@ export const AJUSTES_SECOES = [
   "geral",
   "usuarios",
   "conexao",
-  "etiquetas",
   "campanha",
   "indique",
 ] as const;

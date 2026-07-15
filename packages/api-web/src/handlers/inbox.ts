@@ -66,7 +66,9 @@ import type { WebContext } from "../types";
 import { exigirAutenticacao, resolverMembro, resolverMembroPorIdInterno } from "./auth";
 import {
   atribuirEtiquetaEvolution,
+  atualizarEtiquetaEvolution,
   criarEtiquetaEvolution,
+  excluirEtiquetaEvolution,
   garantirEtiquetaEvolution,
   removerEtiquetaEvolution,
 } from "../lib/evolution-etiquetas";
@@ -181,6 +183,66 @@ async function resolverInstanciaEvoDoContato(
   return (
     rows.find((row) => row && isEvoProvider(row.provedor) && isInstanceOperational(row)) ?? null
   );
+}
+
+/** Primeira instância Evolution operacional da organização (para sync de label sem contato). */
+async function resolverInstanciaEvoDaOrganizacao(
+  ctx: WebContext,
+  organizacaoId: number,
+): Promise<InstanciaComProvedor | null> {
+  const rows = await ctx.db.query.instancia.findMany({
+    where: and(eq(instancia.organizacaoId, organizacaoId), isNull(instancia.excluidoEm)),
+    columns: colunasInstanciaOperacao,
+    with: {
+      evo: incluirInstanciaOperacao.with.evo,
+      metaCloud: incluirInstanciaOperacao.with.metaCloud,
+    },
+  });
+  return rows.find((row) => isEvoProvider(row.provedor) && isInstanceOperational(row)) ?? null;
+}
+
+async function contagemContatosPorTag(
+  ctx: WebContext,
+  tagIds: number[],
+): Promise<Map<number, number>> {
+  const mapa = new Map<number, number>();
+  if (tagIds.length === 0) return mapa;
+
+  const rows = await ctx.db
+    .select({
+      tagId: contatoTagAtribuicao.tagId,
+      n: count(),
+    })
+    .from(contatoTagAtribuicao)
+    .where(inArray(contatoTagAtribuicao.tagId, tagIds))
+    .groupBy(contatoTagAtribuicao.tagId);
+
+  for (const row of rows) {
+    mapa.set(row.tagId, row.n);
+  }
+  return mapa;
+}
+
+async function montarDetalheEtiqueta(
+  ctx: WebContext,
+  tag: {
+    id: number;
+    uuid: string;
+    nome: string;
+    cor: string | null;
+    idExterno: string | null;
+    criadoEm: Date;
+  },
+) {
+  const contagens = await contagemContatosPorTag(ctx, [tag.id]);
+  return {
+    id: tag.uuid,
+    nome: tag.nome,
+    cor: tag.cor,
+    contatosContagem: contagens.get(tag.id) ?? 0,
+    criadoEm: tag.criadoEm.toISOString(),
+    sincronizadaWhatsapp: Boolean(tag.idExterno),
+  };
 }
 
 async function resolverIdExternoLinhaContato(
@@ -1236,15 +1298,108 @@ export const caixaEntradaHandlers = {
 
       const rows = await ctx.db.query.contatoTag.findMany({
         where: eq(contatoTag.organizacaoId, organizacaoId),
-        columns: colunasContatoTag,
+        columns: { ...colunasContatoTag, criadoEm: true },
         orderBy: [asc(contatoTag.nome)],
       });
+
+      const contagens = await contagemContatosPorTag(
+        ctx,
+        rows.map((r) => r.id),
+      );
 
       return rows.map((row) => ({
         id: row.uuid,
         nome: row.nome,
         cor: row.cor,
+        contatosContagem: contagens.get(row.id) ?? 0,
+        criadoEm: row.criadoEm.toISOString(),
       }));
+    },
+
+    obter: async (
+      ctx: WebContext,
+      input: { organizacaoHash: string; etiquetaId: string },
+    ) => {
+      exigirAutenticacao(ctx);
+      await resolverMembro(ctx, input.organizacaoHash);
+      const organizacaoId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
+      if (organizacaoId === null) notFound();
+
+      const tag = await ctx.db.query.contatoTag.findFirst({
+        where: eq(contatoTag.uuid, input.etiquetaId),
+        columns: { ...colunasContatoTag, criadoEm: true },
+      });
+      if (!tag || tag.organizacaoId !== organizacaoId) {
+        notFound("Etiqueta não encontrada");
+      }
+
+      return montarDetalheEtiqueta(ctx, tag);
+    },
+
+    contatos: async (
+      ctx: WebContext,
+      input: {
+        organizacaoHash: string;
+        etiquetaId: string;
+        busca?: string;
+        limite?: number;
+        offset?: number;
+      },
+    ) => {
+      exigirAutenticacao(ctx);
+      await resolverMembro(ctx, input.organizacaoHash);
+      const organizacaoId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
+      if (organizacaoId === null) notFound();
+
+      const tag = await ctx.db.query.contatoTag.findFirst({
+        where: eq(contatoTag.uuid, input.etiquetaId),
+        columns: colunasContatoTag,
+      });
+      if (!tag || tag.organizacaoId !== organizacaoId) {
+        notFound("Etiqueta não encontrada");
+      }
+
+      const limite = input.limite ?? 30;
+      const offset = input.offset ?? 0;
+      const busca = input.busca?.trim();
+
+      const filtros: SQL[] = [
+        eq(contatoTagAtribuicao.tagId, tag.id),
+        eq(contato.organizacaoId, organizacaoId),
+        isNull(contato.excluidoEm),
+      ];
+
+      if (busca) {
+        const termo = `%${busca}%`;
+        filtros.push(or(ilike(contato.nome, termo), ilike(contato.telefone, termo))!);
+      }
+
+      const where = and(...filtros);
+
+      const [[totalRow], rows] = await Promise.all([
+        ctx.db
+          .select({ n: count() })
+          .from(contatoTagAtribuicao)
+          .innerJoin(contato, eq(contato.id, contatoTagAtribuicao.contatoId))
+          .where(where),
+        ctx.db
+          .select({
+            id: contato.id,
+            uuid: contato.uuid,
+            nome: contato.nome,
+            telefone: contato.telefone,
+            criadoEm: contato.criadoEm,
+          })
+          .from(contatoTagAtribuicao)
+          .innerJoin(contato, eq(contato.id, contatoTagAtribuicao.contatoId))
+          .where(where)
+          .orderBy(desc(contato.atualizadoEm), desc(contato.id))
+          .limit(limite)
+          .offset(offset),
+      ]);
+
+      const itens = await montarItensContatoLista(ctx, rows);
+      return { itens, total: totalRow?.n ?? 0 };
     },
 
     porContato: async (ctx: WebContext, input: { contatoId: string }) => {
@@ -1388,6 +1543,8 @@ export const caixaEntradaHandlers = {
         const access = await exigirAcessoInstancia(ctx, input.instanciaId);
         if (access.instance.organizacaoId !== organizacaoId) notFound();
         instanceForEvolution = access.instance;
+      } else {
+        instanceForEvolution = await resolverInstanciaEvoDaOrganizacao(ctx, organizacaoId);
       }
 
       let idExterno: string | null = null;
@@ -1440,6 +1597,85 @@ export const caixaEntradaHandlers = {
         nome: tag!.nome,
         cor: tag!.cor,
       };
+    },
+
+    atualizar: async (
+      ctx: WebContext,
+      input: {
+        organizacaoHash: string;
+        etiquetaId: string;
+        nome: string;
+        cor?: string | null;
+      },
+    ) => {
+      exigirAutenticacao(ctx);
+      const { role } = await resolverMembro(ctx, input.organizacaoHash);
+      verificarPodeEscreverCaixaEntrada(role);
+
+      const organizacaoId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
+      if (organizacaoId === null) notFound();
+
+      const tag = await ctx.db.query.contatoTag.findFirst({
+        where: eq(contatoTag.uuid, input.etiquetaId),
+        columns: { ...colunasContatoTag, criadoEm: true },
+      });
+      if (!tag || tag.organizacaoId !== organizacaoId) {
+        notFound("Etiqueta não encontrada");
+      }
+
+      const cor = input.cor === undefined ? tag.cor : input.cor;
+
+      if (tag.idExterno) {
+        const evoInstance = await resolverInstanciaEvoDaOrganizacao(ctx, organizacaoId);
+        if (evoInstance) {
+          await atualizarEtiquetaEvolution(ctx, evoInstance, tag.idExterno, input.nome, cor);
+        }
+      }
+
+      const [atualizada] = await ctx.db
+        .update(contatoTag)
+        .set({ nome: input.nome, cor })
+        .where(eq(contatoTag.id, tag.id))
+        .returning({
+          id: contatoTag.id,
+          uuid: contatoTag.uuid,
+          nome: contatoTag.nome,
+          cor: contatoTag.cor,
+          idExterno: contatoTag.idExterno,
+          criadoEm: contatoTag.criadoEm,
+        });
+
+      return montarDetalheEtiqueta(ctx, atualizada!);
+    },
+
+    excluir: async (
+      ctx: WebContext,
+      input: { organizacaoHash: string; etiquetaId: string },
+    ) => {
+      exigirAutenticacao(ctx);
+      const { role } = await resolverMembro(ctx, input.organizacaoHash);
+      verificarPodeEscreverCaixaEntrada(role);
+
+      const organizacaoId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
+      if (organizacaoId === null) notFound();
+
+      const tag = await ctx.db.query.contatoTag.findFirst({
+        where: eq(contatoTag.uuid, input.etiquetaId),
+        columns: colunasContatoTag,
+      });
+      if (!tag || tag.organizacaoId !== organizacaoId) {
+        notFound("Etiqueta não encontrada");
+      }
+
+      if (tag.idExterno) {
+        const evoInstance = await resolverInstanciaEvoDaOrganizacao(ctx, organizacaoId);
+        if (evoInstance) {
+          await excluirEtiquetaEvolution(ctx, evoInstance, tag.idExterno);
+        }
+      }
+
+      await ctx.db.delete(contatoTag).where(eq(contatoTag.id, tag.id));
+      return { ok: true };
     },
   },
 

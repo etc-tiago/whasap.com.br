@@ -176,9 +176,8 @@ function ContatosPage() {
     if (!organizacaoHash) return;
     if (contato.conversaAberta) {
       void navigate({
-        to: "/$organizacaoHash/inbox",
-        params: { organizacaoHash },
-        search: { conversa: contato.conversaAberta.id },
+        to: "/$organizacaoHash/chat/$conversaId",
+        params: { organizacaoHash, conversaId: contato.conversaAberta.id },
       });
       return;
     }

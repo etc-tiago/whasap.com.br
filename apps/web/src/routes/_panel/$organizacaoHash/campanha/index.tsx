@@ -54,9 +54,8 @@ function CampanhaEnvioPage() {
           alertaConsecutivos={org.data?.campanhaAlertaConsecutivos}
           onEnviado={(conversaId) => {
             void navigate({
-              to: "/$organizacaoHash/inbox",
-              params: { organizacaoHash },
-              search: { conversa: conversaId },
+              to: "/$organizacaoHash/chat/$conversaId",
+              params: { organizacaoHash, conversaId },
             });
           }}
         />

@@ -1,5 +1,5 @@
 /** Índices de cor de etiqueta WhatsApp (Evolution GO `color` inteiro). */
-const CORES_WHATSAPP = [
+export const CORES_WHATSAPP = [
   "#ff9485",
   "#64c4ff",
   "#ffd429",

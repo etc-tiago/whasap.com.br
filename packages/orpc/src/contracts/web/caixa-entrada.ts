@@ -17,6 +17,17 @@ const etiquetaSchema = z.object({
   cor: z.string().nullable(),
 });
 
+/** Item da lista de gestão (sidebar) — inclui contagem e criação. */
+const etiquetaListaItemSchema = etiquetaSchema.extend({
+  contatosContagem: z.number().int().nonnegative(),
+  criadoEm: z.string().datetime(),
+});
+
+/** Detalhe da etiqueta no painel de gestão. */
+const etiquetaDetalheSchema = etiquetaListaItemSchema.extend({
+  sincronizadaWhatsapp: z.boolean(),
+});
+
 const contatoInstanciaResumoSchema = z.object({
   id: z.string().uuid(),
   nome: z.string(),
@@ -228,7 +239,33 @@ export const caixaEntradaContract = {
   etiquetas: {
     lista: oc
       .input(z.object({ organizacaoHash: organizacaoHashSchema }))
-      .output(z.array(etiquetaSchema)),
+      .output(z.array(etiquetaListaItemSchema)),
+
+    obter: oc
+      .input(
+        z.object({
+          organizacaoHash: organizacaoHashSchema,
+          etiquetaId: z.string().uuid(),
+        }),
+      )
+      .output(etiquetaDetalheSchema),
+
+    contatos: oc
+      .input(
+        z.object({
+          organizacaoHash: organizacaoHashSchema,
+          etiquetaId: z.string().uuid(),
+          busca: z.string().trim().max(200).optional(),
+          limite: z.number().int().min(1).max(100).default(30),
+          offset: z.number().int().min(0).default(0),
+        }),
+      )
+      .output(
+        z.object({
+          itens: z.array(contatoListaItemSchema),
+          total: z.number().int(),
+        }),
+      ),
 
     porContato: oc
       .input(z.object({ contatoId: z.string().uuid() }))
@@ -263,6 +300,26 @@ export const caixaEntradaContract = {
         }),
       )
       .output(etiquetaSchema),
+
+    atualizar: oc
+      .input(
+        z.object({
+          organizacaoHash: organizacaoHashSchema,
+          etiquetaId: z.string().uuid(),
+          nome: z.string().trim().min(1).max(100),
+          cor: z.string().nullable().optional(),
+        }),
+      )
+      .output(etiquetaDetalheSchema),
+
+    excluir: oc
+      .input(
+        z.object({
+          organizacaoHash: organizacaoHashSchema,
+          etiquetaId: z.string().uuid(),
+        }),
+      )
+      .output(z.object({ ok: z.boolean() })),
   },
 
   contatos: {

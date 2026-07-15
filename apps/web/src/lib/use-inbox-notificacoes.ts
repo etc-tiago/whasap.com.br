@@ -24,7 +24,10 @@ const MAX_EVENTOS_UI = 3;
 
 function eRotaInbox(pathname: string, organizacaoHash: string | undefined): boolean {
   if (!organizacaoHash) return false;
-  return pathname.includes(`/${organizacaoHash}/inbox`);
+  return (
+    pathname.includes(`/${organizacaoHash}/inbox`) ||
+    pathname.includes(`/${organizacaoHash}/chat/`)
+  );
 }
 
 async function garantirPermissaoNotification(): Promise<NotificationPermission> {
@@ -124,9 +127,8 @@ export function useInboxNotificacoes() {
       for (const evento of eventos) {
         const irParaConversa = () => {
           void navigate({
-            to: "/$organizacaoHash/inbox",
-            params: { organizacaoHash },
-            search: { conversa: evento.conversaId },
+            to: "/$organizacaoHash/chat/$conversaId",
+            params: { organizacaoHash, conversaId: evento.conversaId },
           });
         };
 

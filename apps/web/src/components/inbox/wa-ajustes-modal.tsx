@@ -1,5 +1,5 @@
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
-import { Gift, Loader2, Megaphone, Plug, Settings, Tag, Users } from "lucide-react";
+import { Gift, Loader2, Megaphone, Plug, Settings, Users } from "lucide-react";
 import { lazy, Suspense, type ComponentType } from "react";
 import {
   Dialog,
@@ -27,11 +27,6 @@ const SecaoConexao = lazy(() =>
     default: m.SecaoAjustesConexao,
   })),
 );
-const SecaoEtiquetas = lazy(() =>
-  import("@/components/ajustes/secoes/secao-etiquetas").then((m) => ({
-    default: m.SecaoAjustesEtiquetas,
-  })),
-);
 const SecaoCampanha = lazy(() =>
   import("@/components/ajustes/secoes/secao-campanha").then((m) => ({
     default: m.SecaoAjustesCampanha,
@@ -50,7 +45,6 @@ const NAV: Array<{
 }> = [
   { secao: "geral", rotulo: "Geral", icone: Settings },
   { secao: "usuarios", rotulo: "Usuários", icone: Users },
-  { secao: "etiquetas", rotulo: "Etiquetas", icone: Tag },
   { secao: "conexao", rotulo: "Conexões", icone: Plug },
   { secao: "campanha", rotulo: "Campanha", icone: Megaphone },
   { secao: "indique", rotulo: "Indique e Ganhe", icone: Gift },
@@ -142,7 +136,6 @@ export function WaAjustesModal() {
                 <SecaoUsuarios convidarAberto={convidar === "1"} />
               ) : null}
               {secaoAtiva === "conexao" ? <SecaoConexao /> : null}
-              {secaoAtiva === "etiquetas" ? <SecaoEtiquetas /> : null}
               {secaoAtiva === "campanha" ? <SecaoCampanha /> : null}
               {secaoAtiva === "indique" ? <SecaoIndique /> : null}
             </Suspense>

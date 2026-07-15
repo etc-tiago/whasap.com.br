@@ -48,6 +48,7 @@ export {
 } from "./instance-types";
 export { EVOLUTION_WEBHOOK_SUBSCRIBE_ALL } from "./webhook-events";
 export {
+  CORES_WHATSAPP,
   corPainelParaIndiceWhatsapp,
   extrairLabelIdResposta,
   indiceWhatsappParaCorPainel,
