@@ -120,6 +120,7 @@ async function processMetaInboundMessage(
     externalId: parsed.externalId,
     provedor: "meta_cloud",
     naoLidasDelta: 1,
+    enviadoEm: parsed.timestamp ?? undefined,
     metadados: parsed.metadados,
   });
   if (!result) return;

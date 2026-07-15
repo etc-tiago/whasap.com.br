@@ -46,7 +46,7 @@ export function useInboxConversas(organizacaoHash: string | undefined) {
 
 /**
  * Mensagens da conversa selecionada.
- * Ordem cronológica (criadoEm asc). Paginação antiga via writeInsert.
+ * Ordem cronológica (enviadoEm asc). Paginação antiga via writeInsert.
  */
 export function useInboxMensagens(conversaId: string | null) {
   const queryClient = useQueryClient();
@@ -63,7 +63,7 @@ export function useInboxMensagens(conversaId: string | null) {
   const live = useLiveQuery(
     (q) => {
       if (!collection) return undefined;
-      return q.from({ m: collection }).orderBy(({ m }) => m.criadoEm, "asc");
+      return q.from({ m: collection }).orderBy(({ m }) => m.enviadoEm, "asc");
     },
     [collection],
   );
@@ -89,7 +89,7 @@ export function useInboxMensagens(conversaId: string | null) {
         queryClient,
         collection,
         conversaId,
-        { antesCriadoEm: oldest.criadoEm, antesId: oldest.id },
+        { antesEnviadoEm: oldest.enviadoEm, antesId: oldest.id },
       );
       setTemMaisAntigas(mais);
     } finally {

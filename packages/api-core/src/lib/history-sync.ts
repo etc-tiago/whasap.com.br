@@ -357,7 +357,7 @@ export async function processarHistorySyncChunkLote(
       externalId: msg.messageId,
       provedor: "evo",
       direcao,
-      criadoEm: msg.timestamp ?? undefined,
+      enviadoEm: msg.timestamp ?? undefined,
       ultimaMensagemEm: msg.timestamp ?? undefined,
       naoLidasInicial: item.unreadCount ?? undefined,
       metadados: {

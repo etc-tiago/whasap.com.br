@@ -70,6 +70,9 @@ const mensagemSchema = z.object({
   enviadoPorNome: z.string().nullable(),
   templateNome: z.string().nullable(),
   statusEntrega: z.string(),
+  /** Horário do evento no WhatsApp — eixo da timeline. */
+  enviadoEm: z.string().datetime(),
+  /** Quando o Whasap persistiu a linha. */
   criadoEm: z.string().datetime(),
 });
 
@@ -122,14 +125,14 @@ export const caixaEntradaContract = {
           .object({
             conversaId: z.string().uuid(),
             limite: z.number().int().min(1).max(100).default(40),
-            antesCriadoEm: z.string().datetime().optional(),
+            antesEnviadoEm: z.string().datetime().optional(),
             antesId: z.string().uuid().optional(),
           })
           .refine(
             (v) =>
-              (v.antesCriadoEm === undefined && v.antesId === undefined) ||
-              (v.antesCriadoEm !== undefined && v.antesId !== undefined),
-            { message: "antesCriadoEm e antesId devem ser enviados juntos" },
+              (v.antesEnviadoEm === undefined && v.antesId === undefined) ||
+              (v.antesEnviadoEm !== undefined && v.antesId !== undefined),
+            { message: "antesEnviadoEm e antesId devem ser enviados juntos" },
           ),
       )
       .output(

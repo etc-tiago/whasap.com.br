@@ -1089,7 +1089,7 @@ describe("processarHistorySyncChunk (unit)", () => {
     expect(result).toMatchObject({ ignorado: true, progress: 33, concluido: false });
   });
 
-  it("44) passa criadoEm e ultimaMensagemEm do timestamp da msg", async () => {
+  it("44) passa enviadoEm e ultimaMensagemEm do timestamp da msg", async () => {
     const ts = new Date("2024-09-18T14:27:40.000Z");
     const { processarHistorySyncChunk } = await load();
     await processarHistorySyncChunk(dbMock() as never, instance, {
@@ -1113,11 +1113,11 @@ describe("processarHistorySyncChunk (unit)", () => {
       },
     });
     const args = ingerirMensagem.mock.calls[0]![1] as {
-      criadoEm: Date;
+      enviadoEm: Date;
       ultimaMensagemEm: Date;
       provedor: string;
     };
-    expect(args.criadoEm?.getTime()).toBe(ts.getTime());
+    expect(args.enviadoEm?.getTime()).toBe(ts.getTime());
     expect(args.ultimaMensagemEm?.getTime()).toBe(ts.getTime());
     expect(args.provedor).toBe("evo");
   });

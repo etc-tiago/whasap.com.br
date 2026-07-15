@@ -17,7 +17,7 @@ import { orpc, orpcClient, type ConversaItem, type MensagemItem } from "@/lib/or
 
 export const LIMITE_MENSAGENS_PAGINA = 40;
 
-export type CursorMensagens = { antesCriadoEm: string; antesId: string };
+export type CursorMensagens = { antesEnviadoEm: string; antesId: string };
 
 type RegistroCliente = {
   conversas: Map<string, Collection<ConversaItem, string>>;
@@ -128,7 +128,7 @@ export function obterColecaoMensagens(
   });
 
   const collection = createCollection(
-    envolverPersistencia(options, persistence, 1),
+    envolverPersistencia(options, persistence, 2),
   ) as unknown as Collection<MensagemItem, string>;
 
   maps.mensagens.set(cacheKey, collection);

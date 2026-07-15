@@ -1,17 +1,11 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@whasap/ui/components/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@whasap/ui/components/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@whasap/ui/components/dropdown-menu";
-import { cn } from "@whasap/ui/lib/utils";
-import { Check, CheckCheck, ChevronDown, FileText, Info, Mic, Play, Reply } from "lucide-react";
+import { Check, CheckCheck, FileText, Info, Mic, Play, Reply } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import {
@@ -153,19 +147,29 @@ function BubbleBody({
   mensagem,
   footer,
   alignEnd,
+  podeResponder,
+  onResponder,
 }: {
   mensagem: MensagemItem;
   footer: ReactNode;
   alignEnd?: boolean;
+  podeResponder?: boolean;
+  onResponder?: (mensagem: MensagemItem) => void;
 }) {
   const isAudio = mensagem.type === "audio";
   const texto = corpoVisivel(mensagem);
+  const menu = (
+    <BubbleMenu mensagem={mensagem} podeResponder={podeResponder} onResponder={onResponder} />
+  );
 
   if (isAudio) {
     return (
       <>
         <AudioBlock mediaUrl={mensagem.mediaUrl} />
-        <div className="mt-0.5 flex justify-end gap-1 text-[11px] text-wa-text-muted">{footer}</div>
+        <div className="mt-0.5 flex items-center justify-end gap-1.5 text-[11px] text-wa-text-muted">
+          {menu}
+          {footer}
+        </div>
       </>
     );
   }
@@ -182,9 +186,10 @@ function BubbleBody({
           <p className="mt-0.5 text-[10px] opacity-70">Template: {mensagem.templateNome}</p>
         ) : null}
       </div>
-      <span className="ml-auto flex shrink-0 items-center gap-1 pt-1 text-[11px] text-wa-text-muted">
-        {footer}
-      </span>
+      <div className="ml-auto flex shrink-0 items-center justify-end gap-1.5 pt-1 text-[11px] text-wa-text-muted">
+        {menu}
+        <span className="flex items-center gap-1">{footer}</span>
+      </div>
     </div>
   );
 }
@@ -214,7 +219,11 @@ function MensagemDetalhesDialog({
           <DialogTitle>Detalhes da mensagem</DialogTitle>
         </DialogHeader>
         <dl className="space-y-3">
-          <DetalheLinha rotulo="Data/hora" valor={formatarDataHoraMensagem(mensagem.criadoEm)} />
+          <DetalheLinha rotulo="Data/hora" valor={formatarDataHoraMensagem(mensagem.enviadoEm)} />
+          <DetalheLinha
+            rotulo="Registrado em"
+            valor={formatarDataHoraMensagem(mensagem.criadoEm)}
+          />
           <DetalheLinha rotulo="Status" valor={rotuloStatusEntrega(mensagem.statusEntrega)} />
           <DetalheLinha
             rotulo="Direção"
@@ -242,10 +251,9 @@ type BubbleAcoesProps = {
   mensagem: MensagemItem;
   podeResponder?: boolean;
   onResponder?: (mensagem: MensagemItem) => void;
-  align: "start" | "end";
 };
 
-function BubbleMenu({ mensagem, podeResponder = true, onResponder, align }: BubbleAcoesProps) {
+function BubbleMenu({ mensagem, podeResponder = true, onResponder }: BubbleAcoesProps) {
   const [detalhesAberto, setDetalhesAberto] = useState(false);
   const podeCitar = Boolean(mensagem.idExterno) && podeResponder && Boolean(onResponder);
 
@@ -256,19 +264,12 @@ function BubbleMenu({ mensagem, podeResponder = true, onResponder, align }: Bubb
           <button
             type="button"
             aria-label="Opções da mensagem"
-            className={cn(
-              "absolute top-0.5 z-10 flex h-6 w-6 items-center justify-center rounded-md text-wa-text-muted opacity-0 transition-opacity hover:bg-black/10 group-hover:opacity-100 data-[state=open]:bg-black/10 data-[state=open]:opacity-100",
-              align === "end" ? "left-0.5" : "right-0.5",
-            )}
+            className="flex shrink-0 items-center justify-center rounded text-wa-text-muted opacity-60 transition-opacity hover:opacity-100 data-[state=open]:opacity-100"
           >
-            <ChevronDown className="h-4 w-4" />
+            <Info className="size-2.5" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align={align === "end" ? "end" : "start"}
-          side="bottom"
-          className="w-44"
-        >
+        <DropdownMenuContent align="end" side="top" className="w-44">
           <DropdownMenuItem disabled={!podeCitar} onSelect={() => onResponder?.(mensagem)}>
             <Reply />
             Responder
@@ -295,20 +296,16 @@ type BubbleProps = {
 };
 
 export function WaBubbleOut({ mensagem, podeResponder, onResponder }: BubbleProps) {
-  const time = formatarHorarioMensagem(mensagem.criadoEm);
+  const time = formatarHorarioMensagem(mensagem.enviadoEm);
 
   return (
-    <div className="group mb-1 flex justify-end">
+    <div className="mb-1 flex justify-end">
       <div className="relative max-w-[65%] rounded-lg rounded-tr-none bg-wa-bubble-out px-2 py-1.5 shadow-sm">
-        <BubbleMenu
-          mensagem={mensagem}
-          podeResponder={podeResponder}
-          onResponder={onResponder}
-          align="end"
-        />
         <BubbleBody
           mensagem={mensagem}
           alignEnd
+          podeResponder={podeResponder}
+          onResponder={onResponder}
           footer={
             <>
               {time}
@@ -322,18 +319,17 @@ export function WaBubbleOut({ mensagem, podeResponder, onResponder }: BubbleProp
 }
 
 export function WaBubbleIn({ mensagem, podeResponder, onResponder }: BubbleProps) {
-  const time = formatarHorarioMensagem(mensagem.criadoEm);
+  const time = formatarHorarioMensagem(mensagem.enviadoEm);
 
   return (
-    <div className="group mb-1 flex justify-start">
+    <div className="mb-1 flex justify-start">
       <div className="relative max-w-[65%] rounded-lg rounded-tl-none bg-wa-bubble-in px-2 py-1.5 shadow-sm">
-        <BubbleMenu
+        <BubbleBody
           mensagem={mensagem}
           podeResponder={podeResponder}
           onResponder={onResponder}
-          align="start"
+          footer={time}
         />
-        <BubbleBody mensagem={mensagem} footer={time} />
       </div>
     </div>
   );

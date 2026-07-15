@@ -184,7 +184,7 @@ describe.skipIf(!podeRodar)("HistorySync ingestao (Postgres + corpus R2)", () =>
       externalId,
       provedor: "evo",
       direcao: "inbound",
-      criadoEm: ts,
+      enviadoEm: ts,
       ultimaMensagemEm: ts,
     });
 
@@ -216,7 +216,7 @@ describe.skipIf(!podeRodar)("HistorySync ingestao (Postgres + corpus R2)", () =>
       externalId: `mono-new-${crypto.randomUUID()}`,
       provedor: "evo",
       direcao: "inbound",
-      criadoEm: recente,
+      enviadoEm: recente,
       ultimaMensagemEm: recente,
     });
     expect(r1).toBeTruthy();
@@ -233,7 +233,7 @@ describe.skipIf(!podeRodar)("HistorySync ingestao (Postgres + corpus R2)", () =>
       externalId: `mono-old-${crypto.randomUUID()}`,
       provedor: "evo",
       direcao: "inbound",
-      criadoEm: antiga,
+      enviadoEm: antiga,
       ultimaMensagemEm: antiga,
     });
 

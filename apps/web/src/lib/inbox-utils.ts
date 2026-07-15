@@ -98,12 +98,12 @@ export function formatarRotuloDia(iso: string): string {
   });
 }
 
-export function agruparMensagensPorDia<T extends { criadoEm: string }>(
+export function agruparMensagensPorDia<T extends { enviadoEm: string }>(
   mensagens: T[],
 ): Array<{ dia: string; mensagens: T[] }> {
   const grupos: Array<{ dia: string; mensagens: T[] }> = [];
   for (const msg of mensagens) {
-    const dia = formatarRotuloDia(msg.criadoEm);
+    const dia = formatarRotuloDia(msg.enviadoEm);
     const ultimo = grupos.at(-1);
     if (ultimo?.dia === dia) {
       ultimo.mensagens.push(msg);

@@ -228,7 +228,7 @@ function InboxOrgPage() {
       onSuccess: (nova) => {
         if (selectedId) {
           anexarMensagem(nova);
-          ultimaMensagemEmRef.current = nova.criadoEm;
+          ultimaMensagemEmRef.current = nova.enviadoEm;
           setForcarRodapeToken((n) => n + 1);
         }
         void conversations.refetch?.();

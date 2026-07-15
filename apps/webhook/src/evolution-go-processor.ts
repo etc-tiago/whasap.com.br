@@ -132,7 +132,7 @@ async function processarMensagemGo(
     externalId: parsed.messageId,
     provedor: "evo",
     direcao,
-    criadoEm: parsed.timestamp ?? undefined,
+    enviadoEm: parsed.timestamp ?? undefined,
     ultimaMensagemEm: parsed.timestamp ?? undefined,
     naoLidasDelta: direcao === "inbound" ? 1 : 0,
     metadados: {
@@ -332,7 +332,7 @@ async function processarButtonClickGo(
     externalId,
     provedor: "evo",
     direcao: "inbound",
-    criadoEm: parsed.timestamp ?? undefined,
+    enviadoEm: parsed.timestamp ?? undefined,
     ultimaMensagemEm: parsed.timestamp ?? undefined,
     naoLidasDelta: 1,
     metadados: {

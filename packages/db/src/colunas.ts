@@ -276,6 +276,7 @@ export const colunasMensagemLista = {
   idExterno: true,
   status: true,
   templateNome: true,
+  enviadoEm: true,
   criadoEm: true,
   metadados: true,
 } as const;

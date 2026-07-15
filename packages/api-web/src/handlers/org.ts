@@ -276,7 +276,7 @@ export const organizacaoHandlers = {
           const agregados = await ctx.db
             .select({
               usuarioId: mensagem.enviadoPorUsuarioId,
-              em: max(mensagem.criadoEm),
+              em: max(mensagem.enviadoEm),
             })
             .from(mensagem)
             .innerJoin(conversa, eq(conversa.id, mensagem.conversaId))

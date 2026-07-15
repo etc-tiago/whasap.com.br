@@ -368,6 +368,7 @@ async function persistirMensagemOutboundPainel(
         midiaR2Chave: true,
         status: true,
         templateNome: true,
+        enviadoEm: true,
         criadoEm: true,
         enviadoPorUsuarioId: true,
       },
@@ -390,6 +391,7 @@ async function persistirMensagemOutboundPainel(
     }
   }
 
+  const agora = new Date();
   const [criada] = await db
     .insert(mensagem)
     .values(
@@ -404,6 +406,7 @@ async function persistirMensagemOutboundPainel(
         templateNome: values.templateNome ?? null,
         templateIdioma: values.templateIdioma ?? null,
         templateVariaveis: values.templateVariaveis ?? null,
+        enviadoEm: agora,
       }),
     )
     .returning();
@@ -420,6 +423,7 @@ function mapearMensagemParaSaida(
     midiaR2Chave?: string | null;
     status: string;
     templateNome: string | null;
+    enviadoEm: Date;
     criadoEm: Date;
     enviadoPorUsuario?: { uuid: string; nome: string } | null;
   },
@@ -436,6 +440,7 @@ function mapearMensagemParaSaida(
     enviadoPorNome: m.enviadoPorUsuario?.nome ?? null,
     templateNome: m.templateNome,
     statusEntrega: m.status,
+    enviadoEm: m.enviadoEm.toISOString(),
     criadoEm: m.criadoEm.toISOString(),
   };
 }
@@ -573,7 +578,7 @@ export const caixaEntradaHandlers = {
           const lastMsg = await ctx.db.query.mensagem.findFirst({
             where: and(eq(mensagem.conversaId, row.id), isNull(mensagem.excluidoEm)),
             columns: { corpo: true, tipo: true },
-            orderBy: [desc(mensagem.criadoEm)],
+            orderBy: [desc(mensagem.enviadoEm)],
           });
           return {
             id: row.uuid,
@@ -807,15 +812,15 @@ export const caixaEntradaHandlers = {
   mensagens: {
     /**
      * Página de mensagens da conversa (mais recentes primeiro via cursor).
-     * Sem cursor: últimas `limite` msgs. Com `antesCriadoEm`+`antesId`: lote mais antigo.
-     * `itens` sempre em ASC para render.
+     * Sem cursor: últimas `limite` msgs. Com `antesEnviadoEm`+`antesId`: lote mais antigo.
+     * `itens` sempre em ASC por `enviadoEm` para render.
      */
     lista: async (
       ctx: WebContext,
       input: {
         conversaId: string;
         limite?: number;
-        antesCriadoEm?: string;
+        antesEnviadoEm?: string;
         antesId?: string;
       },
     ) => {
@@ -828,12 +833,12 @@ export const caixaEntradaHandlers = {
         isNull(mensagem.excluidoEm),
       ];
 
-      if (input.antesCriadoEm && input.antesId) {
-        const antesCriadoEm = new Date(input.antesCriadoEm);
+      if (input.antesEnviadoEm && input.antesId) {
+        const antesEnviadoEm = new Date(input.antesEnviadoEm);
         filtros.push(
           or(
-            lt(mensagem.criadoEm, antesCriadoEm),
-            and(eq(mensagem.criadoEm, antesCriadoEm), lt(mensagem.uuid, input.antesId)),
+            lt(mensagem.enviadoEm, antesEnviadoEm),
+            and(eq(mensagem.enviadoEm, antesEnviadoEm), lt(mensagem.uuid, input.antesId)),
           )!,
         );
       }
@@ -842,7 +847,7 @@ export const caixaEntradaHandlers = {
         where: and(...filtros),
         columns: colunasMensagemLista,
         with: { enviadoPorUsuario: incluirUsuarioRelacao },
-        orderBy: [desc(mensagem.criadoEm), desc(mensagem.uuid)],
+        orderBy: [desc(mensagem.enviadoEm), desc(mensagem.uuid)],
         limit: limite + 1,
       });
 

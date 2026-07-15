@@ -26,6 +26,7 @@ type MensagemLista = {
   idExterno?: string | null;
   status: string;
   templateNome: string | null;
+  enviadoEm: Date;
   criadoEm: Date;
   metadados?: unknown;
   enviadoPorUsuario?: { uuid: string; nome: string } | null;

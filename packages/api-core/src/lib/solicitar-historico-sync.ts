@@ -223,7 +223,7 @@ export async function solicitarHistoricoSyncConversaEvolution(
       isNotNull(mensagem.idExterno),
     ),
     columns: colunasMensagemLista,
-    orderBy: [asc(mensagem.criadoEm)],
+    orderBy: [asc(mensagem.enviadoEm)],
   });
   if (!ancora?.idExterno) {
     return {
@@ -247,7 +247,7 @@ export async function solicitarHistoricoSyncConversaEvolution(
         chat: chatJid,
         id: ancora.idExterno,
         isFromMe: ancora.direcao === "outbound",
-        timestamp: ancora.criadoEm.toISOString(),
+        timestamp: ancora.enviadoEm.toISOString(),
       },
     });
   } catch (err) {

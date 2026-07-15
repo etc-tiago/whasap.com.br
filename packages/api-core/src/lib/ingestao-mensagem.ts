@@ -35,7 +35,8 @@ export type IngerirMensagemParams = {
   externalId: string | null;
   provedor: "evo" | "meta_cloud";
   direcao?: "inbound" | "outbound";
-  criadoEm?: Date;
+  /** Horário do evento no WhatsApp; default = agora. */
+  enviadoEm?: Date;
   status?: string;
   metadados?: Record<string, unknown>;
   naoLidasDelta?: number;
@@ -164,7 +165,7 @@ async function buscarOuCriarConversa(
     columns: { id: true, naoLidas: true },
   });
 
-  const ultimaEm = params.ultimaMensagemEm ?? params.criadoEm ?? new Date();
+  const ultimaEm = params.ultimaMensagemEm ?? params.enviadoEm ?? new Date();
   const isMetaCloud = params.provedor === "meta_cloud";
 
   if (!conversation) {
@@ -238,8 +239,8 @@ export async function ingerirMensagem(
   const conversation = await buscarOuCriarConversa(db, params, contact.id);
 
   const direcao = params.direcao ?? "inbound";
-  const criadoEm = params.criadoEm ?? new Date();
-  const ultimaEm = params.ultimaMensagemEm ?? criadoEm;
+  const enviadoEm = params.enviadoEm ?? new Date();
+  const ultimaEm = params.ultimaMensagemEm ?? enviadoEm;
 
   const metadados = {
     provedor: params.provedor,
@@ -250,8 +251,8 @@ export async function ingerirMensagem(
 
   const [message] = await db
     .insert(mensagem)
-    .values({
-      ...comCriadoEm({
+    .values(
+      comCriadoEm({
         conversaId: conversation.id,
         direcao,
         tipo: params.type,
@@ -259,9 +260,9 @@ export async function ingerirMensagem(
         idExterno: params.externalId,
         status: params.status ?? (direcao === "outbound" ? "sent" : "delivered"),
         metadados,
+        enviadoEm,
       }),
-      criadoEm,
-    })
+    )
     .returning();
 
   const setValues: Record<string, unknown> = {

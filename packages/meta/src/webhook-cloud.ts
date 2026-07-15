@@ -15,6 +15,7 @@ export type MetaMensagemNormalizada = {
   externalId: string;
   body: string;
   type: string;
+  timestamp: Date | null;
   metadados: Record<string, unknown>;
 };
 
@@ -83,12 +84,24 @@ export function parseMetaWebhook(payload: unknown): MetaWebhookChange[] {
   return changes;
 }
 
+/** Unix seconds/ms do campo `timestamp` Meta Cloud → Date. */
+function timestampFromMeta(msg: MetaMessageRaw): Date | null {
+  const raw = msg.timestamp;
+  if (typeof raw !== "string" && typeof raw !== "number") return null;
+  const n = typeof raw === "string" ? Number(raw) : raw;
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const ms = n > 1_000_000_000_000 ? n : n * 1000;
+  const d = new Date(ms);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 /** Normaliza mensagem inbound Meta Cloud. */
 export function parseMetaMessage(msg: MetaMessageRaw): MetaMensagemNormalizada | null {
   const phone = String(msg.from ?? "");
   const externalId = String(msg.id ?? "");
   if (!phone || !externalId) return null;
 
+  const timestamp = timestampFromMeta(msg);
   const rawType = String(msg.type ?? "unsupported");
   const metadados: Record<string, unknown> = { metaType: rawType };
 
@@ -100,6 +113,7 @@ export function parseMetaMessage(msg: MetaMessageRaw): MetaMensagemNormalizada |
         externalId,
         body: text?.body ?? "",
         type: "text",
+        timestamp,
         metadados,
       };
     }
@@ -110,6 +124,7 @@ export function parseMetaMessage(msg: MetaMessageRaw): MetaMensagemNormalizada |
         externalId,
         body: image?.caption ?? "[imagem]",
         type: "image",
+        timestamp,
         metadados: { ...metadados, ...metaMediaMetadados("image", image) },
       };
     }
@@ -120,6 +135,7 @@ export function parseMetaMessage(msg: MetaMessageRaw): MetaMensagemNormalizada |
         externalId,
         body: "[áudio]",
         type: "audio",
+        timestamp,
         metadados: { ...metadados, ...metaMediaMetadados("audio", audio) },
       };
     }
@@ -130,6 +146,7 @@ export function parseMetaMessage(msg: MetaMessageRaw): MetaMensagemNormalizada |
         externalId,
         body: video?.caption ?? "[vídeo]",
         type: "video",
+        timestamp,
         metadados: { ...metadados, ...metaMediaMetadados("video", video) },
       };
     }
@@ -140,6 +157,7 @@ export function parseMetaMessage(msg: MetaMessageRaw): MetaMensagemNormalizada |
         externalId,
         body: document?.filename ?? document?.caption ?? "[documento]",
         type: "document",
+        timestamp,
         metadados: { ...metadados, ...metaMediaMetadados("document", document) },
       };
     }
@@ -150,6 +168,7 @@ export function parseMetaMessage(msg: MetaMessageRaw): MetaMensagemNormalizada |
         externalId,
         body: "[sticker]",
         type: "sticker",
+        timestamp,
         metadados: { ...metadados, ...metaMediaMetadados("sticker", sticker) },
       };
     }
@@ -167,6 +186,7 @@ export function parseMetaMessage(msg: MetaMessageRaw): MetaMensagemNormalizada |
         externalId,
         body: label,
         type: "location",
+        timestamp,
         metadados: { ...metadados, location },
       };
     }
@@ -182,6 +202,7 @@ export function parseMetaMessage(msg: MetaMessageRaw): MetaMensagemNormalizada |
         externalId,
         body: names || "[contato]",
         type: "contacts",
+        timestamp,
         metadados: { ...metadados, contacts },
       };
     }
@@ -204,6 +225,7 @@ export function parseMetaMessage(msg: MetaMessageRaw): MetaMensagemNormalizada |
         externalId,
         body,
         type: "interactive",
+        timestamp,
         metadados,
       };
     }
@@ -214,6 +236,7 @@ export function parseMetaMessage(msg: MetaMessageRaw): MetaMensagemNormalizada |
         externalId,
         body: button?.text ?? button?.payload ?? "[botão]",
         type: "button",
+        timestamp,
         metadados: { ...metadados, button },
       };
     }
@@ -224,6 +247,7 @@ export function parseMetaMessage(msg: MetaMessageRaw): MetaMensagemNormalizada |
         externalId,
         body: reaction?.emoji ?? "[reação]",
         type: "reaction",
+        timestamp,
         metadados: { ...metadados, reaction },
       };
     }
@@ -234,6 +258,7 @@ export function parseMetaMessage(msg: MetaMessageRaw): MetaMensagemNormalizada |
         externalId,
         body: "[não suportado]",
         type: "unsupported",
+        timestamp,
         metadados: {
           ...metadados,
           errors: msg.errors,

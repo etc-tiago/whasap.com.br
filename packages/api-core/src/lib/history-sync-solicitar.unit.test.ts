@@ -283,7 +283,7 @@ describe("solicitarHistoricoSyncConversaEvolution", () => {
   });
 
   it("13) sucesso chama historySync on-demand com messageInfo", async () => {
-    const criadoEm = new Date("2026-07-01T12:00:00.000Z");
+    const enviadoEm = new Date("2026-07-01T12:00:00.000Z");
     const { solicitarHistoricoSyncConversaEvolution } = await load();
     const r = await solicitarHistoricoSyncConversaEvolution(
       dbMock({
@@ -291,7 +291,7 @@ describe("solicitarHistoricoSyncConversaEvolution", () => {
         mensagem: async () => ({
           idExterno: "MSG-ANCORA",
           direcao: "inbound",
-          criadoEm,
+          enviadoEm,
         }),
       }) as never,
       {} as never,
@@ -312,14 +312,14 @@ describe("solicitarHistoricoSyncConversaEvolution", () => {
         chat: "5511999@s.whatsapp.net",
         id: "MSG-ANCORA",
         isFromMe: false,
-        timestamp: criadoEm.toISOString(),
+        timestamp: enviadoEm.toISOString(),
       },
     });
     expect(updates).toHaveLength(0);
   });
 
   it("14) outbound ancora usa isFromMe true", async () => {
-    const criadoEm = new Date("2026-07-01T12:00:00.000Z");
+    const enviadoEm = new Date("2026-07-01T12:00:00.000Z");
     const { solicitarHistoricoSyncConversaEvolution } = await load();
     await solicitarHistoricoSyncConversaEvolution(
       dbMock({
@@ -327,7 +327,7 @@ describe("solicitarHistoricoSyncConversaEvolution", () => {
         mensagem: async () => ({
           idExterno: "OUT-1",
           direcao: "outbound",
-          criadoEm,
+          enviadoEm,
         }),
       }) as never,
       {} as never,
@@ -352,7 +352,7 @@ describe("solicitarHistoricoSyncConversaEvolution", () => {
         mensagem: async () => ({
           idExterno: "M1",
           direcao: "inbound",
-          criadoEm: new Date(),
+          enviadoEm: new Date(),
         }),
       }) as never,
       {} as never,
@@ -378,7 +378,7 @@ describe("solicitarHistoricoSyncConversaEvolution", () => {
         mensagem: async () => ({
           idExterno: "M1",
           direcao: "inbound",
-          criadoEm: new Date(),
+          enviadoEm: new Date(),
         }),
       }) as never,
       {} as never,
@@ -407,7 +407,7 @@ describe("solicitarHistoricoSyncConversaEvolution", () => {
         mensagem: async () => ({
           idExterno: "M1",
           direcao: "inbound",
-          criadoEm: new Date(),
+          enviadoEm: new Date(),
         }),
       }) as never,
       {} as never,
@@ -425,7 +425,7 @@ describe("solicitarHistoricoSyncConversaEvolution", () => {
   });
 
   it("16) telefone vazio usa idExterno do vinculo", async () => {
-    const criadoEm = new Date("2026-07-01T12:00:00.000Z");
+    const enviadoEm = new Date("2026-07-01T12:00:00.000Z");
     const { solicitarHistoricoSyncConversaEvolution } = await load();
     const r = await solicitarHistoricoSyncConversaEvolution(
       dbMock({
@@ -433,7 +433,7 @@ describe("solicitarHistoricoSyncConversaEvolution", () => {
         mensagem: async () => ({
           idExterno: "ANC-LID",
           direcao: "inbound",
-          criadoEm,
+          enviadoEm,
         }),
       }) as never,
       {} as never,
@@ -453,7 +453,7 @@ describe("solicitarHistoricoSyncConversaEvolution", () => {
         chat: "5511999888777@s.whatsapp.net",
         id: "ANC-LID",
         isFromMe: false,
-        timestamp: criadoEm.toISOString(),
+        timestamp: enviadoEm.toISOString(),
       },
     });
   });
@@ -466,7 +466,7 @@ describe("solicitarHistoricoSyncConversaEvolution", () => {
         mensagem: async () => ({
           idExterno: "M-DEF",
           direcao: "inbound",
-          criadoEm: new Date(),
+          enviadoEm: new Date(),
         }),
       }) as never,
       {} as never,

@@ -188,7 +188,7 @@ async function calcularDeltasPrimeiraResposta(
   const primeirosInbound = await ctx.db
     .select({
       conversaId: mensagem.conversaId,
-      em: min(mensagem.criadoEm),
+      em: min(mensagem.enviadoEm),
     })
     .from(mensagem)
     .where(and(inArray(mensagem.conversaId, conversaIds), eq(mensagem.direcao, "inbound")))
@@ -205,7 +205,7 @@ async function calcularDeltasPrimeiraResposta(
   const outbounds = await ctx.db
     .select({
       conversaId: mensagem.conversaId,
-      em: mensagem.criadoEm,
+      em: mensagem.enviadoEm,
     })
     .from(mensagem)
     .where(
@@ -214,7 +214,7 @@ async function calcularDeltasPrimeiraResposta(
         eq(mensagem.direcao, "outbound"),
       ),
     )
-    .orderBy(asc(mensagem.criadoEm));
+    .orderBy(asc(mensagem.enviadoEm));
 
   for (const row of outbounds) {
     if (deltas.has(row.conversaId)) continue;
@@ -341,8 +341,8 @@ export const relatoriosHandlers = {
 
     const msgsWhere = and(
       inArray(mensagem.conversaId, conversaIds),
-      gte(mensagem.criadoEm, from),
-      lte(mensagem.criadoEm, to),
+      gte(mensagem.enviadoEm, from),
+      lte(mensagem.enviadoEm, to),
     );
 
     const [msgRows, porTipoRows] = await Promise.all([
@@ -350,7 +350,7 @@ export const relatoriosHandlers = {
         .select({
           conversaId: mensagem.conversaId,
           direcao: mensagem.direcao,
-          criadoEm: mensagem.criadoEm,
+          criadoEm: mensagem.enviadoEm,
           enviadoPorUsuarioId: mensagem.enviadoPorUsuarioId,
         })
         .from(mensagem)

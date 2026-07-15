@@ -142,16 +142,19 @@ export const mensagem = pgTable(
     enviadoPorUsuarioId: integer().references(() => usuario.id),
     status: text().notNull().default("sent"),
     excluidoEm: timestamp(),
+    /** Horário do evento no WhatsApp (`messageTimestamp`) — eixo da timeline. */
+    enviadoEm: timestamp().notNull(),
+    /** Quando o Whasap persistiu a linha (audit). */
     criadoEm: timestamp().notNull(),
   },
   (t) => [
-    index("mensagem_conversa_criado_em_idx").on(t.conversaId, t.criadoEm),
-    index("mensagem_conversa_direcao_criado_em_idx").on(t.conversaId, t.direcao, t.criadoEm),
+    index("mensagem_conversa_enviado_em_idx").on(t.conversaId, t.enviadoEm),
+    index("mensagem_conversa_direcao_enviado_em_idx").on(t.conversaId, t.direcao, t.enviadoEm),
     index("mensagem_id_externo_idx").on(t.idExterno),
-    index("mensagem_enviado_por_usuario_direcao_criado_em_idx").on(
+    index("mensagem_enviado_por_usuario_direcao_enviado_em_idx").on(
       t.enviadoPorUsuarioId,
       t.direcao,
-      t.criadoEm,
+      t.enviadoEm,
     ),
   ],
 );
