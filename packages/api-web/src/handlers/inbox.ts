@@ -19,7 +19,7 @@ import {
   type IconeConexao,
 } from "@whasap/config";
 import type { MetaTemplate } from "@whasap/meta";
-import { and, asc, count, desc, eq, ilike, inArray, isNull, lt, or, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNotNull, isNull, lt, or, type SQL } from "drizzle-orm";
 import {
   contato,
   contatoInstancia,
@@ -55,6 +55,7 @@ import { obterCredenciaisMeta } from "./instancia";
 import {
   assertMessageTypeSupported,
   cloudRequiresTemplate,
+  deleteProviderMessageForEveryone,
   isMetaCloudWindowOpen,
   markProviderMessageRead,
   sendProviderMessage,
@@ -591,6 +592,7 @@ export const caixaEntradaHandlers = {
       input: {
         organizacaoHash: string;
         instanciaId?: string;
+        arquivadas?: boolean;
         limite?: number;
         antesUltimaMensagemEm?: string;
         antesId?: string;
@@ -621,6 +623,7 @@ export const caixaEntradaHandlers = {
       const filtros: SQL[] = [
         inArray(conversa.instanciaId, instanceIds),
         isNull(conversa.excluidoEm),
+        input.arquivadas ? isNotNull(conversa.arquivadoEm) : isNull(conversa.arquivadoEm),
       ];
 
       if (input.antesUltimaMensagemEm && input.antesId) {
@@ -717,6 +720,7 @@ export const caixaEntradaHandlers = {
             ultimaMensagemTipo: row.ultimaMensagemTipo ?? null,
             ultimaMensagemPreview: row.ultimaMensagemCorpo ?? null,
             naoLidas: row.naoLidas ?? 0,
+            arquivadoEm: row.arquivadoEm?.toISOString() ?? null,
             etiquetas: etiquetasPorContato.get(String(contatoRow.id)) ?? [],
           };
         }),
@@ -893,6 +897,30 @@ export const caixaEntradaHandlers = {
       await ctx.db
         .update(conversa)
         .set(comTimestampAtualizacao({ status: "closed", fechadoEm: new Date() }))
+        .where(eq(conversa.id, conv.conversation.id));
+      return { ok: true };
+    },
+
+    /** Arquiva localmente (some da lista principal; aparece em Arquivadas). */
+    arquivar: async (ctx: WebContext, input: { conversaId: string }) => {
+      exigirAutenticacao(ctx);
+      const conv = await exigirAcessoConversa(ctx, input.conversaId);
+      verificarPodeEscreverCaixaEntrada(conv.role);
+      await ctx.db
+        .update(conversa)
+        .set(comTimestampAtualizacao({ arquivadoEm: new Date() }))
+        .where(eq(conversa.id, conv.conversation.id));
+      return { ok: true };
+    },
+
+    /** Remove do arquivo local e volta à lista principal. */
+    desarquivar: async (ctx: WebContext, input: { conversaId: string }) => {
+      exigirAutenticacao(ctx);
+      const conv = await exigirAcessoConversa(ctx, input.conversaId);
+      verificarPodeEscreverCaixaEntrada(conv.role);
+      await ctx.db
+        .update(conversa)
+        .set(comTimestampAtualizacao({ arquivadoEm: null }))
         .where(eq(conversa.id, conv.conversation.id));
       return { ok: true };
     },
@@ -1179,6 +1207,86 @@ export const caixaEntradaHandlers = {
         .where(eq(conversa.id, conv.conversation.id));
 
       return { ok: true };
+    },
+
+    /**
+     * Soft-delete da mensagem no painel.
+     * Evolution outbound com `idExterno`: tenta revoke; Meta / falha / inbound → só painel.
+     */
+    excluir: async (ctx: WebContext, input: { mensagemId: string }) => {
+      exigirAutenticacao(ctx);
+
+      const msg = await ctx.db.query.mensagem.findFirst({
+        where: and(eq(mensagem.uuid, input.mensagemId), isNull(mensagem.excluidoEm)),
+        columns: {
+          id: true,
+          uuid: true,
+          conversaId: true,
+          direcao: true,
+          idExterno: true,
+        },
+      });
+      if (!msg) notFound("Mensagem não encontrada");
+
+      const convRow = await ctx.db.query.conversa.findFirst({
+        where: and(eq(conversa.id, msg.conversaId), isNull(conversa.excluidoEm)),
+        columns: colunasConversaComRelacoes,
+        with: {
+          instancia: incluirInstanciaOperacao,
+          contato: incluirContatoCaixaEntrada,
+        },
+      });
+      if (!convRow?.instancia) notFound();
+
+      const { role } = await resolverMembroPorIdInterno(ctx, convRow.instancia.organizacaoId);
+      verificarPodeEscreverCaixaEntrada(role);
+
+      let escopo: "todos" | "painel" = "painel";
+      const podeRevokeEvo =
+        isEvoProvider(convRow.instancia.provedor) &&
+        msg.direcao === "outbound" &&
+        Boolean(msg.idExterno);
+
+      if (podeRevokeEvo && msg.idExterno) {
+        const chatJid =
+          convRow.contato?.idExterno ??
+          (convRow.contato?.telefone
+            ? `${convRow.contato.telefone.replace(/\D/g, "")}@s.whatsapp.net`
+            : null);
+        if (chatJid) {
+          const ok = await deleteProviderMessageForEveryone(
+            ctx,
+            convRow.instancia as InstanciaComProvedor,
+            chatJid,
+            msg.idExterno,
+          );
+          if (ok) escopo = "todos";
+        }
+      }
+
+      await ctx.db
+        .update(mensagem)
+        .set(marcarExclusaoLogica())
+        .where(eq(mensagem.id, msg.id));
+
+      const anterior = await ctx.db.query.mensagem.findFirst({
+        where: and(eq(mensagem.conversaId, msg.conversaId), isNull(mensagem.excluidoEm)),
+        columns: { corpo: true, tipo: true, enviadoEm: true },
+        orderBy: [desc(mensagem.enviadoEm), desc(mensagem.id)],
+      });
+
+      await ctx.db
+        .update(conversa)
+        .set(
+          comTimestampAtualizacao({
+            ultimaMensagemEm: anterior?.enviadoEm ?? null,
+            ultimaMensagemCorpo: anterior?.corpo ?? null,
+            ultimaMensagemTipo: anterior?.tipo ?? null,
+          }),
+        )
+        .where(eq(conversa.id, msg.conversaId));
+
+      return { ok: true, escopo };
     },
 
     enviarTemplate: async (

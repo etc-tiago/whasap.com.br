@@ -81,7 +81,10 @@ export {
 } from "./lib/instancia-evolution-abandonada";
 export {
   atualizarStatusMensagemPorIdExterno,
+  aplicarEdicaoMensagem,
+  aplicarRevokeMensagem,
   buscarContatoPorIdExterno,
+  buscarMensagemPorIdExterno,
   camposUltimaMensagemConversa,
   decrementarNaoLidas,
   ingerirMensagem,

@@ -59,9 +59,23 @@ describe("parseGoMessageEvent", () => {
       const data = fixture.payload.data as Record<string, unknown>;
       const parsed = parseGoMessageEvent(data);
       expect(parsed, `fixture ${fixture.arquivo} deveria parsear`).not.toBeNull();
-      expect(parsed!.body.length).toBeGreaterThan(0);
       expect(parsed!.type.length).toBeGreaterThan(0);
+      if (parsed!.type === "edit_encrypted") {
+        expect(parsed!.editTargetId).toBeTruthy();
+        continue;
+      }
+      expect(parsed!.body.length).toBeGreaterThan(0);
     }
+  });
+
+  it("parseia message-edit-encrypted como edit_encrypted", () => {
+    const fixture = buscarFixtureWebhookGo("message-edit-encrypted.json")!;
+    const parsed = parseGoMessageEvent(fixture.payload.data as Record<string, unknown>);
+    expect(parsed).toMatchObject({
+      type: "edit_encrypted",
+      editTargetId: "AC9A902ED6D1458D0A9FB5C4023580E7",
+    });
+    expect(parsed!.body).not.toContain("criptografada");
   });
 
   it("parseia Message inbound", () => {

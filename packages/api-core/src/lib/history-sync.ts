@@ -5,6 +5,7 @@
  */
 import {
   deveIgnorarHistorySyncChunk,
+  extrairMessageSecretDeMessageObj,
   HISTORY_SYNC_TYPE,
   historySyncConcluido,
   mapaLidParaPn,
@@ -347,6 +348,8 @@ export async function processarHistorySyncChunkLote(
     const direcao = msg.fromMe ? "outbound" : "inbound";
     const isMidia = TIPOS_MIDIA.has(msg.type);
 
+    const messageSecret = extrairMessageSecretDeMessageObj(msg.messageObj) ?? undefined;
+
     // oxlint-disable-next-line eslint/no-await-in-loop -- lotes sequenciais
     const result = await ingerirMensagem(db, {
       instanciaId: instance.id,
@@ -369,6 +372,8 @@ export async function processarHistorySyncChunkLote(
         syncFase: rotuloHistorySyncType(item.syncType),
         ...(isMidia ? { waMessage: msg.messageObj } : {}),
         ...(msg.poll ? { poll: msg.poll } : {}),
+        ...(messageSecret ? { messageSecret } : {}),
+        ...(msg.fromMe ? {} : { senderJid: msg.chatJid }),
       },
       status: msg.status ?? (direcao === "outbound" ? "sent" : "delivered"),
     });

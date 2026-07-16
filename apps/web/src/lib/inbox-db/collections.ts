@@ -63,18 +63,19 @@ export function obterColecaoConversas(
   organizacaoHash: string,
   persistence: PersistedCollectionPersistence | null,
   epoch = 0,
+  arquivadas = false,
 ): Collection<ConversaItem, string> {
   const maps = registro(queryClient);
-  const cacheKey = `${organizacaoHash}:${persistence ? "sqlite" : "mem"}:${epoch}`;
+  const cacheKey = `${organizacaoHash}:${arquivadas ? "arq" : "ativ"}:${persistence ? "sqlite" : "mem"}:${epoch}`;
   const existente = maps.conversas.get(cacheKey);
   if (existente) return existente;
 
   const queryKey = orpc.caixaEntrada.conversas.lista.key({
-    input: { organizacaoHash },
+    input: { organizacaoHash, arquivadas },
   });
 
   const options = queryCollectionOptions({
-    id: `inbox-conversas-${organizacaoHash}`,
+    id: `inbox-conversas-${organizacaoHash}-${arquivadas ? "arq" : "ativ"}`,
     queryKey,
     queryFn: async () => {
       const itens: ConversaItem[] = [];
@@ -82,6 +83,7 @@ export function obterColecaoConversas(
       for (;;) {
         const page = await orpcClient.caixaEntrada.conversas.lista({
           organizacaoHash,
+          arquivadas,
           limite: LIMITE_CONVERSAS_PAGINA,
           ...cursor,
         });
@@ -102,7 +104,7 @@ export function obterColecaoConversas(
   });
 
   const collection = createCollection(
-    envolverPersistencia(options, persistence, 1),
+    envolverPersistencia(options, persistence, 2),
   ) as unknown as Collection<ConversaItem, string>;
 
   maps.conversas.set(cacheKey, collection);
@@ -203,6 +205,14 @@ export function inserirMensagemLocal(
   mensagem: MensagemItem,
 ): void {
   collection.utils.writeUpsert(mensagem);
+}
+
+/** Remove mensagem do cache local após soft-delete no servidor. */
+export function removerMensagemLocal(
+  collection: Collection<MensagemItem, string>,
+  mensagemId: string,
+): void {
+  collection.utils.writeDelete(mensagemId);
 }
 
 /** Descarta registries de collections (logout). */

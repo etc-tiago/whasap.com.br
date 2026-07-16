@@ -11,11 +11,12 @@ import {
   contatoInstancia,
   conversa,
   type Db,
+  marcarExclusaoLogica,
   mensagem,
   usoMensal,
   usoMensalContato,
 } from "@whasap/db";
-import { and, eq, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
 
 export type IngerirMensagemParams = {
   instanciaId: number;
@@ -191,6 +192,7 @@ async function buscarOuCriarContatoInstancia(
 
 /**
  * Resolve conversa aberta — sem UPDATE antecipado (preview/timestamp vão no UPDATE único pós-mensagem).
+ * Se a conversa estiver arquivada no painel, desarquiva ao receber/enviar mensagem.
  */
 async function buscarOuCriarConversa(
   db: Db,
@@ -204,10 +206,16 @@ async function buscarOuCriarConversa(
       eq(conversa.status, "open"),
       isNull(conversa.excluidoEm),
     ),
-    columns: { id: true, naoLidas: true },
+    columns: { id: true, naoLidas: true, arquivadoEm: true },
   });
 
   if (conversation) {
+    if (conversation.arquivadoEm) {
+      await db
+        .update(conversa)
+        .set(comTimestampAtualizacao({ arquivadoEm: null }))
+        .where(eq(conversa.id, conversation.id));
+    }
     return { id: conversation.id, naoLidas: conversation.naoLidas };
   }
 
@@ -238,6 +246,7 @@ async function buscarOuCriarConversa(
  * Persiste mensagem: contato org, vínculo instância, conversa, mensagem e uso mensal.
  * Idempotente por `externalId` quando informado — retorna a existente (`created: false`)
  * para permitir backfill de mídia sem recriar a linha.
+ * Revoke (`type: "revoke"`): soft-delete da mensagem alvo; não cria linha nova.
  */
 export async function ingerirMensagem(
   db: Db,
@@ -248,6 +257,19 @@ export async function ingerirMensagem(
   created: boolean;
   midiaR2Chave: string | null;
 } | null> {
+  if (params.type === "revoke") {
+    const idAlvo = params.body.trim();
+    if (!idAlvo || idAlvo === "[mensagem apagada]") return null;
+    const revoked = await aplicarRevokeMensagem(db, { idExternoAlvo: idAlvo });
+    if (!revoked) return null;
+    return {
+      messageId: revoked.messageId,
+      conversaId: revoked.conversaId,
+      created: false,
+      midiaR2Chave: null,
+    };
+  }
+
   if (params.externalId) {
     const existing = await db.query.mensagem.findFirst({
       where: and(eq(mensagem.idExterno, params.externalId), isNull(mensagem.excluidoEm)),
@@ -426,6 +448,125 @@ export async function atualizarStatusMensagemPorIdExterno(
     .where(and(eq(mensagem.idExterno, externalId), isNull(mensagem.excluidoEm)))
     .returning({ conversaId: mensagem.conversaId });
   return updated?.conversaId ?? null;
+}
+
+/** Busca mensagem por id externo com metadados (ex.: messageSecret para edições). */
+export async function buscarMensagemPorIdExterno(
+  db: Db,
+  idExterno: string,
+): Promise<{
+  id: number;
+  conversaId: number;
+  corpo: string | null;
+  tipo: string;
+  enviadoEm: Date;
+  metadados: Record<string, unknown> | null;
+} | null> {
+  const row = await db.query.mensagem.findFirst({
+    where: and(eq(mensagem.idExterno, idExterno), isNull(mensagem.excluidoEm)),
+    columns: {
+      id: true,
+      conversaId: true,
+      corpo: true,
+      tipo: true,
+      enviadoEm: true,
+      metadados: true,
+    },
+  });
+  if (!row) return null;
+  const metadados =
+    row.metadados && typeof row.metadados === "object"
+      ? (row.metadados as Record<string, unknown>)
+      : null;
+  return {
+    id: row.id,
+    conversaId: row.conversaId,
+    corpo: row.corpo,
+    tipo: row.tipo,
+    enviadoEm: row.enviadoEm,
+    metadados,
+  };
+}
+
+/**
+ * Aplica edição de mensagem: atualiza `corpo` da original e marca `metadados.editadoEm`.
+ * Se for a última mensagem da conversa, atualiza o preview.
+ */
+export async function aplicarEdicaoMensagem(
+  db: Db,
+  params: {
+    idExternoAlvo: string;
+    novoCorpo: string;
+    editadoEm?: Date;
+  },
+): Promise<{ messageId: number; conversaId: number } | null> {
+  const existing = await buscarMensagemPorIdExterno(db, params.idExternoAlvo);
+  if (!existing) return null;
+
+  const editadoEm = params.editadoEm ?? new Date();
+  const metadados = {
+    ...(existing.metadados ?? {}),
+    editadoEm: editadoEm.toISOString(),
+  };
+
+  await db
+    .update(mensagem)
+    .set({ corpo: params.novoCorpo, metadados })
+    .where(eq(mensagem.id, existing.id));
+
+  const ultima = await db.query.mensagem.findFirst({
+    where: and(eq(mensagem.conversaId, existing.conversaId), isNull(mensagem.excluidoEm)),
+    orderBy: [desc(mensagem.enviadoEm), desc(mensagem.id)],
+    columns: { id: true },
+  });
+
+  if (ultima?.id === existing.id) {
+    await db
+      .update(conversa)
+      .set(
+        comTimestampAtualizacao({
+          ultimaMensagemCorpo: params.novoCorpo,
+        }),
+      )
+      .where(eq(conversa.id, existing.conversaId));
+  }
+
+  return { messageId: existing.id, conversaId: existing.conversaId };
+}
+
+/**
+ * Soft-delete da mensagem alvo de um revoke WhatsApp e recalcula o preview da conversa.
+ */
+export async function aplicarRevokeMensagem(
+  db: Db,
+  params: { idExternoAlvo: string },
+): Promise<{ messageId: number; conversaId: number } | null> {
+  const existing = await buscarMensagemPorIdExterno(db, params.idExternoAlvo);
+  if (!existing) return null;
+
+  await db
+    .update(mensagem)
+    .set(marcarExclusaoLogica())
+    .where(eq(mensagem.id, existing.id));
+
+  const anterior = await db.query.mensagem.findFirst({
+    where: and(eq(mensagem.conversaId, existing.conversaId), isNull(mensagem.excluidoEm)),
+    columns: { corpo: true, tipo: true, enviadoEm: true },
+    orderBy: [desc(mensagem.enviadoEm), desc(mensagem.id)],
+  });
+
+  await db
+    .update(conversa)
+    .set(
+      comTimestampAtualizacao({
+        ultimaMensagemEm: anterior?.enviadoEm ?? null,
+        ultimaMensagemCorpo: anterior?.corpo ?? null,
+        ultimaMensagemTipo: anterior?.tipo ?? null,
+      }),
+    )
+    .where(eq(conversa.id, existing.conversaId));
+
+  return { messageId: existing.id, conversaId: existing.conversaId };
 }
 
 /** Decrementa não lidas da conversa (floor 0). */

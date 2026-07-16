@@ -115,6 +115,8 @@ export const conversa = pgTable(
     naoLidas: integer().notNull().default(0),
     ultimaLeituraEm: timestamp(),
     fechadoEm: timestamp(),
+    /** Arquivo local no painel (independente de status open/closed). */
+    arquivadoEm: timestamp(),
     excluidoEm: timestamp(),
     criadoEm: timestamp().notNull(),
     atualizadoEm: timestamp().notNull(),
@@ -122,6 +124,11 @@ export const conversa = pgTable(
   (t) => [
     index("conversa_instancia_ultima_mensagem_idx").on(t.instanciaId, t.ultimaMensagemEm),
     index("conversa_instancia_contato_status_idx").on(t.instanciaId, t.contatoId, t.status),
+    index("conversa_instancia_arquivado_ultima_mensagem_idx").on(
+      t.instanciaId,
+      t.arquivadoEm,
+      t.ultimaMensagemEm,
+    ),
     index("conversa_instancia_criado_em_idx").on(t.instanciaId, t.criadoEm),
     index("conversa_atribuido_usuario_id_idx").on(t.atribuidoUsuarioId),
   ],

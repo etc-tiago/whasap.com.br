@@ -25,6 +25,9 @@ type WaChatListPanelProps = {
   onBuscaChange: (value: string) => void;
   filtroAtivo?: FiltroConversa;
   onFiltroChange?: (filtro: FiltroConversa) => void;
+  /** Vista de conversas arquivadas (lista filtrada no servidor). */
+  arquivadasAtivas?: boolean;
+  onArquivadasChange?: (arquivadas: boolean) => void;
   children: ReactNode;
   instancias?: InstanciaNovaConversa[];
   instanciaPadraoId?: string;
@@ -45,6 +48,8 @@ export function WaChatListPanel({
   onBuscaChange,
   filtroAtivo = "Tudo",
   onFiltroChange,
+  arquivadasAtivas = false,
+  onArquivadasChange,
   children,
   instancias = INSTANCIAS_VAZIAS,
   instanciaPadraoId,
@@ -168,13 +173,18 @@ export function WaChatListPanel({
 
         <button
           type="button"
-          disabled
-          className="flex items-center gap-4 border-b border-wa-divider px-5 py-3 text-left hover:bg-wa-hover disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={() => onArquivadasChange?.(!arquivadasAtivas)}
+          className={cn(
+            "flex items-center gap-4 border-b border-wa-divider px-5 py-3 text-left hover:bg-wa-hover",
+            arquivadasAtivas && "bg-wa-hover",
+          )}
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-wa-chip">
             <Archive className="h-4 w-4 text-wa-green-dark" />
           </div>
-          <span className="text-sm font-medium text-wa-text">Arquivadas</span>
+          <span className="text-sm font-medium text-wa-text">
+            {arquivadasAtivas ? "Voltar às conversas" : "Arquivadas"}
+          </span>
         </button>
 
         <div className="wa-scroll min-h-0 flex-1 overflow-y-auto">{children}</div>

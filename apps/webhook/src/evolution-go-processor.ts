@@ -32,6 +32,8 @@ import {
   jidParaTelefone,
   parseGoButtonClick,
   extrairMidiaGoDeMessageObj,
+  extrairMessageSecretDeMessageObj,
+  decryptMessageEdit,
   parseGoContact,
   parseGoGroupInfo,
   parseGoConnectionLifecycleEvent,
@@ -56,7 +58,9 @@ import { and, eq, isNull, or } from "drizzle-orm";
 import type { Env } from "./env";
 import {
   atualizarStatusMensagemPorIdExterno,
+  aplicarEdicaoMensagem,
   buscarContatoPorIdExterno,
+  buscarMensagemPorIdExterno,
   decrementarNaoLidas,
   ingerirMensagem,
 } from "./ingestao-mensagem";
@@ -112,6 +116,11 @@ async function processarMensagemGo(
   const parsed = parseGoMessageEvent(data);
   if (!parsed) return;
 
+  if (parsed.type === "edit" || parsed.type === "edit_encrypted") {
+    await processarEdicaoMensagemGo(db, data, parsed);
+    return;
+  }
+
   const info = (data.Info ?? {}) as Record<string, unknown>;
   const { idExternoLinha, idExternoCanonico, phone } = identidadeGoDeInfo(info, parsed.chatJid);
   const direcao = parsed.fromMe ? "outbound" : direcaoPadrao;
@@ -119,6 +128,9 @@ async function processarMensagemGo(
   const mediaInfo = MEDIA_TYPES.has(parsed.type)
     ? extrairMidiaGoDeMessageObj(parsed.messageObj)
     : null;
+
+  const messageSecret =
+    parsed.messageSecret ?? extrairMessageSecretDeMessageObj(parsed.messageObj) ?? undefined;
 
   const result = await ingerirMensagem(db, {
     instanciaId: instance.id,
@@ -140,6 +152,9 @@ async function processarMensagemGo(
       isGroup: parsed.isGroup,
       ...(mediaInfo ? { waMessage: parsed.messageObj } : {}),
       ...(parsed.poll ? { poll: parsed.poll } : {}),
+      ...(messageSecret ? { messageSecret } : {}),
+      ...(parsed.senderJid ? { senderJid: parsed.senderJid } : {}),
+      ...(parsed.senderJidAlt ? { senderJidAlt: parsed.senderJidAlt } : {}),
     },
     status: direcao === "outbound" ? "sent" : "delivered",
   });
@@ -168,6 +183,61 @@ async function processarMensagemGo(
     mimeType: mediaInfo.mimeType,
     base64: mediaInfo.base64,
     fileName: mediaInfo.fileName,
+  });
+}
+
+async function processarEdicaoMensagemGo(
+  db: Db,
+  data: Record<string, unknown>,
+  parsed: NonNullable<ReturnType<typeof parseGoMessageEvent>>,
+): Promise<void> {
+  const alvo = parsed.editTargetId;
+  if (!alvo) return;
+
+  let novoCorpo: string | null = parsed.type === "edit" ? parsed.body : null;
+
+  if (parsed.type === "edit_encrypted" && parsed.editEncrypted) {
+    const original = await buscarMensagemPorIdExterno(db, alvo);
+    if (!original?.metadados) return;
+
+    const messageSecret =
+      typeof original.metadados.messageSecret === "string"
+        ? original.metadados.messageSecret
+        : null;
+    if (!messageSecret) return;
+
+    const info = (data.Info ?? {}) as Record<string, unknown>;
+    const editorJid =
+      (typeof info.Sender === "string" && info.Sender) ||
+      parsed.senderJid ||
+      "";
+    if (!editorJid) return;
+
+    const origSenders = [
+      typeof original.metadados.senderJid === "string" ? original.metadados.senderJid : null,
+      typeof original.metadados.senderJidAlt === "string"
+        ? original.metadados.senderJidAlt
+        : null,
+      editorJid,
+      typeof info.SenderAlt === "string" ? info.SenderAlt : null,
+    ].filter((j): j is string => Boolean(j));
+
+    novoCorpo = await decryptMessageEdit({
+      messageSecret,
+      origMsgId: alvo,
+      origSenderJids: origSenders,
+      editorJid,
+      encIv: parsed.editEncrypted.encIv,
+      encPayload: parsed.editEncrypted.encPayload,
+    });
+  }
+
+  if (!novoCorpo) return;
+
+  await aplicarEdicaoMensagem(db, {
+    idExternoAlvo: alvo,
+    novoCorpo,
+    editadoEm: parsed.timestamp ?? undefined,
   });
 }
 

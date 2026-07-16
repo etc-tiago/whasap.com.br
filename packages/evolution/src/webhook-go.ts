@@ -24,6 +24,13 @@ export type GoPollPayload = {
   selectableOptionsCount?: number;
 };
 
+/** Envelope MESSAGE_EDIT ainda criptografado (secretEncType=2). */
+export type GoEditEncrypted = {
+  editTargetId: string;
+  encIv: Uint8Array;
+  encPayload: Uint8Array;
+};
+
 export type GoMensagemNormalizada = {
   chatJid: string;
   messageId: string;
@@ -35,6 +42,16 @@ export type GoMensagemNormalizada = {
   isGroup: boolean;
   messageObj: Record<string, unknown>;
   poll?: GoPollPayload;
+  /** idExterno da mensagem original (tipos `edit` / `edit_encrypted`). */
+  editTargetId?: string;
+  /** Payload AES-GCM quando `type === "edit_encrypted"`. */
+  editEncrypted?: GoEditEncrypted;
+  /** `messageContextInfo.messageSecret` (base64), se presente. */
+  messageSecret?: string;
+  /** JID do remetente (`Info.Sender`), para HKDF de edições. */
+  senderJid?: string;
+  /** Alternativa LID/PN (`Info.SenderAlt` / `RecipientAlt`). */
+  senderJidAlt?: string;
 };
 
 export type GoHistorySyncConversa = {
@@ -58,7 +75,49 @@ type GoCorpoParseado = {
   body: string;
   type: string;
   poll?: GoPollPayload;
+  editTargetId?: string;
+  editEncrypted?: GoEditEncrypted;
 };
+
+/** ProtocolMessage.Type.MESSAGE_EDIT */
+export const PROTOCOL_MESSAGE_EDIT = 14;
+/** SecretEncryptedMessage.SecretEncType.MESSAGE_EDIT */
+export const SECRET_ENC_TYPE_MESSAGE_EDIT = 2;
+/** `Info.Edit` no webhook GO quando o evento é edição. */
+export const INFO_EDIT_MENSAGEM = "1";
+
+/** Lê `messageContextInfo.messageSecret` (base64) do objeto Message. */
+export function extrairMessageSecretDeMessageObj(
+  messageObj: Record<string, unknown>,
+): string | null {
+  const ctx = messageObj.messageContextInfo;
+  if (!ctx || typeof ctx !== "object") return null;
+  const secret = (ctx as { messageSecret?: unknown }).messageSecret;
+  return typeof secret === "string" && secret.length > 0 ? secret : null;
+}
+
+/** Converte base64 ou array de bytes (JSON GO) em Uint8Array. */
+export function bytesDeCampoGo(value: unknown): Uint8Array | null {
+  if (value == null) return null;
+  if (value instanceof Uint8Array) return value;
+  if (typeof value === "string" && value.length > 0) {
+    try {
+      const fromBase64 = (Uint8Array as unknown as { fromBase64?: (s: string) => Uint8Array })
+        .fromBase64;
+      if (typeof fromBase64 === "function") return fromBase64(value);
+      const binary = atob(value);
+      const out = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+      return out;
+    } catch {
+      return null;
+    }
+  }
+  if (Array.isArray(value) && value.every((n) => typeof n === "number")) {
+    return Uint8Array.from(value as number[]);
+  }
+  return null;
+}
 
 /**
  * syncType do HistorySync (Evolution GO / whatsmeow).
@@ -512,20 +571,65 @@ function parseGoMessageBody(messageObj: Record<string, unknown>): GoCorpoParsead
   }
   if (obj.protocolMessage) {
     const part = obj.protocolMessage as {
-      type?: number;
+      type?: number | string;
       key?: { id?: string; ID?: string };
+      editedMessage?: Record<string, unknown>;
     };
-    if (part.type === 0) {
+    const tipo =
+      part.type === "MESSAGE_EDIT" || part.type === "ProtocolMessage_MESSAGE_EDIT"
+        ? PROTOCOL_MESSAGE_EDIT
+        : Number(part.type);
+    if (tipo === 0) {
       const alvo = part.key?.id ?? part.key?.ID;
       return {
         body: textoNaoVazio(alvo) ?? "[mensagem apagada]",
         type: "revoke",
       };
     }
+    if (tipo === PROTOCOL_MESSAGE_EDIT) {
+      const alvo = part.key?.id ?? part.key?.ID;
+      if (!alvo) return null;
+      const editedRaw = part.editedMessage;
+      const editedInner =
+        editedRaw && typeof editedRaw === "object"
+          ? ((editedRaw.message as Record<string, unknown> | undefined) ?? editedRaw)
+          : null;
+      if (!editedInner) return null;
+      const corpoEditado = parseGoMessageBody(editedInner);
+      if (!corpoEditado || !corpoEditado.body) return null;
+      return {
+        body: corpoEditado.body,
+        type: "edit",
+        editTargetId: alvo,
+      };
+    }
     return null;
   }
   if (obj.secretEncryptedMessage) {
-    return { body: "[mensagem criptografada]", type: "encrypted" };
+    const part = obj.secretEncryptedMessage as {
+      secretEncType?: number | string;
+      targetMessageKey?: { id?: string; ID?: string };
+      encIV?: unknown;
+      encIv?: unknown;
+      encPayload?: unknown;
+    };
+    const encType =
+      part.secretEncType === "MESSAGE_EDIT" ||
+      part.secretEncType === "SecretEncryptedMessage_MESSAGE_EDIT"
+        ? SECRET_ENC_TYPE_MESSAGE_EDIT
+        : Number(part.secretEncType);
+    if (encType !== SECRET_ENC_TYPE_MESSAGE_EDIT) return null;
+    const alvo = part.targetMessageKey?.id ?? part.targetMessageKey?.ID;
+    if (!alvo) return null;
+    const encIv = bytesDeCampoGo(part.encIV ?? part.encIv);
+    const encPayload = bytesDeCampoGo(part.encPayload);
+    if (!encIv || !encPayload || encIv.length === 0 || encPayload.length === 0) return null;
+    return {
+      body: "",
+      type: "edit_encrypted",
+      editTargetId: alvo,
+      editEncrypted: { editTargetId: alvo, encIv, encPayload },
+    };
   }
   if (obj.placeholderMessage) {
     return { body: "[placeholder]", type: "placeholder" };
@@ -560,18 +664,52 @@ export function parseGoMessageEvent(data: Record<string, unknown>): GoMensagemNo
   if (!parsed) return null;
 
   const isGroup = Boolean(info.IsGroup) || chatJid.endsWith("@g.us");
+  const messageSecret = extrairMessageSecretDeMessageObj(messageObj) ?? undefined;
+  const senderJid = typeof info.Sender === "string" && info.Sender ? info.Sender : undefined;
+  const senderJidAlt =
+    (typeof info.SenderAlt === "string" && info.SenderAlt ? info.SenderAlt : null) ??
+    (typeof info.RecipientAlt === "string" && info.RecipientAlt ? info.RecipientAlt : null) ??
+    undefined;
+
+  let type = parsed.type;
+  let body = parsed.body;
+  let editTargetId = parsed.editTargetId;
+  let editEncrypted = parsed.editEncrypted;
+
+  // Info.Edit=1 marca edição mesmo quando IsEdit=false (Evolution GO).
+  if (
+    String(info.Edit ?? "") === INFO_EDIT_MENSAGEM &&
+    type !== "edit" &&
+    type !== "edit_encrypted"
+  ) {
+    const bot = info.MsgBotInfo as { EditTargetID?: string } | undefined;
+    const meta = info.MsgMetaInfo as { TargetID?: string } | undefined;
+    const alvo =
+      textoNaoVazio(bot?.EditTargetID) ??
+      textoNaoVazio(meta?.TargetID) ??
+      editTargetId;
+    if (alvo && body) {
+      type = "edit";
+      editTargetId = alvo;
+    }
+  }
 
   return {
     chatJid,
     messageId,
     fromMe: Boolean(info.IsFromMe),
     pushName: typeof info.PushName === "string" ? info.PushName : null,
-    body: parsed.body,
-    type: parsed.type,
+    body,
+    type,
     timestamp: timestampFromGo(info.Timestamp),
     isGroup,
     messageObj,
     ...(parsed.poll ? { poll: parsed.poll } : {}),
+    ...(editTargetId ? { editTargetId } : {}),
+    ...(editEncrypted ? { editEncrypted } : {}),
+    ...(messageSecret ? { messageSecret } : {}),
+    ...(senderJid ? { senderJid } : {}),
+    ...(senderJidAlt ? { senderJidAlt } : {}),
   };
 }
 
@@ -593,6 +731,8 @@ function parseHistorySyncMessage(
 
   const parsed = parseGoMessageBody(messageObj);
   if (!parsed) return null;
+  // Edições/envelopes criptografados não viram linha no history sync.
+  if (parsed.type === "edit" || parsed.type === "edit_encrypted") return null;
 
   return {
     messageId,

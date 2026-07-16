@@ -288,4 +288,79 @@ describe("ingerirMensagem (db memória)", () => {
 
     expect(store.conversas[0]!.metaCloudJanelaExpiraEm).toBeInstanceOf(Date);
   });
+
+  it("revoke soft-delete a mensagem alvo sem criar linha nova", async () => {
+    const { ingerirMensagem } = await import("./ingestao-mensagem");
+    const { db } = criarDbMemoria();
+
+    let softDeleted = false;
+    (
+      db as {
+        query: {
+          mensagem: {
+            findFirst: () => Promise<{
+              id: number;
+              conversaId: number;
+              corpo: string;
+              tipo: string;
+              enviadoEm: Date;
+              metadados: null;
+            } | null>;
+          };
+        };
+        update: () => {
+          set: (values: Record<string, unknown>) => {
+            where: () => Promise<void>;
+          };
+        };
+      }
+    ).query.mensagem.findFirst = async () => {
+      if (softDeleted) {
+        return {
+          id: 2,
+          conversaId: 7,
+          corpo: "anterior",
+          tipo: "text",
+          enviadoEm: new Date("2024-01-01T00:00:00Z"),
+          metadados: null,
+        };
+      }
+      return {
+        id: 1,
+        conversaId: 7,
+        corpo: "apagada",
+        tipo: "text",
+        enviadoEm: new Date("2024-01-02T00:00:00Z"),
+        metadados: null,
+      };
+    };
+    (db as { update: typeof db.update }).update = () => ({
+      set: (values: Record<string, unknown>) => ({
+        where: async () => {
+          if (values.excluidoEm !== undefined) softDeleted = true;
+        },
+      }),
+    });
+
+    const result = await ingerirMensagem(db, {
+      instanciaId: 10,
+      organizacaoId: 1,
+      phone: "554688043494",
+      contactName: null,
+      idExternoLinha: "554688043494@s.whatsapp.net",
+      idExternoCanonico: "554688043494@s.whatsapp.net",
+      body: "MSG-ALVO",
+      type: "revoke",
+      externalId: "REVOKE-1",
+      provedor: "evo",
+    });
+
+    expect(result).toEqual({
+      messageId: 1,
+      conversaId: 7,
+      created: false,
+      midiaR2Chave: null,
+    });
+    expect(softDeleted).toBe(true);
+  });
 });

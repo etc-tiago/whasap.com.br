@@ -6,7 +6,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@whasap/ui/components/dropdown-menu";
-import { ArrowLeft, History, Megaphone, MoreVertical, Search, Video } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  ArrowLeft,
+  History,
+  Megaphone,
+  MoreVertical,
+  Search,
+  Video,
+} from "lucide-react";
 
 import { WaAtribuirPopover } from "@/components/inbox/wa-atribuir-popover";
 import { WaEtiquetasPopover } from "@/components/inbox/wa-etiquetas-popover";
@@ -33,7 +42,10 @@ type WaChatHeaderProps = {
   membros: Membro[];
   podeAtribuir?: boolean;
   podeEtiquetar?: boolean;
+  podeArquivar?: boolean;
   onFechar: () => void;
+  onArquivar?: () => void;
+  onDesarquivar?: () => void;
   onVoltarMobile?: () => void;
   /** Exibe botão para abrir/fechar o painel de campanha. */
   campanhaDisponivel?: boolean;
@@ -49,7 +61,10 @@ export function WaChatHeader({
   membros,
   podeAtribuir = true,
   podeEtiquetar = true,
+  podeArquivar = true,
   onFechar,
+  onArquivar,
+  onDesarquivar,
   onVoltarMobile,
   campanhaDisponivel,
   campanhaAberta,
@@ -60,6 +75,7 @@ export function WaChatHeader({
   const nome = nomeTrim ?? conversa.contatoTelefone;
   const cor = corAvatarContato(conversa.contatoId);
   const isEvo = isEvoProvider(provedor ?? "");
+  const estaArquivada = Boolean(conversa.arquivadoEm);
 
   const sincronizarHistorico = useMutation(
     orpc.caixaEntrada.conversas.sincronizarHistorico.mutationOptions({
@@ -159,6 +175,18 @@ export function WaChatHeader({
                   {sincronizarHistorico.isPending
                     ? "Sincronizando histórico..."
                     : "Sincronizar histórico"}
+                </DropdownMenuItem>
+              ) : null}
+              {podeArquivar && estaArquivada && onDesarquivar ? (
+                <DropdownMenuItem onSelect={onDesarquivar}>
+                  <ArchiveRestore className="mr-2 h-4 w-4" />
+                  Desarquivar
+                </DropdownMenuItem>
+              ) : null}
+              {podeArquivar && !estaArquivada && onArquivar ? (
+                <DropdownMenuItem onSelect={onArquivar}>
+                  <Archive className="mr-2 h-4 w-4" />
+                  Arquivar
                 </DropdownMenuItem>
               ) : null}
               <DropdownMenuItem

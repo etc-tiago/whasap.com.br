@@ -254,6 +254,7 @@ export const colunasConversaLista = {
   ultimaMensagemTipo: true,
   naoLidas: true,
   ultimaLeituraEm: true,
+  arquivadoEm: true,
 } as const;
 
 /** Conversa com instância e contato — acesso por uuid. */
@@ -265,6 +266,7 @@ export const colunasConversaComRelacoes = {
   atribuidoUsuarioId: true,
   status: true,
   metaCloudJanelaExpiraEm: true,
+  arquivadoEm: true,
 } as const;
 
 /** Mensagem na listagem / envio. */

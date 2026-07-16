@@ -352,12 +352,21 @@ describe("HistorySync tipos de mensagem (sintetico)", () => {
     expect(c.conversations[0]!.messages[0]).toMatchObject({ type: "image", body: "filho" });
   });
 
-  it("38) secretEncryptedMessage vira encrypted", () => {
-    const c = chunkCom({ secretEncryptedMessage: { encPayload: "x" } });
-    expect(c.conversations[0]!.messages[0]).toMatchObject({
-      type: "encrypted",
-      body: "[mensagem criptografada]",
+  it("38) secretEncryptedMessage MESSAGE_EDIT nao vira mensagem no history sync", () => {
+    const c = chunkCom({
+      secretEncryptedMessage: {
+        secretEncType: 2,
+        encIV: "YWJjZGVmZ2hpams=",
+        encPayload: "cGF5bG9hZA==",
+        targetMessageKey: { ID: "ORIG" },
+      },
     });
+    expect(c.temMensagens).toBe(false);
+  });
+
+  it("38b) secretEncryptedMessage nao-edit e ignorado", () => {
+    const c = chunkCom({ secretEncryptedMessage: { encPayload: "x", secretEncType: 1 } });
+    expect(c.temMensagens).toBe(false);
   });
 
   it("39) protocolMessage revoke", () => {

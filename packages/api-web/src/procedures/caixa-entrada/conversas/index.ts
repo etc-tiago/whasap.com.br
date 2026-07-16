@@ -1,4 +1,6 @@
+import arquivar from "./arquivar";
 import atribuir from "./atribuir";
+import desarquivar from "./desarquivar";
 import fechar from "./fechar";
 import iniciar from "./iniciar";
 import lista from "./lista";
@@ -9,5 +11,7 @@ export default {
   iniciar,
   atribuir,
   fechar,
+  arquivar,
+  desarquivar,
   sincronizarHistorico,
 };

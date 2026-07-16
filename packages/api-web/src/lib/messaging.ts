@@ -270,6 +270,42 @@ export async function markProviderMessageRead(
   }
 }
 
+/**
+ * Tenta apagar mensagem para todos no Evolution (`POST /message/delete`).
+ * Meta Cloud API não tem endpoint equivalente — retorna false.
+ * @returns true se o provedor aceitou o revoke.
+ */
+export async function deleteProviderMessageForEveryone(
+  ctx: WebContext,
+  instance: SendMessageParams["instance"],
+  chatJid: string,
+  externalMessageId: string,
+): Promise<boolean> {
+  if (!isEvoProvider(instance.provedor)) return false;
+  const evoToken = instance.evo?.token;
+  if (!evoToken) return false;
+
+  const creds = await obterCredenciaisEvolution(ctx.env);
+  const client = criarClienteEvolutionGo(
+    ctx.env,
+    creds,
+    { instanceToken: evoToken },
+    {
+      origem: "messaging",
+      rpc: "messaging.deleteMessage",
+      instanciaUuid: instance.uuid,
+      ...(instance.evo?.instanceId ? { evolutionInstanceId: instance.evo.instanceId } : {}),
+    },
+  );
+
+  try {
+    await client.deleteMessage(chatJid, externalMessageId, true);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function isMetaCloudWindowOpen(metaCloudJanelaExpiraEm: Date | null): boolean {
   if (!metaCloudJanelaExpiraEm) return false;
   return metaCloudJanelaExpiraEm.getTime() > Date.now();

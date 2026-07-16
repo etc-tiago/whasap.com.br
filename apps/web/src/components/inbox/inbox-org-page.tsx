@@ -10,6 +10,7 @@ import { isEvoProvider, isMetaCloudProvider } from "@whasap/config";
 import { Badge } from "@whasap/ui/components/badge";
 import { Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { WaCampanhaPainel } from "@/components/campanha/wa-campanha-painel";
 import { WaChatHeader } from "@/components/inbox/wa-chat-header";
@@ -30,6 +31,7 @@ import { formatarHorarioConversa, formatarPreviewMensagem } from "@/lib/inbox-ut
 import { instanciaOperacional } from "@/lib/instancia-status";
 import { orgInput } from "@/lib/org-input";
 import { orpc, type ConversaItem, type MensagemItem } from "@/lib/orpc";
+import { getOrpcErrorMessage } from "@/lib/orpc-error";
 import { eCandidatoTelefoneBr, normalizarTelefoneBr, telefonesBrIguais } from "@/lib/telefone-br";
 import { useOrganizacaoHash } from "@/lib/use-organizacao-hash";
 
@@ -54,6 +56,7 @@ export function InboxOrgPage({
   const organizacaoHash = useOrganizacaoHash();
   const [busca, setBusca] = useState("");
   const [filtroAtivo, setFiltroAtivo] = useState<FiltroConversa>("Tudo");
+  const [arquivadasAtivas, setArquivadasAtivas] = useState(false);
   const [message, setMessage] = useState("");
   const [midia, setMidia] = useState<MidiaAnexada | null>(null);
   const [filaRespostaRapida, setFilaRespostaRapida] = useState<ItemFilaRespostaRapida[] | null>(
@@ -90,7 +93,7 @@ export function InboxOrgPage({
     }),
   );
 
-  const conversations = useInboxConversas(organizacaoHash);
+  const conversations = useInboxConversas(organizacaoHash, arquivadasAtivas);
 
   const selected = conversations.data.find((c: ConversaItem) => c.id === selectedId);
   const instanciasOperacionais = useMemo(
@@ -137,6 +140,7 @@ export function InboxOrgPage({
     fetchNextPage,
     sincronizarRecentes,
     anexarMensagem,
+    removerMensagem,
   } = useInboxMensagens(selectedId);
 
   useEffect(() => {
@@ -222,6 +226,45 @@ export function InboxOrgPage({
       onSuccess: () => {
         void conversations.refetch?.();
         onLimparSelecao();
+      },
+    }),
+  );
+
+  const arquivar = useMutation(
+    orpc.caixaEntrada.conversas.arquivar.mutationOptions({
+      onSuccess: () => {
+        void conversations.refetch?.();
+        onLimparSelecao();
+      },
+      onError: (error) => {
+        toast.error(getOrpcErrorMessage(error, "Não foi possível arquivar a conversa"));
+      },
+    }),
+  );
+
+  const desarquivar = useMutation(
+    orpc.caixaEntrada.conversas.desarquivar.mutationOptions({
+      onSuccess: () => {
+        void conversations.refetch?.();
+        onLimparSelecao();
+      },
+      onError: (error) => {
+        toast.error(getOrpcErrorMessage(error, "Não foi possível desarquivar a conversa"));
+      },
+    }),
+  );
+
+  const excluirMensagem = useMutation(
+    orpc.caixaEntrada.mensagens.excluir.mutationOptions({
+      onSuccess: (result, vars) => {
+        removerMensagem(vars.mensagemId);
+        void conversations.refetch?.();
+        if (result.escopo === "painel") {
+          toast.message("Removida só no painel; o WhatsApp do contato ainda mostra a mensagem");
+        }
+      },
+      onError: (error) => {
+        toast.error(getOrpcErrorMessage(error, "Não foi possível apagar a mensagem"));
       },
     }),
   );
@@ -372,7 +415,9 @@ export function InboxOrgPage({
     <p className="px-4 py-8 text-center text-sm text-wa-text-muted">
       {busca.trim()
         ? "Nenhuma conversa encontrada."
-        : "Nenhuma conversa ainda. Mensagens recebidas aparecerão aqui."}
+        : arquivadasAtivas
+          ? "Nenhuma conversa arquivada."
+          : "Nenhuma conversa ainda. Mensagens recebidas aparecerão aqui."}
     </p>
   ) : (
     conversasFiltradas.map((c: ConversaItem) => (
@@ -416,6 +461,11 @@ export function InboxOrgPage({
       onBuscaChange={setBusca}
       filtroAtivo={filtroAtivo}
       onFiltroChange={setFiltroAtivo}
+      arquivadasAtivas={arquivadasAtivas}
+      onArquivadasChange={(next) => {
+        setArquivadasAtivas(next);
+        onLimparSelecao();
+      }}
       conversaAberta={Boolean(selected)}
       instancias={instanciasParaNovaConversa}
       instanciaPadraoId={instanciaPadraoNovaConversa}
@@ -444,7 +494,10 @@ export function InboxOrgPage({
             membros={membros.data ?? []}
             podeAtribuir={podeEscrever}
             podeEtiquetar={podeEscrever}
+            podeArquivar={podeEscrever}
             onFechar={() => fechar.mutate({ conversaId: selected.id })}
+            onArquivar={() => arquivar.mutate({ conversaId: selected.id })}
+            onDesarquivar={() => desarquivar.mutate({ conversaId: selected.id })}
             onVoltarMobile={onLimparSelecao}
             campanhaDisponivel={campanhaDisponivel}
             campanhaAberta={campanhaPainelAberto}
@@ -467,6 +520,8 @@ export function InboxOrgPage({
             forcarRodapeToken={forcarRodapeToken}
             podeResponder={canSend && !composerDisabled}
             onResponder={setMensagemResposta}
+            podeApagar={podeEscrever}
+            onApagar={(m) => excluirMensagem.mutate({ mensagemId: m.id })}
           />
         ) : undefined
       }

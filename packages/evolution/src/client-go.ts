@@ -377,6 +377,18 @@ export function createEvolutionGoClient(
       return request("message_markread", "POST", "/message/markread", { number, id: ids });
     },
 
+    /**
+     * Apaga mensagem para todos no WhatsApp (`POST /message/delete`).
+     * `chat` = JID do chat (ex.: `5511999999999@s.whatsapp.net`).
+     */
+    deleteMessage(chat: string, messageId: string, fromMe = true) {
+      return request("message_delete", "POST", "/message/delete", {
+        chat,
+        messageId,
+        fromMe,
+      });
+    },
+
     react(number: string, messageId: string, emoji: string, fromMe = false) {
       return request<EvolutionSendResponse>("message_react", "POST", "/message/react", {
         number,

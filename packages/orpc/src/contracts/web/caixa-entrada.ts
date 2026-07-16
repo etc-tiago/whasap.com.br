@@ -67,6 +67,8 @@ const conversaSchema = z.object({
   ultimaMensagemTipo: z.string().nullable().optional(),
   ultimaMensagemPreview: z.string().nullable(),
   naoLidas: z.number().int().nonnegative(),
+  /** Arquivo local no painel; null = na lista principal. */
+  arquivadoEm: z.string().datetime().nullable(),
   etiquetas: z.array(etiquetaSchema),
 });
 
@@ -103,6 +105,8 @@ export const caixaEntradaContract = {
         z.object({
           organizacaoHash: organizacaoHashSchema,
           instanciaId: z.string().uuid().optional(),
+          /** true = só arquivadas; false/omitido = só lista principal. */
+          arquivadas: z.boolean().optional(),
           limite: z.number().int().min(1).max(200).optional(),
           antesUltimaMensagemEm: z.string().datetime().optional(),
           antesId: z.string().uuid().optional(),
@@ -138,6 +142,14 @@ export const caixaEntradaContract = {
       .output(z.object({ ok: z.boolean() })),
 
     fechar: oc
+      .input(z.object({ conversaId: z.string().uuid() }))
+      .output(z.object({ ok: z.boolean() })),
+
+    arquivar: oc
+      .input(z.object({ conversaId: z.string().uuid() }))
+      .output(z.object({ ok: z.boolean() })),
+
+    desarquivar: oc
       .input(z.object({ conversaId: z.string().uuid() }))
       .output(z.object({ ok: z.boolean() })),
 
@@ -190,6 +202,19 @@ export const caixaEntradaContract = {
         }),
       )
       .output(z.object({ ok: z.boolean() })),
+
+    /**
+     * Soft-delete local; tenta revoke no Evolution (outbound com idExterno).
+     * Meta Cloud API não tem delete-for-everyone — sempre `escopo: "painel"`.
+     */
+    excluir: oc
+      .input(z.object({ mensagemId: z.string().uuid() }))
+      .output(
+        z.object({
+          ok: z.boolean(),
+          escopo: z.enum(["todos", "painel"]),
+        }),
+      ),
   },
 
   midia: {

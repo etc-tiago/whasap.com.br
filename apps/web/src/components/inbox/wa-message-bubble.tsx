@@ -14,6 +14,7 @@ import {
   Mic,
   Play,
   Reply,
+  Trash2,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
@@ -211,12 +212,16 @@ function BubbleBody({
   alignEnd,
   podeResponder,
   onResponder,
+  podeApagar,
+  onApagar,
 }: {
   mensagem: MensagemItem;
   footer: ReactNode;
   alignEnd?: boolean;
   podeResponder?: boolean;
   onResponder?: (mensagem: MensagemItem) => void;
+  podeApagar?: boolean;
+  onApagar?: (mensagem: MensagemItem) => void;
 }) {
   const isAudio = mensagem.type === "audio";
   const texto = corpoVisivel(mensagem);
@@ -224,7 +229,13 @@ function BubbleBody({
     Boolean(texto) &&
     Boolean(separarPrefixoNomeAtendente(texto!, mensagem.enviadoPorNome));
   const menu = (
-    <BubbleMenu mensagem={mensagem} podeResponder={podeResponder} onResponder={onResponder} />
+    <BubbleMenu
+      mensagem={mensagem}
+      podeResponder={podeResponder}
+      onResponder={onResponder}
+      podeApagar={podeApagar}
+      onApagar={onApagar}
+    />
   );
 
   if (isAudio) {
@@ -337,9 +348,17 @@ type BubbleAcoesProps = {
   mensagem: MensagemItem;
   podeResponder?: boolean;
   onResponder?: (mensagem: MensagemItem) => void;
+  podeApagar?: boolean;
+  onApagar?: (mensagem: MensagemItem) => void;
 };
 
-function BubbleMenu({ mensagem, podeResponder = true, onResponder }: BubbleAcoesProps) {
+function BubbleMenu({
+  mensagem,
+  podeResponder = true,
+  onResponder,
+  podeApagar = false,
+  onApagar,
+}: BubbleAcoesProps) {
   const [detalhesAberto, setDetalhesAberto] = useState(false);
   const podeCitar = Boolean(mensagem.idExterno) && podeResponder && Boolean(onResponder);
 
@@ -364,6 +383,15 @@ function BubbleMenu({ mensagem, podeResponder = true, onResponder }: BubbleAcoes
             <Info />
             Ver detalhes
           </DropdownMenuItem>
+          {podeApagar && onApagar ? (
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onSelect={() => onApagar(mensagem)}
+            >
+              <Trash2 />
+              Apagar
+            </DropdownMenuItem>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
       <MensagemDetalhesDialog
@@ -379,9 +407,17 @@ type BubbleProps = {
   mensagem: MensagemItem;
   podeResponder?: boolean;
   onResponder?: (mensagem: MensagemItem) => void;
+  podeApagar?: boolean;
+  onApagar?: (mensagem: MensagemItem) => void;
 };
 
-export function WaBubbleOut({ mensagem, podeResponder, onResponder }: BubbleProps) {
+export function WaBubbleOut({
+  mensagem,
+  podeResponder,
+  onResponder,
+  podeApagar,
+  onApagar,
+}: BubbleProps) {
   const time = formatarHorarioMensagem(mensagem.enviadoEm);
 
   return (
@@ -392,6 +428,8 @@ export function WaBubbleOut({ mensagem, podeResponder, onResponder }: BubbleProp
           alignEnd
           podeResponder={podeResponder}
           onResponder={onResponder}
+          podeApagar={podeApagar}
+          onApagar={onApagar}
           footer={
             <>
               {time}
@@ -404,7 +442,13 @@ export function WaBubbleOut({ mensagem, podeResponder, onResponder }: BubbleProp
   );
 }
 
-export function WaBubbleIn({ mensagem, podeResponder, onResponder }: BubbleProps) {
+export function WaBubbleIn({
+  mensagem,
+  podeResponder,
+  onResponder,
+  podeApagar,
+  onApagar,
+}: BubbleProps) {
   const time = formatarHorarioMensagem(mensagem.enviadoEm);
 
   return (
@@ -414,6 +458,8 @@ export function WaBubbleIn({ mensagem, podeResponder, onResponder }: BubbleProps
           mensagem={mensagem}
           podeResponder={podeResponder}
           onResponder={onResponder}
+          podeApagar={podeApagar}
+          onApagar={onApagar}
           footer={time}
         />
       </div>

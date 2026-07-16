@@ -11,6 +11,8 @@ type WaShellProps = {
   onBuscaChange: (value: string) => void;
   filtroAtivo?: FiltroConversa;
   onFiltroChange?: (filtro: FiltroConversa) => void;
+  arquivadasAtivas?: boolean;
+  onArquivadasChange?: (arquivadas: boolean) => void;
   listaConversas: ReactNode;
   conversaAberta: boolean;
   instancias?: InstanciaNovaConversa[];
@@ -34,6 +36,8 @@ export function WaShell({
   onBuscaChange,
   filtroAtivo,
   onFiltroChange,
+  arquivadasAtivas,
+  onArquivadasChange,
   listaConversas,
   conversaAberta,
   instancias,
@@ -58,6 +62,8 @@ export function WaShell({
           onBuscaChange={onBuscaChange}
           filtroAtivo={filtroAtivo}
           onFiltroChange={onFiltroChange}
+          arquivadasAtivas={arquivadasAtivas}
+          onArquivadasChange={onArquivadasChange}
           instancias={instancias}
           instanciaPadraoId={iniciarConversaExterna?.instanciaId ?? instanciaPadraoId}
           organizacaoHash={organizacaoHash}

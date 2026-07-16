@@ -3,7 +3,9 @@
  */
 export {
   atualizarStatusMensagemPorIdExterno,
+  aplicarEdicaoMensagem,
   buscarContatoPorIdExterno,
+  buscarMensagemPorIdExterno,
   decrementarNaoLidas,
   ingerirMensagem,
   marcarConversaLidaLocal,

@@ -13,19 +13,29 @@ import {
   obterColecaoConversas,
   obterColecaoMensagens,
   lerTemMaisAntigas,
+  removerMensagemLocal,
   sincronizarMensagensRecentes,
 } from "./collections";
 import { useInboxDb } from "./persistence";
 
 /** Lista de conversas da org — live query + poll ORPC via Query Collection. */
-export function useInboxConversas(organizacaoHash: string | undefined) {
+export function useInboxConversas(
+  organizacaoHash: string | undefined,
+  arquivadas = false,
+) {
   const queryClient = useQueryClient();
   const { ready, persistence, epoch } = useInboxDb();
 
   const collection = useMemo(() => {
     if (!ready || !organizacaoHash) return null;
-    return obterColecaoConversas(queryClient, organizacaoHash, persistence, epoch);
-  }, [queryClient, organizacaoHash, ready, persistence, epoch]);
+    return obterColecaoConversas(
+      queryClient,
+      organizacaoHash,
+      persistence,
+      epoch,
+      arquivadas,
+    );
+  }, [queryClient, organizacaoHash, ready, persistence, epoch, arquivadas]);
 
   const live = useLiveQuery(
     (q) => {
@@ -113,6 +123,14 @@ export function useInboxMensagens(conversaId: string | null) {
     [collection],
   );
 
+  const removerMensagem = useCallback(
+    (mensagemId: string) => {
+      if (!collection) return;
+      removerMensagemLocal(collection, mensagemId);
+    },
+    [collection],
+  );
+
   return {
     mensagens,
     isPending: Boolean(conversaId) && (!ready || live.isLoading),
@@ -122,6 +140,7 @@ export function useInboxMensagens(conversaId: string | null) {
     fetchNextPage,
     sincronizarRecentes,
     anexarMensagem,
+    removerMensagem,
     collection,
   };
 }

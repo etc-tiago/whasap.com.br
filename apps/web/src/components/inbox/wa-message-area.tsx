@@ -18,6 +18,8 @@ type WaMessageAreaProps = {
   forcarRodapeToken?: number;
   podeResponder?: boolean;
   onResponder?: (mensagem: MensagemItem) => void;
+  podeApagar?: boolean;
+  onApagar?: (mensagem: MensagemItem) => void;
 };
 
 export function WaMessageArea({
@@ -29,6 +31,8 @@ export function WaMessageArea({
   forcarRodapeToken = 0,
   podeResponder = true,
   onResponder,
+  podeApagar = false,
+  onApagar,
 }: WaMessageAreaProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const pertoDoRodapeRef = useRef(true);
@@ -156,6 +160,8 @@ export function WaMessageArea({
                 mensagem={m}
                 podeResponder={podeResponder}
                 onResponder={onResponder}
+                podeApagar={podeApagar}
+                onApagar={onApagar}
               />
             ) : (
               <WaBubbleIn
@@ -163,6 +169,8 @@ export function WaMessageArea({
                 mensagem={m}
                 podeResponder={podeResponder}
                 onResponder={onResponder}
+                podeApagar={podeApagar}
+                onApagar={onApagar}
               />
             ),
           )}
