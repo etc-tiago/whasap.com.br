@@ -118,7 +118,7 @@ export function createMetaClient(credentials: MetaCredentials, clientOptions?: M
         {
           ...messageBase(to, messageOptions),
           type: "text",
-          text: { body: text },
+          text: { preview_url: true, body: text },
         },
       );
     },

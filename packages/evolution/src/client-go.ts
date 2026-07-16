@@ -301,6 +301,18 @@ export function createEvolutionGoClient(
       });
     },
 
+    /**
+     * Texto com preview de link (GO faz scrape OG quando há URL em `text`).
+     * Preferir sobre `sendText` quando a mensagem contém http(s).
+     */
+    sendTextComLinkPreview(number: string, text: string, quoted?: Quoted) {
+      return request<EvolutionSendResponse>("send_link", "POST", "/send/link", {
+        number,
+        text,
+        ...quotedField(quoted),
+      });
+    },
+
     sendMedia(
       number: string,
       type: "image" | "video" | "audio" | "document",

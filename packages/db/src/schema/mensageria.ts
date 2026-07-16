@@ -226,6 +226,8 @@ export const respostaRapida = pgTable(
       .notNull()
       .references(() => organizacao.id, { onDelete: "cascade" }),
     titulo: text().notNull(),
+    /** Pausa entre mensagens da sequência ao enviar (0 = sem pausa). */
+    intervaloSegundos: integer().notNull().default(0),
     excluidoEm: timestamp(),
     criadoEm: timestamp().notNull(),
     atualizadoEm: timestamp().notNull(),

@@ -18,7 +18,7 @@ import type { FiltroConversa } from "@/components/inbox/wa-chat-list-panel";
 import { WaChatRow } from "@/components/inbox/wa-chat-row";
 import {
   WaComposer,
-  type ItemFilaRespostaRapida,
+  type FilaRespostaRapida,
   type MidiaAnexada,
 } from "@/components/inbox/wa-composer";
 import { WaMessageArea } from "@/components/inbox/wa-message-area";
@@ -63,9 +63,8 @@ export function InboxOrgPage({
   const [arquivadasAtivas, setArquivadasAtivas] = useState(false);
   const [message, setMessage] = useState("");
   const [midia, setMidia] = useState<MidiaAnexada | null>(null);
-  const [filaRespostaRapida, setFilaRespostaRapida] = useState<ItemFilaRespostaRapida[] | null>(
-    null,
-  );
+  const [filaRespostaRapida, setFilaRespostaRapida] = useState<FilaRespostaRapida | null>(null);
+  const [enviandoFila, setEnviandoFila] = useState(false);
   const [mensagemResposta, setMensagemResposta] = useState<MensagemItem | null>(null);
   const [iniciarConversaExterna, setIniciarConversaExterna] = useState<{
     telefone: string;
@@ -360,34 +359,44 @@ export function InboxOrgPage({
 
     const contextoMensagemId = mensagemResposta?.idExterno ?? undefined;
 
-    if (filaRespostaRapida && filaRespostaRapida.length > 0) {
-      // Sequência deve ir em ordem no WhatsApp — não paralelizar.
-      for (const [idx, item] of filaRespostaRapida.entries()) {
-        const contexto = idx === 0 ? contextoMensagemId : undefined;
-        if (item.tipo === "text") {
-          // oxlint-disable-next-line eslint/no-await-in-loop -- envio sequencial da fila
-          await sendMessage.mutateAsync({
-            conversaId: selectedId,
-            tipo: "text",
-            body: item.corpo,
-            ...(contexto ? { contextoMensagemId: contexto } : {}),
-          });
-        } else {
-          // oxlint-disable-next-line eslint/no-await-in-loop -- envio sequencial da fila
-          await sendMessage.mutateAsync({
-            conversaId: selectedId,
-            tipo: item.tipo,
-            mediaR2Key: item.mediaR2Key!,
-            filename: item.nomeArquivo ?? undefined,
-            body: item.corpo || undefined,
-            ...(contexto ? { contextoMensagemId: contexto } : {}),
-          });
+    if (filaRespostaRapida && filaRespostaRapida.itens.length > 0) {
+      const intervaloMs = Math.max(0, filaRespostaRapida.intervaloSegundos) * 1000;
+      setEnviandoFila(true);
+      try {
+        // Sequência deve ir em ordem no WhatsApp — não paralelizar.
+        for (const [idx, item] of filaRespostaRapida.itens.entries()) {
+          if (idx > 0 && intervaloMs > 0) {
+            // oxlint-disable-next-line eslint/no-await-in-loop -- pausa entre mensagens da sequência
+            await new Promise((resolve) => setTimeout(resolve, intervaloMs));
+          }
+          const contexto = idx === 0 ? contextoMensagemId : undefined;
+          if (item.tipo === "text") {
+            // oxlint-disable-next-line eslint/no-await-in-loop -- envio sequencial da fila
+            await sendMessage.mutateAsync({
+              conversaId: selectedId,
+              tipo: "text",
+              body: item.corpo,
+              ...(contexto ? { contextoMensagemId: contexto } : {}),
+            });
+          } else {
+            // oxlint-disable-next-line eslint/no-await-in-loop -- envio sequencial da fila
+            await sendMessage.mutateAsync({
+              conversaId: selectedId,
+              tipo: item.tipo,
+              mediaR2Key: item.mediaR2Key!,
+              filename: item.nomeArquivo ?? undefined,
+              body: item.corpo || undefined,
+              ...(contexto ? { contextoMensagemId: contexto } : {}),
+            });
+          }
         }
+        setFilaRespostaRapida(null);
+        setMessage("");
+        setMidia(null);
+        setMensagemResposta(null);
+      } finally {
+        setEnviandoFila(false);
       }
-      setFilaRespostaRapida(null);
-      setMessage("");
-      setMidia(null);
-      setMensagemResposta(null);
       return;
     }
 
@@ -548,7 +557,7 @@ export function InboxOrgPage({
               fila={filaRespostaRapida}
               mensagemResposta={mensagemResposta}
               disabled={!canSend}
-              pending={sendMessage.isPending}
+              pending={sendMessage.isPending || enviandoFila}
               podeUsarRespostasRapidas={podeEscrever}
               onChange={setMessage}
               onMidiaChange={setMidia}

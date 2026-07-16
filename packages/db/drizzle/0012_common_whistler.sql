@@ -1,0 +1,2 @@
+ALTER TABLE "conversa" ADD COLUMN "arquivado_em" timestamp;--> statement-breakpoint
+CREATE INDEX "conversa_instancia_arquivado_ultima_mensagem_idx" ON "conversa" USING btree ("instancia_id","arquivado_em","ultima_mensagem_em");

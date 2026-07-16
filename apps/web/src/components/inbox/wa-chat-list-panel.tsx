@@ -6,10 +6,11 @@ import {
   PanelSidebarTitle,
 } from "@whasap/ui/components/panel";
 import { cn } from "@whasap/ui/lib/utils";
-import { Archive, MessageSquarePlus, MoreVertical, Plus, Search } from "lucide-react";
+import { Archive, Menu, MessageSquarePlus, MoreVertical, Plus, Search } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { WaIconButton } from "@/components/inbox/wa-icon-button";
+import { useWaMenuNavegacao } from "@/components/inbox/wa-menu-navegacao";
 import {
   WaNovaConversaPopover,
   type InstanciaNovaConversa,
@@ -104,11 +105,23 @@ export function WaChatListPanel({
   }
 
   const instanciaPadraoEfetiva = prefill?.instanciaId ?? instanciaPadraoId;
+  const menuNavegacao = useWaMenuNavegacao();
 
   return (
     <PanelSidebar className="border-wa-divider bg-wa-panel md:w-80 xl:w-96">
       <PanelSidebarHeader>
-        <PanelSidebarTitle className="text-wa-text">Mensagens</PanelSidebarTitle>
+        <div className="flex min-w-0 items-center gap-1">
+          {menuNavegacao ? (
+            <WaIconButton
+              label="Abrir menu"
+              className="md:hidden"
+              onClick={() => menuNavegacao.abrir()}
+            >
+              <Menu className="h-5 w-5" />
+            </WaIconButton>
+          ) : null}
+          <PanelSidebarTitle className="text-wa-text">Mensagens</PanelSidebarTitle>
+        </div>
         <PanelSidebarActions>
           {organizacaoHash && onConversaIniciada && instancias.length > 0 ? (
             <WaNovaConversaPopover

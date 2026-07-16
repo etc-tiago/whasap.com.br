@@ -7,6 +7,7 @@ import {
   messageTemplateSchema,
   organizacaoHashSchema,
   respostaRapidaDetalheSchema,
+  respostaRapidaIntervaloSegundosSchema,
   respostaRapidaItemInputSchema,
   respostaRapidaListaItemSchema,
 } from "../../schemas";
@@ -436,6 +437,7 @@ export const caixaEntradaContract = {
         z.object({
           organizacaoHash: organizacaoHashSchema,
           titulo: z.string().trim().min(1).max(120),
+          intervaloSegundos: respostaRapidaIntervaloSegundosSchema.default(0),
           itens: z.array(respostaRapidaItemInputSchema).min(1).max(20),
         }),
       )
@@ -447,6 +449,7 @@ export const caixaEntradaContract = {
           organizacaoHash: organizacaoHashSchema,
           id: z.string().uuid(),
           titulo: z.string().trim().min(1).max(120),
+          intervaloSegundos: respostaRapidaIntervaloSegundosSchema.default(0),
           itens: z.array(respostaRapidaItemInputSchema).min(1).max(20),
         }),
       )

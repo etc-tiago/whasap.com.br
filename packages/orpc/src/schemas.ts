@@ -227,12 +227,16 @@ export const respostaRapidaItemInputSchema = z
     }
   });
 
+/** Pausa entre mensagens de uma resposta rápida (0–60 s). */
+export const respostaRapidaIntervaloSegundosSchema = z.number().int().min(0).max(60);
+
 export const respostaRapidaListaItemSchema = z.object({
   id: z.string().uuid(),
   titulo: z.string(),
   quantidadeItens: z.number().int().nonnegative(),
   preview: z.string().nullable(),
   tipos: z.array(respostaRapidaItemTipoSchema),
+  intervaloSegundos: respostaRapidaIntervaloSegundosSchema,
   criadoEm: z.string().datetime(),
   atualizadoEm: z.string().datetime(),
 });
@@ -240,6 +244,7 @@ export const respostaRapidaListaItemSchema = z.object({
 export const respostaRapidaDetalheSchema = z.object({
   id: z.string().uuid(),
   titulo: z.string(),
+  intervaloSegundos: respostaRapidaIntervaloSegundosSchema,
   itens: z.array(respostaRapidaItemSchema),
   criadoEm: z.string().datetime(),
   atualizadoEm: z.string().datetime(),

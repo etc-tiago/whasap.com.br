@@ -2,6 +2,13 @@ import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/reac
 import { Button } from "@whasap/ui/components/button";
 import { Input } from "@whasap/ui/components/input";
 import { Label } from "@whasap/ui/components/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@whasap/ui/components/select";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 
@@ -12,6 +19,19 @@ import { invalidarListaRespostasRapidas } from "./invalidar-lista";
 import { ItemRespostaMidia } from "./item-resposta-midia";
 import { ItemRespostaTexto } from "./item-resposta-texto";
 import { criarItemVazio, type ItemForm, type TipoItem } from "./tipos";
+
+const OPCOES_INTERVALO = [
+  { valor: 0, rotulo: "Sem intervalo" },
+  { valor: 1, rotulo: "1 segundo" },
+  { valor: 2, rotulo: "2 segundos" },
+  { valor: 3, rotulo: "3 segundos" },
+  { valor: 5, rotulo: "5 segundos" },
+  { valor: 10, rotulo: "10 segundos" },
+  { valor: 15, rotulo: "15 segundos" },
+  { valor: 30, rotulo: "30 segundos" },
+] as const;
+
+const INTERVALO_PADRAO = 1;
 
 type EditorRespostaRapidaProps = {
   organizacaoHash: string;
@@ -24,6 +44,7 @@ type PayloadSalvar = {
   organizacaoHash: string;
   id?: string;
   titulo: string;
+  intervaloSegundos: number;
   itens: Array<{
     tipo: TipoItem;
     corpo: string | null;
@@ -43,7 +64,9 @@ export function EditorRespostaRapida({
 }: EditorRespostaRapidaProps) {
   const queryClient = useQueryClient();
   const tituloId = useId();
+  const intervaloId = useId();
   const [titulo, setTitulo] = useState("");
+  const [intervaloSegundos, setIntervaloSegundos] = useState(INTERVALO_PADRAO);
   const [itens, setItens] = useState<ItemForm[]>([criarItemVazio("text")]);
   const [erroForm, setErroForm] = useState<string | null>(null);
   const [formPronto, setFormPronto] = useState(!respostaId);
@@ -57,6 +80,7 @@ export function EditorRespostaRapida({
   useEffect(() => {
     if (!respostaId) {
       setTitulo("");
+      setIntervaloSegundos(INTERVALO_PADRAO);
       setItens([criarItemVazio("text")]);
       setErroForm(null);
       setFormPronto(true);
@@ -69,6 +93,7 @@ export function EditorRespostaRapida({
   useEffect(() => {
     if (!respostaId || !detalhe.data) return;
     setTitulo(detalhe.data.titulo);
+    setIntervaloSegundos(detalhe.data.intervaloSegundos);
     setItens(
       detalhe.data.itens.map((item) => ({
         chaveLocal: item.id,
@@ -95,12 +120,14 @@ export function EditorRespostaRapida({
           organizacaoHash: payload.organizacaoHash,
           id: payload.id,
           titulo: payload.titulo,
+          intervaloSegundos: payload.intervaloSegundos,
           itens: payload.itens,
         });
       }
       return orpcClient.caixaEntrada.respostasRapidas.criar({
         organizacaoHash: payload.organizacaoHash,
         titulo: payload.titulo,
+        intervaloSegundos: payload.intervaloSegundos,
         itens: payload.itens,
       });
     },
@@ -153,6 +180,7 @@ export function EditorRespostaRapida({
       organizacaoHash,
       id: respostaId ?? undefined,
       titulo: titulo.trim(),
+      intervaloSegundos,
       itens: itens.map((item) => ({
         tipo: item.tipo,
         corpo: item.corpo.trim() || null,
@@ -211,6 +239,34 @@ export function EditorRespostaRapida({
                 placeholder="Ex.: Boas-vindas"
                 maxLength={120}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor={intervaloId}>Tempo entre mensagens</Label>
+              <Select
+                value={String(intervaloSegundos)}
+                onValueChange={(v) => setIntervaloSegundos(Number(v))}
+              >
+                <SelectTrigger id={intervaloId}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {OPCOES_INTERVALO.map((opcao) => (
+                    <SelectItem key={opcao.valor} value={String(opcao.valor)}>
+                      {opcao.rotulo}
+                    </SelectItem>
+                  ))}
+                  {!OPCOES_INTERVALO.some((o) => o.valor === intervaloSegundos) ? (
+                    <SelectItem value={String(intervaloSegundos)}>
+                      {intervaloSegundos}{" "}
+                      {intervaloSegundos === 1 ? "segundo" : "segundos"}
+                    </SelectItem>
+                  ) : null}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-wa-text-muted">
+                Pausa entre cada mensagem da sequência ao enviar na conversa.
+              </p>
             </div>
 
             <div className="space-y-2">

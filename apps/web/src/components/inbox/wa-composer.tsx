@@ -42,19 +42,25 @@ export type ItemFilaRespostaRapida = {
   nomeArquivo: string | null;
 };
 
+/** Fila multi-item com pausa configurada na resposta rápida. */
+export type FilaRespostaRapida = {
+  itens: ItemFilaRespostaRapida[];
+  intervaloSegundos: number;
+};
+
 type WaComposerProps = {
   conversaId: string;
   organizacaoHash: string;
   message: string;
   midia: MidiaAnexada | null;
-  fila: ItemFilaRespostaRapida[] | null;
+  fila: FilaRespostaRapida | null;
   mensagemResposta?: MensagemItem | null;
   disabled?: boolean;
   pending?: boolean;
   podeUsarRespostasRapidas?: boolean;
   onChange: (value: string) => void;
   onMidiaChange: (midia: MidiaAnexada | null) => void;
-  onFilaChange: (fila: ItemFilaRespostaRapida[] | null) => void;
+  onFilaChange: (fila: FilaRespostaRapida | null) => void;
   onLimparResposta?: () => void;
   onSend: () => void;
 };
@@ -226,15 +232,17 @@ function PreviewFila({
   disabled,
   onFilaChange,
 }: {
-  fila: ItemFilaRespostaRapida[];
+  fila: FilaRespostaRapida;
   disabled?: boolean;
-  onFilaChange: (fila: ItemFilaRespostaRapida[] | null) => void;
+  onFilaChange: (fila: FilaRespostaRapida | null) => void;
 }) {
+  const { itens, intervaloSegundos } = fila;
   return (
     <div className="space-y-2 border-b border-wa-divider bg-wa-panel-header px-3 py-2 md:px-4">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-medium text-wa-text-muted">
-          Sequência · {fila.length} {fila.length === 1 ? "mensagem" : "mensagens"}
+          Sequência · {itens.length} {itens.length === 1 ? "mensagem" : "mensagens"}
+          {intervaloSegundos > 0 ? ` · ${intervaloSegundos}s entre elas` : null}
         </p>
         <button
           type="button"
@@ -245,7 +253,7 @@ function PreviewFila({
           Limpar
         </button>
       </div>
-      {fila.map((item, idx) => (
+      {itens.map((item, idx) => (
         <div
           key={item.chaveLocal}
           className="flex items-start gap-2 rounded-md border border-wa-divider bg-wa-input px-2.5 py-2"
@@ -270,11 +278,12 @@ function PreviewFila({
               value={item.corpo}
               disabled={disabled}
               onChange={(e) =>
-                onFilaChange(
-                  fila.map((x) =>
+                onFilaChange({
+                  intervaloSegundos,
+                  itens: itens.map((x) =>
                     x.chaveLocal === item.chaveLocal ? { ...x, corpo: e.target.value } : x,
                   ),
-                )
+                })
               }
               placeholder={item.tipo === "text" ? "Texto" : "Legenda (opcional)"}
               className="w-full bg-transparent text-sm text-wa-text placeholder:text-wa-text-muted focus:outline-none disabled:opacity-50"
@@ -282,10 +291,10 @@ function PreviewFila({
           </div>
           <button
             type="button"
-            disabled={disabled || fila.length <= 1}
+            disabled={disabled || itens.length <= 1}
             onClick={() => {
-              const proxima = fila.filter((x) => x.chaveLocal !== item.chaveLocal);
-              onFilaChange(proxima.length ? proxima : null);
+              const proxima = itens.filter((x) => x.chaveLocal !== item.chaveLocal);
+              onFilaChange(proxima.length ? { itens: proxima, intervaloSegundos } : null);
             }}
             className="rounded-full p-1 text-wa-icon hover:bg-wa-hover disabled:opacity-40"
             aria-label="Remover mensagem da sequência"
@@ -305,7 +314,7 @@ function PickerRespostasRapidas({
 }: {
   organizacaoHash: string;
   disabled?: boolean;
-  onAplicar: (itens: ItemFilaRespostaRapida[]) => void;
+  onAplicar: (fila: FilaRespostaRapida) => void;
 }) {
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
@@ -333,8 +342,9 @@ function PickerRespostasRapidas({
         organizacaoHash,
         id,
       });
-      onAplicar(
-        detalhe.itens.map((item) => ({
+      onAplicar({
+        intervaloSegundos: detalhe.intervaloSegundos,
+        itens: detalhe.itens.map((item) => ({
           chaveLocal: crypto.randomUUID(),
           tipo: item.tipo,
           corpo: item.corpo ?? "",
@@ -342,7 +352,7 @@ function PickerRespostasRapidas({
           mediaUrl: item.mediaUrl,
           nomeArquivo: item.nomeArquivo,
         })),
-      );
+      });
       setAberto(false);
       setBusca("");
     } catch (err) {
@@ -434,11 +444,11 @@ export function WaComposer({
   const [erroUpload, setErroUpload] = useState<string | null>(null);
   const inputsRef = useRef<Partial<Record<TipoMidia, HTMLInputElement | null>>>({});
 
-  const temFila = (fila?.length ?? 0) > 0;
+  const temFila = (fila?.itens.length ?? 0) > 0;
   const temTexto = message.trim().length > 0;
   const filaValida =
     temFila &&
-    (fila ?? []).every((item) =>
+    (fila?.itens ?? []).every((item) =>
       item.tipo === "text" ? item.corpo.trim().length > 0 : Boolean(item.mediaR2Key),
     );
   const podeEnviar = temFila ? filaValida : midia != null || temTexto;
@@ -457,11 +467,11 @@ export function WaComposer({
     setErroUpload(null);
   }
 
-  function aplicarResposta(itens: ItemFilaRespostaRapida[]) {
-    if (itens.length === 0) return;
+  function aplicarResposta(filaAplicada: FilaRespostaRapida) {
+    if (filaAplicada.itens.length === 0) return;
 
-    if (itens.length === 1) {
-      const unico = itens[0]!;
+    if (filaAplicada.itens.length === 1) {
+      const unico = filaAplicada.itens[0]!;
       onFilaChange(null);
       if (unico.tipo === "text") {
         limparMidia();
@@ -480,7 +490,7 @@ export function WaComposer({
 
     limparMidia();
     onChange("");
-    onFilaChange(itens);
+    onFilaChange(filaAplicada);
   }
 
   async function handleArquivo(tipo: TipoMidia, arquivo: File | undefined) {

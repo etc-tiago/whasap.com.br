@@ -320,6 +320,7 @@ export const colunasRespostaRapida = {
   uuid: true,
   organizacaoId: true,
   titulo: true,
+  intervaloSegundos: true,
   criadoEm: true,
   atualizadoEm: true,
 } as const;

@@ -1,0 +1,1 @@
+ALTER TABLE "resposta_rapida" ADD COLUMN "intervalo_segundos" integer DEFAULT 0 NOT NULL;

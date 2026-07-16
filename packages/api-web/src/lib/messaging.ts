@@ -52,6 +52,11 @@ const CAPABILITIES: Record<string, InstanceProvider[]> = {
   link: ["evo"],
 };
 
+/** Detecta URL http(s) para disparar preview no Evolution GO (`/send/link`). */
+function textoContemUrlHttp(texto: string): boolean {
+  return /https?:\/\/\S+/i.test(texto);
+}
+
 export function assertMessageTypeSupported(type: string, provedor: InstanceProvider) {
   const allowed = CAPABILITIES[type];
   if (!allowed?.includes(provedor)) {
@@ -89,6 +94,16 @@ export async function sendProviderMessage(params: SendMessageParams): Promise<st
     const quoted = quotedFrom(params.contextoMensagemId);
 
     if (type === "text" && params.body) {
+      // GO: `/send/link` gera preview OG; se falhar (site bloqueia scrape), cai no texto simples.
+      if (textoContemUrlHttp(params.body)) {
+        try {
+          return extractGoMessageId(
+            await client.sendTextComLinkPreview(normalizedPhone, params.body, quoted),
+          );
+        } catch {
+          // continua com sendText
+        }
+      }
       return extractGoMessageId(await client.sendText(normalizedPhone, params.body, quoted));
     }
     if (["image", "video", "audio", "document"].includes(type) && params.mediaUrl) {

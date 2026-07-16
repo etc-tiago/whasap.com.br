@@ -105,6 +105,7 @@ async function carregarDetalhe(
     id: number;
     uuid: string;
     titulo: string;
+    intervaloSegundos: number;
     criadoEm: Date;
     atualizadoEm: Date;
   },
@@ -118,6 +119,7 @@ async function carregarDetalhe(
   return {
     id: row.uuid,
     titulo: row.titulo,
+    intervaloSegundos: row.intervaloSegundos,
     itens: itens.map((item) => mapearItem(ctx, item)),
     criadoEm: row.criadoEm.toISOString(),
     atualizadoEm: row.atualizadoEm.toISOString(),
@@ -202,6 +204,7 @@ export const respostasRapidasHandlers = {
         quantidadeItens: itens.length,
         preview,
         tipos: itens.map((item) => item.tipo as TipoItem),
+        intervaloSegundos: row.intervaloSegundos,
         criadoEm: row.criadoEm.toISOString(),
         atualizadoEm: row.atualizadoEm.toISOString(),
       };
@@ -221,7 +224,12 @@ export const respostasRapidasHandlers = {
   /** Cria resposta rápida com ≥1 item. */
   criar: async (
     ctx: WebContext,
-    input: { organizacaoHash: string; titulo: string; itens: ItemInput[] },
+    input: {
+      organizacaoHash: string;
+      titulo: string;
+      intervaloSegundos: number;
+      itens: ItemInput[];
+    },
   ) => {
     exigirAutenticacao(ctx);
     const { role, internalOrgId } = await resolverMembro(ctx, input.organizacaoHash);
@@ -234,12 +242,14 @@ export const respostasRapidasHandlers = {
         comTimestampsCriacao({
           organizacaoId: internalOrgId,
           titulo: input.titulo.trim(),
+          intervaloSegundos: input.intervaloSegundos,
         }),
       )
       .returning({
         id: respostaRapida.id,
         uuid: respostaRapida.uuid,
         titulo: respostaRapida.titulo,
+        intervaloSegundos: respostaRapida.intervaloSegundos,
         criadoEm: respostaRapida.criadoEm,
         atualizadoEm: respostaRapida.atualizadoEm,
       });
@@ -250,13 +260,14 @@ export const respostasRapidasHandlers = {
     return carregarDetalhe(ctx, row);
   },
 
-  /** Atualiza título e substitui itens. */
+  /** Atualiza título, intervalo e substitui itens. */
   atualizar: async (
     ctx: WebContext,
     input: {
       organizacaoHash: string;
       id: string;
       titulo: string;
+      intervaloSegundos: number;
       itens: ItemInput[];
     },
   ) => {
@@ -272,6 +283,7 @@ export const respostasRapidasHandlers = {
       .set(
         comTimestampAtualizacao({
           titulo: input.titulo.trim(),
+          intervaloSegundos: input.intervaloSegundos,
         }),
       )
       .where(eq(respostaRapida.id, existente.id))
@@ -279,6 +291,7 @@ export const respostasRapidasHandlers = {
         id: respostaRapida.id,
         uuid: respostaRapida.uuid,
         titulo: respostaRapida.titulo,
+        intervaloSegundos: respostaRapida.intervaloSegundos,
         criadoEm: respostaRapida.criadoEm,
         atualizadoEm: respostaRapida.atualizadoEm,
       });
