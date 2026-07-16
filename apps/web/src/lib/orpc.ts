@@ -33,7 +33,7 @@ export type InstanciaItem = Awaited<ReturnType<typeof orpcClient.instancia.lista
 
 export type ConversaItem = Awaited<
   ReturnType<typeof orpcClient.caixaEntrada.conversas.lista>
->[number];
+>["itens"][number];
 
 export type ContatoListaItem = Awaited<
   ReturnType<typeof orpcClient.caixaEntrada.contatos.lista>

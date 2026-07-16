@@ -1,12 +1,11 @@
 /**
  * Processadores de webhooks Evolution e Meta Cloud API.
  */
+import { atualizarStatusMensagemPorIdExterno } from "@whasap/api-core";
 import {
-  colunasMensagemWebhook,
   incluirInstanciaWebhook,
   instanciaMetaCloud,
   type Db,
-  mensagem,
 } from "@whasap/db";
 import type { WorkerExecutionContext } from "@whasap/evlog/workers";
 import {
@@ -18,7 +17,7 @@ import {
   resolverIdExternoCanonicoMeta,
   type MetaWebhookChange,
 } from "@whasap/meta";
-import { and, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { processEvolutionGoWebhook } from "./evolution-go-processor";
 import type { Env } from "./env";
@@ -155,11 +154,5 @@ async function processMetaDeliveryStatus(db: Db, status: Record<string, unknown>
   const parsed = parseMetaStatus(status);
   if (!parsed) return;
 
-  const message = await db.query.mensagem.findFirst({
-    where: and(eq(mensagem.idExterno, parsed.externalId), isNull(mensagem.excluidoEm)),
-    columns: colunasMensagemWebhook,
-  });
-  if (!message) return;
-
-  await db.update(mensagem).set({ status: parsed.status }).where(eq(mensagem.id, message.id));
+  await atualizarStatusMensagemPorIdExterno(db, parsed.externalId, parsed.status);
 }

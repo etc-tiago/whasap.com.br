@@ -40,9 +40,12 @@ type Mensagem = {
 
 /** Builder mínimo: side-effect já ocorreu; `.returning()` devolve as rows. */
 function insertResult<T>(rows: T[]) {
-  return {
+  const chain = {
     returning: async () => rows,
+    onConflictDoUpdate: () => chain,
+    onConflictDoNothing: () => chain,
   };
+  return chain;
 }
 
 /** Mock de Db focado no fluxo de `ingerirMensagem`. */

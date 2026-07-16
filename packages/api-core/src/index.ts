@@ -82,10 +82,12 @@ export {
 export {
   atualizarStatusMensagemPorIdExterno,
   buscarContatoPorIdExterno,
+  camposUltimaMensagemConversa,
   decrementarNaoLidas,
   ingerirMensagem,
   isoTimestampParaSql,
   marcarConversaLidaLocal,
+  sqlUltimaMensagemMonotonica,
   type IngerirMensagemParams,
 } from "./lib/ingestao-mensagem";
 export {

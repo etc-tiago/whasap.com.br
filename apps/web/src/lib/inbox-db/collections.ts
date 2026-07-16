@@ -16,6 +16,7 @@ import { createCollection, type Collection } from "@tanstack/react-db";
 import { orpc, orpcClient, type ConversaItem, type MensagemItem } from "@/lib/orpc";
 
 export const LIMITE_MENSAGENS_PAGINA = 40;
+export const LIMITE_CONVERSAS_PAGINA = 100;
 
 export type CursorMensagens = { antesEnviadoEm: string; antesId: string };
 
@@ -75,7 +76,26 @@ export function obterColecaoConversas(
   const options = queryCollectionOptions({
     id: `inbox-conversas-${organizacaoHash}`,
     queryKey,
-    queryFn: async () => orpcClient.caixaEntrada.conversas.lista({ organizacaoHash }),
+    queryFn: async () => {
+      const itens: ConversaItem[] = [];
+      let cursor: { antesUltimaMensagemEm?: string; antesId?: string } = {};
+      for (;;) {
+        const page = await orpcClient.caixaEntrada.conversas.lista({
+          organizacaoHash,
+          limite: LIMITE_CONVERSAS_PAGINA,
+          ...cursor,
+        });
+        itens.push(...page.itens);
+        if (!page.temMais || page.itens.length === 0) break;
+        const last = page.itens[page.itens.length - 1]!;
+        if (!last.ultimaMensagemEm) break;
+        cursor = {
+          antesUltimaMensagemEm: last.ultimaMensagemEm,
+          antesId: last.id,
+        };
+      }
+      return itens;
+    },
     queryClient,
     getKey: (c: ConversaItem) => c.id,
     refetchInterval: 10_000,

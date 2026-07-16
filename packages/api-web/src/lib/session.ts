@@ -106,16 +106,15 @@ export async function resolveSession(
   const session = await ctx.db.query.sessao.findFirst({
     where: and(eq(sessao.token, token), gt(sessao.expiraEm, now)),
     columns: colunasSessaoWeb,
+    with: {
+      usuario: {
+        columns: { ...colunasUsuarioSessao, excluidoEm: true },
+      },
+    },
   });
 
-  if (!session) return { usuario: null, organizationId: null, role: null };
-
-  const row = await ctx.db.query.usuario.findFirst({
-    where: and(eq(usuario.id, session.usuarioId), isNull(usuario.excluidoEm)),
-    columns: colunasUsuarioSessao,
-  });
-
-  if (!row) return { usuario: null, organizationId: null, role: null };
+  const row = session?.usuario;
+  if (!row || row.excluidoEm) return { usuario: null, organizationId: null, role: null };
 
   return {
     usuario: {

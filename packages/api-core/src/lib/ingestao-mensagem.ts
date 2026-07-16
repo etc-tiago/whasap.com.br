@@ -4,10 +4,6 @@
 import {
   colunasContatoCaixaEntrada,
   colunasContatoInstancia,
-  colunasMensagemWebhook,
-  colunasSomenteId,
-  colunasUsoMensal,
-  colunasUsoMensalContato,
   comCriadoEm,
   comTimestampAtualizacao,
   comTimestampsCriacao,
@@ -19,7 +15,7 @@ import {
   usoMensal,
   usoMensalContato,
 } from "@whasap/db";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, or, sql } from "drizzle-orm";
 
 export type IngerirMensagemParams = {
   instanciaId: number;
@@ -53,7 +49,7 @@ export function isoTimestampParaSql(nova: Date): string {
 }
 
 /** Atualiza `ultima_mensagem_em` só se o novo valor for mais recente (race-safe). */
-function sqlUltimaMensagemMonotonica(nova: Date) {
+export function sqlUltimaMensagemMonotonica(nova: Date) {
   const iso = isoTimestampParaSql(nova);
   const ts = sql`${sql.param(iso)}::timestamp`;
   return sql`CASE
@@ -61,6 +57,41 @@ function sqlUltimaMensagemMonotonica(nova: Date) {
     THEN ${ts}
     ELSE ${conversa.ultimaMensagemEm}
   END`;
+}
+
+/** Atualiza preview só quando `ultima_mensagem_em` avança (mesmo critério monotônico). */
+function sqlPreviewSeMaisRecente(nova: Date, valor: string | null, coluna: "corpo" | "tipo") {
+  const iso = isoTimestampParaSql(nova);
+  const ts = sql`${sql.param(iso)}::timestamp`;
+  const atual =
+    coluna === "corpo" ? conversa.ultimaMensagemCorpo : conversa.ultimaMensagemTipo;
+  return sql`CASE
+    WHEN ${conversa.ultimaMensagemEm} IS NULL OR ${conversa.ultimaMensagemEm} < ${ts}
+    THEN ${valor}
+    ELSE ${atual}
+  END`;
+}
+
+/**
+ * Campos de `conversa` para espelhar a última mensagem (timestamp + preview).
+ * Usar no mesmo UPDATE pós-insert/envio.
+ */
+export function camposUltimaMensagemConversa(params: {
+  enviadoEm: Date;
+  corpo: string | null;
+  tipo: string;
+  naoLidas?: number;
+}) {
+  const set: Record<string, unknown> = {
+    ultimaMensagemEm: sqlUltimaMensagemMonotonica(params.enviadoEm),
+    ultimaMensagemCorpo: sqlPreviewSeMaisRecente(params.enviadoEm, params.corpo, "corpo"),
+    ultimaMensagemTipo: sqlPreviewSeMaisRecente(params.enviadoEm, params.tipo, "tipo"),
+    atualizadoEm: new Date(),
+  };
+  if (params.naoLidas !== undefined) {
+    set.naoLidas = params.naoLidas;
+  }
+  return set;
 }
 
 async function buscarOuCriarContatoOrg(
@@ -87,18 +118,26 @@ async function buscarOuCriarContatoOrg(
           nome: params.contactName,
         }),
       )
+      .onConflictDoUpdate({
+        target: [contato.organizacaoId, contato.idExterno],
+        set: {
+          nome: sql`COALESCE(${contato.nome}, excluded.nome)`,
+          telefone: sql`COALESCE(${contato.telefone}, excluded.telefone)`,
+          atualizadoEm: new Date(),
+        },
+      })
       .returning({ id: contato.id });
     return { id: created!.id };
-  } else {
-    const updates: Record<string, unknown> = {};
-    if (params.contactName && !contact.nome) updates.nome = params.contactName;
-    if (params.phone && !contact.telefone) updates.telefone = params.phone;
-    if (Object.keys(updates).length > 0) {
-      await db
-        .update(contato)
-        .set(comTimestampAtualizacao(updates as never))
-        .where(eq(contato.id, contact.id));
-    }
+  }
+
+  const updates: Record<string, unknown> = {};
+  if (params.contactName && !contact.nome) updates.nome = params.contactName;
+  if (params.phone && !contact.telefone) updates.telefone = params.phone;
+  if (Object.keys(updates).length > 0) {
+    await db
+      .update(contato)
+      .set(comTimestampAtualizacao(updates as never))
+      .where(eq(contato.id, contact.id));
   }
 
   return { id: contact.id };
@@ -110,52 +149,55 @@ async function buscarOuCriarContatoInstancia(
   contatoId: number,
 ): Promise<void> {
   const existing = await db.query.contatoInstancia.findFirst({
-    where: and(
-      eq(contatoInstancia.instanciaId, params.instanciaId),
-      eq(contatoInstancia.idExterno, params.idExternoLinha),
+    where: or(
+      and(
+        eq(contatoInstancia.instanciaId, params.instanciaId),
+        eq(contatoInstancia.idExterno, params.idExternoLinha),
+      ),
+      and(
+        eq(contatoInstancia.contatoId, contatoId),
+        eq(contatoInstancia.instanciaId, params.instanciaId),
+      ),
     ),
     columns: colunasContatoInstancia,
   });
-  if (existing) {
-    if (existing.contatoId !== contatoId) {
-      await db
-        .update(contatoInstancia)
-        .set(comTimestampAtualizacao({ contatoId }))
-        .where(eq(contatoInstancia.id, existing.id));
-    }
-    return;
-  }
 
-  const byContato = await db.query.contatoInstancia.findFirst({
-    where: and(
-      eq(contatoInstancia.contatoId, contatoId),
-      eq(contatoInstancia.instanciaId, params.instanciaId),
-    ),
-    columns: colunasSomenteId,
-  });
-  if (byContato) {
+  if (existing) {
+    const set: Record<string, unknown> = {};
+    if (existing.contatoId !== contatoId) set.contatoId = contatoId;
+    if (existing.idExterno !== params.idExternoLinha) set.idExterno = params.idExternoLinha;
+    if (Object.keys(set).length === 0) return;
     await db
       .update(contatoInstancia)
-      .set(comTimestampAtualizacao({ idExterno: params.idExternoLinha }))
-      .where(eq(contatoInstancia.id, byContato.id));
+      .set(comTimestampAtualizacao(set as never))
+      .where(eq(contatoInstancia.id, existing.id));
     return;
   }
 
-  await db.insert(contatoInstancia).values(
-    comTimestampsCriacao({
-      contatoId,
-      instanciaId: params.instanciaId,
-      idExterno: params.idExternoLinha,
-    }),
-  );
+  await db
+    .insert(contatoInstancia)
+    .values(
+      comTimestampsCriacao({
+        contatoId,
+        instanciaId: params.instanciaId,
+        idExterno: params.idExternoLinha,
+      }),
+    )
+    .onConflictDoUpdate({
+      target: [contatoInstancia.instanciaId, contatoInstancia.idExterno],
+      set: comTimestampAtualizacao({ contatoId }),
+    });
 }
 
+/**
+ * Resolve conversa aberta — sem UPDATE antecipado (preview/timestamp vão no UPDATE único pós-mensagem).
+ */
 async function buscarOuCriarConversa(
   db: Db,
   params: IngerirMensagemParams,
   contactId: number,
 ): Promise<{ id: number; naoLidas: number }> {
-  let conversation = await db.query.conversa.findFirst({
+  const conversation = await db.query.conversa.findFirst({
     where: and(
       eq(conversa.instanciaId, params.instanciaId),
       eq(conversa.contatoId, contactId),
@@ -165,44 +207,31 @@ async function buscarOuCriarConversa(
     columns: { id: true, naoLidas: true },
   });
 
+  if (conversation) {
+    return { id: conversation.id, naoLidas: conversation.naoLidas };
+  }
+
   const ultimaEm = params.ultimaMensagemEm ?? params.enviadoEm ?? new Date();
   const isMetaCloud = params.provedor === "meta_cloud";
 
-  if (!conversation) {
-    const [created] = await db
-      .insert(conversa)
-      .values(
-        comTimestampsCriacao({
-          instanciaId: params.instanciaId,
-          contatoId: contactId,
-          ultimaMensagemEm: ultimaEm,
-          naoLidas: params.naoLidasInicial ?? 0,
-          ...(isMetaCloud
-            ? { metaCloudJanelaExpiraEm: new Date(Date.now() + 24 * 60 * 60 * 1000) }
-            : {}),
-        }),
-      )
-      .returning({ id: conversa.id, naoLidas: conversa.naoLidas });
-    return created!;
-  }
+  const [created] = await db
+    .insert(conversa)
+    .values(
+      comTimestampsCriacao({
+        instanciaId: params.instanciaId,
+        contatoId: contactId,
+        ultimaMensagemEm: ultimaEm,
+        ultimaMensagemCorpo: params.body || null,
+        ultimaMensagemTipo: params.type,
+        naoLidas: params.naoLidasInicial ?? 0,
+        ...(isMetaCloud
+          ? { metaCloudJanelaExpiraEm: new Date(Date.now() + 24 * 60 * 60 * 1000) }
+          : {}),
+      }),
+    )
+    .returning({ id: conversa.id, naoLidas: conversa.naoLidas });
 
-  const setValues: Record<string, unknown> = {
-    ultimaMensagemEm: sqlUltimaMensagemMonotonica(ultimaEm),
-    atualizadoEm: new Date(),
-  };
-  if (isMetaCloud) {
-    setValues.metaCloudJanelaExpiraEm = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  }
-  if (params.naoLidasInicial !== undefined && params.naoLidasInicial > conversation.naoLidas) {
-    setValues.naoLidas = params.naoLidasInicial;
-  }
-
-  await db
-    .update(conversa)
-    .set(setValues as never)
-    .where(eq(conversa.id, conversation.id));
-
-  return conversation;
+  return { id: created!.id, naoLidas: created!.naoLidas };
 }
 
 /**
@@ -249,7 +278,7 @@ export async function ingerirMensagem(
     ...params.metadados,
   };
 
-  const [message] = await db
+  const insertQuery = db
     .insert(mensagem)
     .values(
       comCriadoEm({
@@ -262,16 +291,49 @@ export async function ingerirMensagem(
         metadados,
         enviadoEm,
       }),
-    )
-    .returning();
+    );
 
-  const setValues: Record<string, unknown> = {
-    ultimaMensagemEm: sqlUltimaMensagemMonotonica(ultimaEm),
-    atualizadoEm: new Date(),
-  };
+  const [message] = params.externalId
+    ? await insertQuery
+        .onConflictDoNothing({
+          target: mensagem.idExterno,
+          where: sql`${mensagem.idExterno} IS NOT NULL AND ${mensagem.excluidoEm} IS NULL`,
+        })
+        .returning()
+    : await insertQuery.returning();
+
+  if (!message) {
+    if (!params.externalId) return null;
+    const existing = await db.query.mensagem.findFirst({
+      where: and(eq(mensagem.idExterno, params.externalId), isNull(mensagem.excluidoEm)),
+      columns: { id: true, conversaId: true, midiaR2Chave: true },
+    });
+    if (!existing) return null;
+    return {
+      messageId: existing.id,
+      conversaId: existing.conversaId,
+      created: false,
+      midiaR2Chave: existing.midiaR2Chave ?? null,
+    };
+  }
+
+  let naoLidas = conversation.naoLidas ?? 0;
+  if (params.naoLidasInicial !== undefined && params.naoLidasInicial > naoLidas) {
+    naoLidas = params.naoLidasInicial;
+  }
   if (params.naoLidasDelta && params.naoLidasDelta !== 0) {
-    const atual = conversation.naoLidas ?? 0;
-    setValues.naoLidas = Math.max(0, atual + params.naoLidasDelta);
+    naoLidas = Math.max(0, naoLidas + params.naoLidasDelta);
+  }
+
+  const setValues = camposUltimaMensagemConversa({
+    enviadoEm: ultimaEm,
+    corpo: params.body || null,
+    tipo: params.type,
+    ...(naoLidas !== conversation.naoLidas ? { naoLidas } : {}),
+  });
+
+  if (params.provedor === "meta_cloud") {
+    setValues.metaCloudJanelaExpiraEm = new Date(Date.now() + 24 * 60 * 60 * 1000);
   }
 
   await db
@@ -284,7 +346,7 @@ export async function ingerirMensagem(
   }
 
   return {
-    messageId: message!.id,
+    messageId: message.id,
     conversaId: conversation.id,
     created: true,
     midiaR2Chave: null,
@@ -293,43 +355,36 @@ export async function ingerirMensagem(
 
 async function incrementarUsoMensal(db: Db, instanciaId: number, contatoId: number) {
   const anoMes = new Date().toISOString().slice(0, 7);
-  const usageContact = await db.query.usoMensalContato.findFirst({
-    where: and(
-      eq(usoMensalContato.instanciaId, instanciaId),
-      eq(usoMensalContato.contatoId, contatoId),
-      eq(usoMensalContato.anoMes, anoMes),
-    ),
-    columns: colunasUsoMensalContato,
-  });
-  if (usageContact) return;
+  const [inserido] = await db
+    .insert(usoMensalContato)
+    .values({
+      instanciaId,
+      contatoId,
+      anoMes,
+      contadoEm: new Date(),
+    })
+    .onConflictDoNothing({
+      target: [usoMensalContato.instanciaId, usoMensalContato.contatoId, usoMensalContato.anoMes],
+    })
+    .returning({ id: usoMensalContato.id });
 
-  await db.insert(usoMensalContato).values({
-    instanciaId,
-    contatoId,
-    anoMes,
-    contadoEm: new Date(),
-  });
+  if (!inserido) return;
 
-  const usage = await db.query.usoMensal.findFirst({
-    where: and(eq(usoMensal.instanciaId, instanciaId), eq(usoMensal.anoMes, anoMes)),
-    columns: colunasUsoMensal,
-  });
-  if (usage) {
-    await db
-      .update(usoMensal)
-      .set({
-        contatosUnicosContagem: usage.contatosUnicosContagem + 1,
-        atualizadoEm: new Date(),
-      })
-      .where(eq(usoMensal.id, usage.id));
-  } else {
-    await db.insert(usoMensal).values({
+  await db
+    .insert(usoMensal)
+    .values({
       instanciaId,
       anoMes,
       contatosUnicosContagem: 1,
       atualizadoEm: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: [usoMensal.instanciaId, usoMensal.anoMes],
+      set: {
+        contatosUnicosContagem: sql`${usoMensal.contatosUnicosContagem} + 1`,
+        atualizadoEm: new Date(),
+      },
     });
-  }
 }
 
 /** Busca contato org por id externo canônico ou telefone. */
@@ -365,29 +420,21 @@ export async function atualizarStatusMensagemPorIdExterno(
   externalId: string,
   status: string,
 ): Promise<number | null> {
-  const message = await db.query.mensagem.findFirst({
-    where: and(eq(mensagem.idExterno, externalId), isNull(mensagem.excluidoEm)),
-    columns: { ...colunasMensagemWebhook, conversaId: true },
-  });
-  if (!message) return null;
-
-  await db.update(mensagem).set({ status }).where(eq(mensagem.id, message.id));
-  return message.conversaId;
+  const [updated] = await db
+    .update(mensagem)
+    .set({ status })
+    .where(and(eq(mensagem.idExterno, externalId), isNull(mensagem.excluidoEm)))
+    .returning({ conversaId: mensagem.conversaId });
+  return updated?.conversaId ?? null;
 }
 
 /** Decrementa não lidas da conversa (floor 0). */
 export async function decrementarNaoLidas(db: Db, conversaId: number, quantidade = 1) {
-  const row = await db.query.conversa.findFirst({
-    where: eq(conversa.id, conversaId),
-    columns: { id: true, naoLidas: true },
-  });
-  if (!row) return;
-
   await db
     .update(conversa)
     .set(
       comTimestampAtualizacao({
-        naoLidas: Math.max(0, (row.naoLidas ?? 0) - quantidade),
+        naoLidas: sql`GREATEST(0, ${conversa.naoLidas} - ${quantidade})`,
       }),
     )
     .where(eq(conversa.id, conversaId));

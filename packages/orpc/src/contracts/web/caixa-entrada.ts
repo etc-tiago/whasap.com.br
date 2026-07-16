@@ -103,9 +103,17 @@ export const caixaEntradaContract = {
         z.object({
           organizacaoHash: organizacaoHashSchema,
           instanciaId: z.string().uuid().optional(),
+          limite: z.number().int().min(1).max(200).optional(),
+          antesUltimaMensagemEm: z.string().datetime().optional(),
+          antesId: z.string().uuid().optional(),
         }),
       )
-      .output(z.array(conversaSchema)),
+      .output(
+        z.object({
+          itens: z.array(conversaSchema),
+          temMais: z.boolean(),
+        }),
+      ),
 
     iniciar: oc
       .input(

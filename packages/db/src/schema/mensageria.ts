@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   index,
   integer,
@@ -7,6 +8,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -107,6 +109,9 @@ export const conversa = pgTable(
     status: text().notNull().default("open"),
     metaCloudJanelaExpiraEm: timestamp(),
     ultimaMensagemEm: timestamp(),
+    /** Preview denormalizado da última mensagem (lista da inbox sem N+1). */
+    ultimaMensagemCorpo: text(),
+    ultimaMensagemTipo: text(),
     naoLidas: integer().notNull().default(0),
     ultimaLeituraEm: timestamp(),
     fechadoEm: timestamp(),
@@ -150,7 +155,9 @@ export const mensagem = pgTable(
   (t) => [
     index("mensagem_conversa_enviado_em_idx").on(t.conversaId, t.enviadoEm),
     index("mensagem_conversa_direcao_enviado_em_idx").on(t.conversaId, t.direcao, t.enviadoEm),
-    index("mensagem_id_externo_idx").on(t.idExterno),
+    uniqueIndex("mensagem_id_externo_unique")
+      .on(t.idExterno)
+      .where(sql`${t.idExterno} IS NOT NULL AND ${t.excluidoEm} IS NULL`),
     index("mensagem_enviado_por_usuario_direcao_enviado_em_idx").on(
       t.enviadoPorUsuarioId,
       t.direcao,

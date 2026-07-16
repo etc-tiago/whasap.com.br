@@ -250,6 +250,8 @@ export const colunasConversaLista = {
   status: true,
   metaCloudJanelaExpiraEm: true,
   ultimaMensagemEm: true,
+  ultimaMensagemCorpo: true,
+  ultimaMensagemTipo: true,
   naoLidas: true,
   ultimaLeituraEm: true,
 } as const;
@@ -281,8 +283,8 @@ export const colunasMensagemLista = {
   metadados: true,
 } as const;
 
-/** Preview da última mensagem em lista de conversas. */
-export const colunasMensagemPreview = { corpo: true } as const;
+/** Preview da última mensagem em lista de conversas (legado; preferir colunas em conversa). */
+export const colunasMensagemPreview = { corpo: true, tipo: true } as const;
 
 /** Mensagem localizada por id externo (webhook). */
 export const colunasMensagemWebhook = {

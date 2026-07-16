@@ -1,4 +1,5 @@
 import {
+  camposUltimaMensagemConversa,
   criarClienteMeta,
   forbidden,
   notFound,
@@ -170,20 +171,23 @@ async function resolverInstanciaEvoDoContato(
     where: eq(contatoInstancia.contatoId, contactId),
     columns: colunasContatoInstancia,
   });
-  const rows = await Promise.all(
-    vinculos.map((vinculo) =>
-      ctx.db.query.instancia.findFirst({
-        where: and(eq(instancia.id, vinculo.instanciaId), isNull(instancia.excluidoEm)),
-        columns: colunasInstanciaOperacao,
-        with: {
-          evo: incluirInstanciaOperacao.with.evo,
-          metaCloud: incluirInstanciaOperacao.with.metaCloud,
-        },
-      }),
+  if (vinculos.length === 0) return null;
+  const rows = await ctx.db.query.instancia.findMany({
+    where: and(
+      inArray(
+        instancia.id,
+        vinculos.map((v) => v.instanciaId),
+      ),
+      isNull(instancia.excluidoEm),
     ),
-  );
+    columns: colunasInstanciaOperacao,
+    with: {
+      evo: incluirInstanciaOperacao.with.evo,
+      metaCloud: incluirInstanciaOperacao.with.metaCloud,
+    },
+  });
   return (
-    rows.find((row) => row && isEvoProvider(row.provedor) && isInstanceOperational(row)) ?? null
+    rows.find((row) => isEvoProvider(row.provedor) && isInstanceOperational(row)) ?? null
   );
 }
 
@@ -479,6 +483,18 @@ async function persistirMensagemOutboundPainel(
       }),
     )
     .returning();
+
+  await db
+    .update(conversa)
+    .set(
+      camposUltimaMensagemConversa({
+        enviadoEm: agora,
+        corpo: values.corpo,
+        tipo: values.tipo,
+      }) as never,
+    )
+    .where(eq(conversa.id, values.conversaId));
+
   return criada!;
 }
 
@@ -566,7 +582,20 @@ async function sincronizarTemplateMeta(
  */
 export const caixaEntradaHandlers = {
   conversas: {
-    lista: async (ctx: WebContext, input: { organizacaoHash: string; instanciaId?: string }) => {
+    /**
+     * Lista paginada de conversas (mais recentes primeiro).
+     * Preview vem denormalizado em `conversa` — sem N+1 em `mensagem`.
+     */
+    lista: async (
+      ctx: WebContext,
+      input: {
+        organizacaoHash: string;
+        instanciaId?: string;
+        limite?: number;
+        antesUltimaMensagemEm?: string;
+        antesId?: string;
+      },
+    ) => {
       exigirAutenticacao(ctx);
       await resolverMembro(ctx, input.organizacaoHash);
       const organizacaoId = await resolverIdInterno(ctx.db, "organizacao", input.organizacaoHash);
@@ -583,19 +612,39 @@ export const caixaEntradaHandlers = {
         });
       }
 
-      if (instances.length === 0) return [];
+      if (instances.length === 0) return { itens: [], temMais: false };
 
       const instanceById = new Map(instances.map((i) => [i.id, i]));
       const instanceIds = instances.map((i) => i.id);
 
+      const limite = input.limite ?? 100;
+      const filtros: SQL[] = [
+        inArray(conversa.instanciaId, instanceIds),
+        isNull(conversa.excluidoEm),
+      ];
+
+      if (input.antesUltimaMensagemEm && input.antesId) {
+        const antesEm = new Date(input.antesUltimaMensagemEm);
+        filtros.push(
+          or(
+            lt(conversa.ultimaMensagemEm, antesEm),
+            and(eq(conversa.ultimaMensagemEm, antesEm), lt(conversa.uuid, input.antesId)),
+          )!,
+        );
+      }
+
+      // Sem filtro de instância: overfetch para dedupe por contato e ainda assim limitar a página.
+      const fetchLimit = input.instanciaId ? limite + 1 : Math.min(limite * 5, 500) + 1;
+
       const rows = await ctx.db.query.conversa.findMany({
-        where: and(inArray(conversa.instanciaId, instanceIds), isNull(conversa.excluidoEm)),
+        where: and(...filtros),
         columns: colunasConversaLista,
         with: {
           contato: incluirContatoCaixaEntrada,
           atribuidoUsuario: incluirUsuarioRelacao,
         },
-        orderBy: [desc(conversa.ultimaMensagemEm)],
+        orderBy: [desc(conversa.ultimaMensagemEm), desc(conversa.uuid)],
+        limit: fetchLimit,
       });
 
       let rowsWithContato = rows.filter((row) => row.contato);
@@ -612,12 +661,18 @@ export const caixaEntradaHandlers = {
           const rowTime = row.ultimaMensagemEm?.getTime() ?? 0;
           if (rowTime > existingTime) byContato.set(row.contatoId, row);
         }
-        rowsWithContato = [...byContato.values()].toSorted(
-          (a, b) => (b.ultimaMensagemEm?.getTime() ?? 0) - (a.ultimaMensagemEm?.getTime() ?? 0),
-        );
+        rowsWithContato = [...byContato.values()].toSorted((a, b) => {
+          const tb = b.ultimaMensagemEm?.getTime() ?? 0;
+          const ta = a.ultimaMensagemEm?.getTime() ?? 0;
+          if (tb !== ta) return tb - ta;
+          return b.uuid.localeCompare(a.uuid);
+        });
       }
 
-      const contatoIds = rowsWithContato.map((row) => row.contato!.id);
+      const temMais = rowsWithContato.length > limite || rows.length >= fetchLimit;
+      const pagina = rowsWithContato.slice(0, limite);
+
+      const contatoIds = pagina.map((row) => row.contato!.id);
 
       const atribuicoes =
         contatoIds.length > 0
@@ -642,15 +697,10 @@ export const caixaEntradaHandlers = {
         etiquetasPorContato.set(String(atrib.contatoId), lista);
       }
 
-      return Promise.all(
-        rowsWithContato.map(async (row) => {
+      return {
+        itens: pagina.map((row) => {
           const contatoRow = row.contato!;
           const inst = instanceById.get(row.instanciaId)!;
-          const lastMsg = await ctx.db.query.mensagem.findFirst({
-            where: and(eq(mensagem.conversaId, row.id), isNull(mensagem.excluidoEm)),
-            columns: { corpo: true, tipo: true },
-            orderBy: [desc(mensagem.enviadoEm)],
-          });
           return {
             id: row.uuid,
             instanciaId: inst.uuid,
@@ -664,13 +714,14 @@ export const caixaEntradaHandlers = {
             status: row.status,
             metaCloudJanelaExpiraEm: row.metaCloudJanelaExpiraEm?.toISOString() ?? null,
             ultimaMensagemEm: row.ultimaMensagemEm?.toISOString() ?? null,
-            ultimaMensagemTipo: lastMsg?.tipo ?? null,
-            ultimaMensagemPreview: lastMsg?.corpo ?? null,
+            ultimaMensagemTipo: row.ultimaMensagemTipo ?? null,
+            ultimaMensagemPreview: row.ultimaMensagemCorpo ?? null,
             naoLidas: row.naoLidas ?? 0,
             etiquetas: etiquetasPorContato.get(String(contatoRow.id)) ?? [],
           };
         }),
-      );
+        temMais,
+      };
     },
 
     iniciar: async (
@@ -1091,11 +1142,6 @@ export const caixaEntradaHandlers = {
         enviadoPorUsuarioId: usuario.internalId,
       });
 
-      await ctx.db
-        .update(conversa)
-        .set(comTimestampAtualizacao({ ultimaMensagemEm: new Date() }))
-        .where(eq(conversa.id, conv.conversation.id));
-
       return mapearMensagemParaSaida(
         {
           ...message,
@@ -1188,11 +1234,6 @@ export const caixaEntradaHandlers = {
         idExterno: externalId,
         enviadoPorUsuarioId: ctx.usuario!.internalId,
       });
-
-      await ctx.db
-        .update(conversa)
-        .set(comTimestampAtualizacao({ ultimaMensagemEm: new Date() }))
-        .where(eq(conversa.id, conv.conversation.id));
 
       const usuario = ctx.usuario!;
       return mapearMensagemParaSaida(

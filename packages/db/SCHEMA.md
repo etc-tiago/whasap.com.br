@@ -88,5 +88,6 @@ Colunas operacionais relevantes:
 
 - `sessaoRemotaLiberadaEm` — cleanup Evolution liberou a sessão remota (não é soft-delete; a row permanece para reconectar na mesma uuid)
 - `conectadoEm` / `desconectadoEm` — timestamps de conexão
+- `conversa.ultimaMensagemCorpo` / `ultimaMensagemTipo` — preview denormalizado da lista da inbox (backfill: `bun run db:sync-ultima-mensagem`)
 
 **Desenvolvedor:** após alterações de schema, rodar `bun run db:generate` e `bun run db:migrate` (renomear tabelas/colunas, enums, índices).
