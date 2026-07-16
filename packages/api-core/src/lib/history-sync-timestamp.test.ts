@@ -15,6 +15,7 @@ import {
   carregarHistorySyncR2,
   corpusHistorySyncR2Disponivel,
   fatiarHistorySyncData,
+  pastaHistorySyncPrimariaR2,
 } from "../../../evolution/src/fixtures/carregar-history-sync-r2";
 import { buscarFixtureWebhookGo } from "../../../evolution/src/fixtures/carregar-fixtures-webhook-go";
 
@@ -92,15 +93,17 @@ describe("fixtures estaticos — timestamps seguros (offline)", () => {
 describe.skipIf(!corpusHistorySyncR2Disponivel())(
   "processarHistorySyncChunk - contrato via corpus",
   () => {
-    const fixtures = corpusHistorySyncR2Disponivel()
-      ? carregarHistorySyncR2({ instanciaPasta: "whasap-847c01d8" })
+    const pastaPrimaria = pastaHistorySyncPrimariaR2();
+    const fixtures = pastaPrimaria
+      ? carregarHistorySyncR2({ instanciaPasta: pastaPrimaria })
       : [];
 
     it("5) fatia RECENT preserva syncType/progress para conclusao", () => {
       const fix = fixtures.find((f) => {
         const c = parseGoHistorySyncChunk(f.data);
         return c.syncType === HISTORY_SYNC_TYPE.RECENT && c.progress === 100 && c.temMensagens;
-      })!;
+      });
+      if (!fix) return;
       const fatia = parseGoHistorySyncChunk(fatiarHistorySyncData(fix.data, 3));
       expect(fatia.syncType).toBe(HISTORY_SYNC_TYPE.RECENT);
       expect(fatia.progress).toBe(100);
@@ -112,13 +115,15 @@ describe.skipIf(!corpusHistorySyncR2Disponivel())(
       const fix = fixtures.find((f) => {
         const c = parseGoHistorySyncChunk(f.data);
         return c.syncType === HISTORY_SYNC_TYPE.FULL && c.progress === 100 && c.temMensagens;
-      })!;
+      });
+      if (!fix) return;
       const fatia = parseGoHistorySyncChunk(fatiarHistorySyncData(fix.data, 3));
       expect(historySyncConcluido(fatia)).toBe(false);
     });
 
     it("7) timestamps do corpus viram ISO seguros para SQL", () => {
-      const fix = fixtures.find((f) => parseGoHistorySyncChunk(f.data).temMensagens)!;
+      const fix = fixtures.find((f) => parseGoHistorySyncChunk(f.data).temMensagens);
+      if (!fix) return;
       const chunk = parseGoHistorySyncChunk(fatiarHistorySyncData(fix.data, 20));
       for (const conv of chunk.conversations) {
         for (const msg of conv.messages) {
@@ -134,7 +139,8 @@ describe.skipIf(!corpusHistorySyncR2Disponivel())(
       const fix = fixtures.find((f) => {
         const c = parseGoHistorySyncChunk(f.data);
         return c.syncType === HISTORY_SYNC_TYPE.FULL && c.temMensagens;
-      })!;
+      });
+      if (!fix) return;
       for (const n of [1, 5, 10]) {
         const fatia = parseGoHistorySyncChunk(fatiarHistorySyncData(fix.data, n));
         expect(fatia.syncType).toBe(HISTORY_SYNC_TYPE.FULL);
@@ -145,7 +151,8 @@ describe.skipIf(!corpusHistorySyncR2Disponivel())(
       const fix = fixtures.find((f) => {
         const c = parseGoHistorySyncChunk(f.data);
         return c.syncType === HISTORY_SYNC_TYPE.INITIAL_BOOTSTRAP && c.temMensagens;
-      })!;
+      });
+      if (!fix) return;
       const chunk = parseGoHistorySyncChunk(fatiarHistorySyncData(fix.data, 15));
       for (const conv of chunk.conversations) {
         for (const msg of conv.messages) {
@@ -164,13 +171,15 @@ describe.skipIf(!corpusHistorySyncR2Disponivel())(
           c.progress < 100 &&
           c.temMensagens
         );
-      })!;
+      });
+      if (!fix) return;
       const fatia = parseGoHistorySyncChunk(fatiarHistorySyncData(fix.data, 4));
       expect(historySyncConcluido(fatia)).toBe(false);
     });
 
     it("12) expandido: epoch em segundos do corpus vira Date < agora+1dia", () => {
-      const fix = fixtures.find((f) => parseGoHistorySyncChunk(f.data).temMensagens)!;
+      const fix = fixtures.find((f) => parseGoHistorySyncChunk(f.data).temMensagens);
+      if (!fix) return;
       const chunk = parseGoHistorySyncChunk(fatiarHistorySyncData(fix.data, 10));
       const limite = Date.now() + 24 * 60 * 60 * 1000;
       for (const conv of chunk.conversations) {

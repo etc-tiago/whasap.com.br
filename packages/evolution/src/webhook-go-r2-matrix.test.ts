@@ -43,15 +43,31 @@ describe.skipIf(!ok)("matriz R2 evo (corpus local)", () => {
     const messages = fixtures.filter((f) => f.event === "Message");
     expect(messages.length).toBeGreaterThanOrEqual(1);
 
+    const tiposSemCorpo = new Set(["edit", "edit_encrypted", "revoke"]);
     let okParse = 0;
     const tipos = new Set<string>();
     for (const fixture of messages) {
       const parsed = parseGoMessageEvent(fixture.data);
       if (!parsed) continue;
       okParse += 1;
-      expect(parsed.body.length, fixture.arquivo).toBeGreaterThan(0);
       expect(parsed.messageId, fixture.arquivo).toBeTruthy();
       tipos.add(parsed.type);
+
+      if (tiposSemCorpo.has(parsed.type)) {
+        if (parsed.type === "edit" || parsed.type === "edit_encrypted") {
+          expect(parsed.editTargetId, fixture.arquivo).toBeTruthy();
+        }
+        if (parsed.type === "edit_encrypted") {
+          expect(parsed.editEncrypted?.encIv.length, fixture.arquivo).toBeGreaterThan(0);
+          expect(parsed.editEncrypted?.encPayload.length, fixture.arquivo).toBeGreaterThan(0);
+        }
+        if (parsed.type === "revoke") {
+          // alvo fica em body (idExterno) ou placeholder
+          expect(parsed.body.length, fixture.arquivo).toBeGreaterThan(0);
+        }
+      } else {
+        expect(parsed.body.length, fixture.arquivo).toBeGreaterThan(0);
+      }
 
       const info = fixture.data.Info as Record<string, unknown>;
       expect(resolverIdExternoCanonicoGo(info), fixture.arquivo).toBeTruthy();
@@ -100,7 +116,10 @@ describe.skipIf(!ok)("matriz R2 evo (corpus local)", () => {
       okParse += 1;
       expect(parsed.fromMe, fixture.arquivo).toBe(true);
       expect(parsed.messageId, fixture.arquivo).toBeTruthy();
-      expect(parsed.body.length, fixture.arquivo).toBeGreaterThan(0);
+      const tiposSemCorpo = new Set(["edit", "edit_encrypted", "revoke"]);
+      if (!tiposSemCorpo.has(parsed.type)) {
+        expect(parsed.body.length, fixture.arquivo).toBeGreaterThan(0);
+      }
       tipos.add(parsed.type);
 
       if (parsed.type === "image" || parsed.type === "video" || parsed.type === "sticker") {

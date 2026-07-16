@@ -64,6 +64,10 @@ describe("parseGoMessageEvent", () => {
         expect(parsed!.editTargetId).toBeTruthy();
         continue;
       }
+      if (parsed!.type === "revoke") {
+        expect(parsed!.body.length).toBeGreaterThan(0);
+        continue;
+      }
       expect(parsed!.body.length).toBeGreaterThan(0);
     }
   });
@@ -76,6 +80,17 @@ describe("parseGoMessageEvent", () => {
       editTargetId: "AC9A902ED6D1458D0A9FB5C4023580E7",
     });
     expect(parsed!.body).not.toContain("criptografada");
+  });
+
+  it("parseia message-revoke como revoke", () => {
+    const fixture = buscarFixtureWebhookGo("message-revoke.json")!;
+    const parsed = parseGoMessageEvent(fixture.payload.data as Record<string, unknown>);
+    expect(parsed).toMatchObject({
+      type: "revoke",
+      messageId: "2A47A4C8DB3F7FF28EEF",
+      fromMe: true,
+    });
+    expect(parsed!.body).toBe("3EB0CA26A0B2685ED88476");
   });
 
   it("parseia Message inbound", () => {

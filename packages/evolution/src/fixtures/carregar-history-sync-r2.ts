@@ -47,9 +47,29 @@ export function corpusHistorySyncR2Disponivel(): boolean {
   return listarArquivosHistorySync(RAIZ_R2_EVO).length > 0;
 }
 
+/**
+ * Pastas de instancia (`whasap-…`) que têm pelo menos um HistorySync no corpus.
+ * Ordenadas por quantidade de arquivos (desc), depois nome.
+ */
+export function listarPastasHistorySyncR2(): string[] {
+  const contagem = new Map<string, number>();
+  for (const rel of listarArquivosHistorySync(RAIZ_R2_EVO)) {
+    const pasta = rel.split("/")[0]!;
+    contagem.set(pasta, (contagem.get(pasta) ?? 0) + 1);
+  }
+  return [...contagem.entries()]
+    .toSorted((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([pasta]) => pasta);
+}
+
+/** Pasta com mais HistorySync no corpus, ou null se vazio. */
+export function pastaHistorySyncPrimariaR2(): string | null {
+  return listarPastasHistorySyncR2()[0] ?? null;
+}
+
 /** Carrega todos os HistorySync do corpus R2 local (pode ser pesado - cachear no teste). */
 export function carregarHistorySyncR2(opts?: {
-  /** Filtra por pasta de instancia (whasap-847c01d8). */
+  /** Filtra por pasta de instancia (ex.: whasap-da8971bc). */
   instanciaPasta?: string;
   /** Limite de arquivos (util em smoke). */
   limite?: number;

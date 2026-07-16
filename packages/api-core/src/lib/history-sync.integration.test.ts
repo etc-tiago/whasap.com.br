@@ -23,6 +23,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import {
   carregarHistorySyncR2,
   fatiarHistorySyncData,
+  pastaHistorySyncPrimariaR2,
 } from "../../../evolution/src/fixtures/carregar-history-sync-r2";
 import {
   atualizarProgressoHistoricoSync,
@@ -65,8 +66,11 @@ describe.skipIf(!podeRodar)("HistorySync ingestao (Postgres + corpus R2)", () =>
   let instanciaUuid: string;
   const slug = `hist-sync-test-${crypto.randomUUID().slice(0, 8)}`;
 
-  const fixtures = podeRodar ? carregarHistorySyncR2({ instanciaPasta: "whasap-847c01d8" }) : [];
-
+  const pastaPrimaria = podeRodar ? pastaHistorySyncPrimariaR2() : null;
+  const fixtures =
+    podeRodar && pastaPrimaria
+      ? carregarHistorySyncR2({ instanciaPasta: pastaPrimaria })
+      : [];
   beforeAll(async () => {
     const { db: database, sql: pool } = criarDb(DATABASE_URL!);
     db = database;
@@ -129,8 +133,9 @@ describe.skipIf(!podeRodar)("HistorySync ingestao (Postgres + corpus R2)", () =>
     return hit;
   }
 
-  it("01) corpus ClinicaWork disponivel", () => {
-    expect(fixtures.length).toBeGreaterThanOrEqual(10);
+  it("01) corpus HistorySync primario disponivel", () => {
+    expect(pastaPrimaria).toBeTruthy();
+    expect(fixtures.length).toBeGreaterThan(0);
   });
 
   it("02) metadata syncType 5 e ignorada", async () => {

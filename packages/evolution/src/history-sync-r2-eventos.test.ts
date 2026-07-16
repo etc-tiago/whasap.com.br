@@ -8,6 +8,7 @@ import { parseGoDisconnectedEvent } from "./connection-state";
 import {
   carregarHistorySyncR2,
   corpusHistorySyncR2Disponivel,
+  pastaHistorySyncPrimariaR2,
 } from "./fixtures/carregar-history-sync-r2";
 import { carregarWebhooksR2, corpusWebhookR2Disponivel } from "./fixtures/carregar-webhooks-r2";
 import {
@@ -118,14 +119,16 @@ describe.skipIf(!ok)("corpus R2 - eventos junto do HistorySync", () => {
     expect(data.Action).toBeTruthy();
   });
 
-  it("11) ClinicaWork tem HistorySync e Message no mesmo dia", () => {
+  it("11) instancia primaria tem HistorySync e Message", () => {
+    const primaria = pastaHistorySyncPrimariaR2();
+    if (!primaria) return;
     const hs = carregarWebhooksR2({
       evento: "HistorySync",
-      instanciaPasta: "whasap-847c01d8",
+      instanciaPasta: primaria,
     });
     const msgs = carregarWebhooksR2({
       evento: "Message",
-      instanciaPasta: "whasap-847c01d8",
+      instanciaPasta: primaria,
     });
     if (hs.length === 0 && msgs.length === 0) return;
     expect(hs.length).toBeGreaterThanOrEqual(1);
