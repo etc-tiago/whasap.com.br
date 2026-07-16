@@ -42,6 +42,8 @@ export type InboxOrgPageProps = {
   /** Deep-link nova conversa (só em `/inbox`). */
   telefone?: string;
   instancia?: string;
+  mensagem?: string;
+  nome?: string;
   onLimparSearchNovaConversa?: () => void;
 };
 
@@ -51,6 +53,8 @@ export function InboxOrgPage({
   onLimparSelecao,
   telefone,
   instancia,
+  mensagem,
+  nome,
   onLimparSearchNovaConversa,
 }: InboxOrgPageProps) {
   const organizacaoHash = useOrganizacaoHash();
@@ -66,6 +70,8 @@ export function InboxOrgPage({
   const [iniciarConversaExterna, setIniciarConversaExterna] = useState<{
     telefone: string;
     instanciaId?: string;
+    mensagem?: string;
+    nome?: string;
   } | null>(null);
   const [forcarRodapeToken, setForcarRodapeToken] = useState(0);
   const [campanhaPainelAberto, setCampanhaPainelAberto] = useState(false);
@@ -78,8 +84,10 @@ export function InboxOrgPage({
     setIniciarConversaExterna({
       telefone,
       instanciaId: instancia,
+      mensagem,
+      nome,
     });
-  }, [telefone, instancia]);
+  }, [telefone, instancia, mensagem, nome]);
 
   const org = useQuery(
     orpc.organizacao.obter.queryOptions({

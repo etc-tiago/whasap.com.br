@@ -38,9 +38,21 @@ type WaChatListPanelProps = {
   onAntesDeNavegarNovaConversa?: () => void;
   /** Telefone normalizado da busca sem match exato — exibe chip "Iniciar conversa". */
   telefoneIniciarBusca?: string | null;
-  /** Abre o popover de nova conversa com telefone/instância pré-preenchidos (ex.: deep-link de Contatos). */
-  iniciarConversaExterna?: { telefone: string; instanciaId?: string } | null;
+  /** Abre o popover de nova conversa com telefone/mensagem/nome pré-preenchidos (deep-link). */
+  iniciarConversaExterna?: {
+    telefone: string;
+    instanciaId?: string;
+    mensagem?: string;
+    nome?: string;
+  } | null;
   onIniciarConversaExternaConsumida?: () => void;
+};
+
+type PrefillNovaConversa = {
+  telefone?: string;
+  mensagem?: string;
+  nome?: string;
+  instanciaId?: string;
 };
 
 export function WaChatListPanel({
@@ -62,7 +74,7 @@ export function WaChatListPanel({
   onIniciarConversaExternaConsumida,
 }: WaChatListPanelProps) {
   const [novaConversaOpen, setNovaConversaOpen] = useState(false);
-  const [telefoneInicial, setTelefoneInicial] = useState<string | undefined>();
+  const [prefill, setPrefill] = useState<PrefillNovaConversa | null>(null);
 
   const podeAbrirNovaConversa =
     instancias.length > 0 &&
@@ -71,26 +83,27 @@ export function WaChatListPanel({
 
   useEffect(() => {
     if (!iniciarConversaExterna?.telefone || !podeAbrirNovaConversa) return;
-    setTelefoneInicial(iniciarConversaExterna.telefone);
+    setPrefill({
+      telefone: iniciarConversaExterna.telefone,
+      mensagem: iniciarConversaExterna.mensagem,
+      nome: iniciarConversaExterna.nome,
+      instanciaId: iniciarConversaExterna.instanciaId,
+    });
     setNovaConversaOpen(true);
     onIniciarConversaExternaConsumida?.();
   }, [iniciarConversaExterna, podeAbrirNovaConversa, onIniciarConversaExternaConsumida]);
 
   function abrirNovaConversa(telefone?: string) {
-    setTelefoneInicial(telefone);
+    setPrefill(telefone ? { telefone } : null);
     setNovaConversaOpen(true);
   }
 
   function handleNovaConversaOpenChange(next: boolean) {
-    if (!next) {
-      setNovaConversaOpen(false);
-      setTelefoneInicial(undefined);
-      return;
-    }
-    // Abertura pelo ícone do header — formulário em branco
-    setTelefoneInicial(undefined);
-    setNovaConversaOpen(true);
+    setNovaConversaOpen(next);
+    if (!next) setPrefill(null);
   }
+
+  const instanciaPadraoEfetiva = prefill?.instanciaId ?? instanciaPadraoId;
 
   return (
     <PanelSidebar className="border-wa-divider bg-wa-panel md:w-80 xl:w-96">
@@ -101,13 +114,15 @@ export function WaChatListPanel({
             <WaNovaConversaPopover
               organizacaoHash={organizacaoHash}
               instancias={instancias}
-              instanciaPadraoId={instanciaPadraoId}
+              instanciaPadraoId={instanciaPadraoEfetiva}
               disabled={!podeIniciarConversa}
               onConversaIniciada={onConversaIniciada}
               onAntesDeNavegar={onAntesDeNavegarNovaConversa}
               open={novaConversaOpen}
               onOpenChange={handleNovaConversaOpenChange}
-              telefoneInicial={telefoneInicial}
+              telefoneInicial={prefill?.telefone}
+              mensagemInicial={prefill?.mensagem}
+              nomeInicial={prefill?.nome}
             />
           ) : (
             <WaIconButton disabled label="Nova conversa">

@@ -22,7 +22,12 @@ type WaShellProps = {
   onConversaIniciada?: (conversaId: string) => void;
   onAntesDeNavegarNovaConversa?: () => void;
   telefoneIniciarBusca?: string | null;
-  iniciarConversaExterna?: { telefone: string; instanciaId?: string } | null;
+  iniciarConversaExterna?: {
+    telefone: string;
+    instanciaId?: string;
+    mensagem?: string;
+    nome?: string;
+  } | null;
   onIniciarConversaExternaConsumida?: () => void;
   chatHeader?: ReactNode;
   chatBody?: ReactNode;

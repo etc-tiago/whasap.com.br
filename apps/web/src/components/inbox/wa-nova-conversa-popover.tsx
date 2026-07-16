@@ -20,7 +20,7 @@ import { WaIconButton } from "@/components/inbox/wa-icon-button";
 import { IconeConexaoLucide } from "@/lib/icones-conexao";
 import { orpc } from "@/lib/orpc";
 import { getOrpcErrorMessage } from "@/lib/orpc-error";
-import { eCandidatoTelefoneBr, normalizarTelefoneBr } from "@/lib/telefone-br";
+import { eCandidatoTelefoneBr, normalizarTelefoneBr, telefonesBrIguais } from "@/lib/telefone-br";
 import { extrairIndicesVariaveisTemplate, textoCorpoTemplate } from "@/lib/template-variaveis";
 
 export type InstanciaNovaConversa = {
@@ -44,6 +44,10 @@ type WaNovaConversaPopoverProps = {
   onOpenChange?: (open: boolean) => void;
   /** Prefill ao abrir (ex.: telefone digitado na busca). */
   telefoneInicial?: string;
+  /** Prefill da mensagem (Evolution) — deep-link `/iniciar?mensagem=`. */
+  mensagemInicial?: string;
+  /** Prefill do nome; se omitido, tenta completar via contatos da org. */
+  nomeInicial?: string;
 };
 
 export function WaNovaConversaPopover({
@@ -56,6 +60,8 @@ export function WaNovaConversaPopover({
   open: openControlado,
   onOpenChange: onOpenChangeControlado,
   telefoneInicial,
+  mensagemInicial,
+  nomeInicial,
 }: WaNovaConversaPopoverProps) {
   const queryClient = useQueryClient();
   const [openInterno, setOpenInterno] = useState(false);
@@ -68,6 +74,7 @@ export function WaNovaConversaPopover({
   const [templateId, setTemplateId] = useState("");
   const [variaveis, setVariaveis] = useState<Record<string, string>>({});
   const estavaAberto = useRef(false);
+  const nomePreenchidoPeloUsuario = useRef(false);
 
   const instanciaSelecionada =
     instancias.find((i) => i.id === instanciaId) ?? instancias[0] ?? null;
@@ -79,7 +86,10 @@ export function WaNovaConversaPopover({
   useEffect(() => {
     const acabouDeAbrir = open && !estavaAberto.current;
     estavaAberto.current = open;
-    if (!open) return;
+    if (!open) {
+      nomePreenchidoPeloUsuario.current = false;
+      return;
+    }
 
     if (acabouDeAbrir) {
       const padrao =
@@ -92,13 +102,43 @@ export function WaNovaConversaPopover({
       if (telefoneInicial) {
         setTelefone(telefoneInicial);
       }
+      if (mensagemInicial) {
+        setCorpo(mensagemInicial);
+      }
+      if (nomeInicial) {
+        setNome(nomeInicial);
+        nomePreenchidoPeloUsuario.current = true;
+      }
       return;
     }
 
     setInstanciaId((atual) =>
       atual && instancias.some((i) => i.id === atual) ? atual : (instancias[0]?.id ?? ""),
     );
-  }, [open, telefoneInicial, instanciaPadraoId, instancias]);
+  }, [open, telefoneInicial, mensagemInicial, nomeInicial, instanciaPadraoId, instancias]);
+
+  const telefoneNorm = telefone.trim() ? normalizarTelefoneBr(telefone) : "";
+  const buscarNomeContato =
+    open && Boolean(telefoneNorm) && !nomeInicial && !nomePreenchidoPeloUsuario.current;
+
+  const contatoLookup = useQuery(
+    orpc.caixaEntrada.contatos.lista.queryOptions({
+      input: buscarNomeContato
+        ? { organizacaoHash, busca: telefoneNorm, limite: 10, offset: 0 }
+        : skipToken,
+    }),
+  );
+
+  useEffect(() => {
+    if (!buscarNomeContato || !contatoLookup.isSuccess) return;
+    if (nome.trim()) return;
+    const match = (contatoLookup.data?.itens ?? []).find(
+      (c) => c.telefone && telefonesBrIguais(c.telefone, telefoneNorm),
+    );
+    if (match?.nome?.trim()) {
+      setNome(match.nome.trim());
+    }
+  }, [buscarNomeContato, contatoLookup.isSuccess, contatoLookup.data, nome, telefoneNorm]);
 
   const templates = useQuery(
     orpc.caixaEntrada.templates.lista.queryOptions({
@@ -277,7 +317,10 @@ export function WaNovaConversaPopover({
             <Input
               id="nova-conversa-nome"
               value={nome}
-              onChange={(e) => setNome(e.target.value)}
+              onChange={(e) => {
+                nomePreenchidoPeloUsuario.current = true;
+                setNome(e.target.value);
+              }}
               placeholder="Nome do contato"
               disabled={iniciar.isPending}
             />

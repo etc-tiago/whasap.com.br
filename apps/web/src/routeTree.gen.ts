@@ -16,6 +16,7 @@ import { Route as RpcIndexRouteImport } from './routes/rpc/index'
 import { Route as RpcSplatRouteImport } from './routes/rpc/$'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as PanelIntegracaoRouteImport } from './routes/_panel/integracao'
+import { Route as PanelIniciarRouteImport } from './routes/_panel/iniciar'
 import { Route as PanelOrganizacaoHashRouteRouteImport } from './routes/_panel/$organizacaoHash/route'
 import { Route as PanelOrganizacaoHashIndexRouteImport } from './routes/_panel/$organizacaoHash/index'
 import { Route as Char126AcessoTokenRouteImport } from './routes/~/acesso/$token'
@@ -80,6 +81,11 @@ const ConviteTokenRoute = ConviteTokenRouteImport.update({
 const PanelIntegracaoRoute = PanelIntegracaoRouteImport.update({
   id: '/integracao',
   path: '/integracao',
+  getParentRoute: () => PanelRouteRoute,
+} as any)
+const PanelIniciarRoute = PanelIniciarRouteImport.update({
+  id: '/iniciar',
+  path: '/iniciar',
   getParentRoute: () => PanelRouteRoute,
 } as any)
 const PanelOrganizacaoHashRouteRoute =
@@ -271,6 +277,7 @@ const PanelOrganizacaoHashInboxInstanceIdRelatoriosIndexRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$organizacaoHash': typeof PanelOrganizacaoHashRouteRouteWithChildren
+  '/iniciar': typeof PanelIniciarRoute
   '/integracao': typeof PanelIntegracaoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/rpc/$': typeof RpcSplatRoute
@@ -309,6 +316,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/iniciar': typeof PanelIniciarRoute
   '/integracao': typeof PanelIntegracaoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/rpc/$': typeof RpcSplatRoute
@@ -347,6 +355,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_panel': typeof PanelRouteRouteWithChildren
   '/_panel/$organizacaoHash': typeof PanelOrganizacaoHashRouteRouteWithChildren
+  '/_panel/iniciar': typeof PanelIniciarRoute
   '/_panel/integracao': typeof PanelIntegracaoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/rpc/$': typeof RpcSplatRoute
@@ -388,6 +397,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$organizacaoHash'
+    | '/iniciar'
     | '/integracao'
     | '/convite/$token'
     | '/rpc/$'
@@ -426,6 +436,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/iniciar'
     | '/integracao'
     | '/convite/$token'
     | '/rpc/$'
@@ -463,6 +474,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_panel'
     | '/_panel/$organizacaoHash'
+    | '/_panel/iniciar'
     | '/_panel/integracao'
     | '/convite/$token'
     | '/rpc/$'
@@ -560,6 +572,13 @@ declare module '@tanstack/react-router' {
       path: '/integracao'
       fullPath: '/integracao'
       preLoaderRoute: typeof PanelIntegracaoRouteImport
+      parentRoute: typeof PanelRouteRoute
+    }
+    '/_panel/iniciar': {
+      id: '/_panel/iniciar'
+      path: '/iniciar'
+      fullPath: '/iniciar'
+      preLoaderRoute: typeof PanelIniciarRouteImport
       parentRoute: typeof PanelRouteRoute
     }
     '/_panel/$organizacaoHash': {
@@ -906,11 +925,13 @@ const PanelOrganizacaoHashRouteRouteWithChildren =
 
 interface PanelRouteRouteChildren {
   PanelOrganizacaoHashRouteRoute: typeof PanelOrganizacaoHashRouteRouteWithChildren
+  PanelIniciarRoute: typeof PanelIniciarRoute
   PanelIntegracaoRoute: typeof PanelIntegracaoRoute
 }
 
 const PanelRouteRouteChildren: PanelRouteRouteChildren = {
   PanelOrganizacaoHashRouteRoute: PanelOrganizacaoHashRouteRouteWithChildren,
+  PanelIniciarRoute: PanelIniciarRoute,
   PanelIntegracaoRoute: PanelIntegracaoRoute,
 }
 
@@ -931,13 +952,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

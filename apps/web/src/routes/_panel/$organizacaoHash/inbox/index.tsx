@@ -1,7 +1,7 @@
 /**
  * Caixa de entrada — lista sem conversa selecionada.
  * Deep-link legado `?conversa=` redireciona para `/chat/$conversaId`.
- * `telefone`+`instancia` abrem nova conversa (ex.: Contatos).
+ * `telefone`/`mensagem`/`nome`/`instancia` abrem nova conversa (Contatos, `/iniciar`).
  */
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 
@@ -12,6 +12,8 @@ type InboxSearch = {
   conversa?: string;
   telefone?: string;
   instancia?: string;
+  mensagem?: string;
+  nome?: string;
 };
 
 export const Route = createFileRoute("/_panel/$organizacaoHash/inbox/")({
@@ -19,6 +21,8 @@ export const Route = createFileRoute("/_panel/$organizacaoHash/inbox/")({
     conversa: typeof s.conversa === "string" && s.conversa ? s.conversa : undefined,
     telefone: typeof s.telefone === "string" && s.telefone ? s.telefone : undefined,
     instancia: typeof s.instancia === "string" && s.instancia ? s.instancia : undefined,
+    mensagem: typeof s.mensagem === "string" && s.mensagem ? s.mensagem : undefined,
+    nome: typeof s.nome === "string" && s.nome ? s.nome : undefined,
   }),
   component: InboxRoutePage,
 });
@@ -58,9 +62,11 @@ function InboxRoutePage() {
       }}
       telefone={search.telefone}
       instancia={search.instancia}
+      mensagem={search.mensagem}
+      nome={search.nome}
       onLimparSearchNovaConversa={() => {
         if (!organizacaoHash) return;
-        if (!search.telefone && !search.instancia) return;
+        if (!search.telefone && !search.instancia && !search.mensagem && !search.nome) return;
         void navigate({
           to: "/$organizacaoHash/inbox",
           params: { organizacaoHash },
