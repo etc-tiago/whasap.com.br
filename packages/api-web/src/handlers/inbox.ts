@@ -1031,17 +1031,18 @@ export const caixaEntradaHandlers = {
         bodyParaEnvio = montarTextoComNomeAtendente(nomeAtendente, input.body);
         captionParaEnvio = bodyParaEnvio;
       } else if (prefixarNome && midiaExigeTextoSeparadoParaNome(tipo)) {
+        const corpoNome = montarTextoComNomeAtendente(nomeAtendente);
         const idTextoNome = await sendProviderMessage({
           ctx,
           instance: conv.instance,
           phone: conv.contact.telefone,
           type: "text",
-          body: nomeAtendente,
+          body: corpoNome,
         });
         await persistirMensagemOutboundPainel(ctx.db, {
           conversaId: conv.conversation.id,
           tipo: "text",
-          corpo: nomeAtendente,
+          corpo: corpoNome,
           idExterno: idTextoNome,
           enviadoPorUsuarioId: usuario.internalId,
         });
@@ -1070,12 +1071,16 @@ export const caixaEntradaHandlers = {
         emoji: input.emoji,
       });
 
-      const corpo =
-        bodyParaEnvio ??
-        (tipo === "reaction" ? (input.emoji ?? null) : null) ??
-        (["button", "list", "carousel", "poll", "link", "interactive"].includes(tipo)
-          ? `[${tipo}]`
-          : null);
+      let corpo: string | null = bodyParaEnvio ?? null;
+      if (corpo == null && tipo === "reaction") {
+        corpo = input.emoji ?? null;
+      }
+      if (
+        corpo == null &&
+        ["button", "list", "carousel", "poll", "link", "interactive"].includes(tipo)
+      ) {
+        corpo = `[${tipo}]`;
+      }
 
       const message = await persistirMensagemOutboundPainel(ctx.db, {
         conversaId: conv.conversation.id,

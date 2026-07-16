@@ -7,18 +7,18 @@ import {
 } from "./nome-atendente-mensagem";
 
 describe("montarTextoComNomeAtendente", () => {
-  it("monta Nome\\nconteúdo", () => {
-    expect(montarTextoComNomeAtendente("Ana", "Olá")).toBe("Ana\nOlá");
+  it("monta *Nome*\\nconteúdo (negrito WhatsApp)", () => {
+    expect(montarTextoComNomeAtendente("Ana", "Olá")).toBe("*Ana*\nOlá");
   });
 
   it("faz trim do nome e do conteúdo", () => {
-    expect(montarTextoComNomeAtendente("  Ana  ", "  Olá  ")).toBe("Ana\nOlá");
+    expect(montarTextoComNomeAtendente("  Ana  ", "  Olá  ")).toBe("*Ana*\nOlá");
   });
 
-  it("devolve só o nome quando conteúdo é vazio, null ou só espaços", () => {
-    expect(montarTextoComNomeAtendente("Ana")).toBe("Ana");
-    expect(montarTextoComNomeAtendente("Ana", null)).toBe("Ana");
-    expect(montarTextoComNomeAtendente("Ana", "   ")).toBe("Ana");
+  it("devolve só *nome* quando conteúdo é vazio, null ou só espaços", () => {
+    expect(montarTextoComNomeAtendente("Ana")).toBe("*Ana*");
+    expect(montarTextoComNomeAtendente("Ana", null)).toBe("*Ana*");
+    expect(montarTextoComNomeAtendente("Ana", "   ")).toBe("*Ana*");
   });
 });
 

@@ -24,6 +24,7 @@ import {
   isCorpoPlaceholderMidia,
   rotuloStatusEntrega,
 } from "@/lib/inbox-utils";
+import { separarPrefixoNomeAtendente } from "@/lib/nome-atendente-mensagem-ui";
 import type { MensagemItem } from "@/lib/orpc";
 
 type PollPayload = NonNullable<MensagemItem["poll"]>;
@@ -184,6 +185,26 @@ function corpoVisivel(mensagem: MensagemItem): string | null {
   return corpo;
 }
 
+function CorpoMensagem({
+  texto,
+  enviadoPorNome,
+}: {
+  texto: string;
+  enviadoPorNome?: string | null;
+}) {
+  const partes = separarPrefixoNomeAtendente(texto, enviadoPorNome);
+  if (!partes) {
+    return <p className="whitespace-pre-wrap wrap-break-word">{texto}</p>;
+  }
+
+  return (
+    <p className="whitespace-pre-wrap wrap-break-word">
+      <span className="font-bold">{partes.nome}</span>
+      {partes.resto != null ? `\n${partes.resto}` : null}
+    </p>
+  );
+}
+
 function BubbleBody({
   mensagem,
   footer,
@@ -199,6 +220,9 @@ function BubbleBody({
 }) {
   const isAudio = mensagem.type === "audio";
   const texto = corpoVisivel(mensagem);
+  const nomeNoCorpo =
+    Boolean(texto) &&
+    Boolean(separarPrefixoNomeAtendente(texto!, mensagem.enviadoPorNome));
   const menu = (
     <BubbleMenu mensagem={mensagem} podeResponder={podeResponder} onResponder={onResponder} />
   );
@@ -223,10 +247,12 @@ function BubbleBody({
         ) : (
           <>
             <MediaContent mensagem={mensagem} />
-            {texto ? <p className="whitespace-pre-wrap wrap-break-word">{texto}</p> : null}
+            {texto ? (
+              <CorpoMensagem texto={texto} enviadoPorNome={mensagem.enviadoPorNome} />
+            ) : null}
           </>
         )}
-        {mensagem.enviadoPorNome ? (
+        {mensagem.enviadoPorNome && !nomeNoCorpo ? (
           <p className="mt-0.5 text-[10px] opacity-70">{mensagem.enviadoPorNome}</p>
         ) : null}
         {mensagem.templateNome ? (

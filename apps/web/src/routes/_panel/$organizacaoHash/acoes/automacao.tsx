@@ -143,9 +143,9 @@ function AcoesAutomacaoPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Nome do atendente nas mensagens</CardTitle>
               <CardDescription>
-                Quando ativo, o nome do atendente vai na primeira linha do texto ou da legenda
-                enviados ao WhatsApp. Em áudio e figurinha, o nome é enviado como mensagem de texto
-                imediatamente antes da mídia.
+                Quando ativo, o nome do atendente vai em <strong>negrito</strong> na primeira linha
+                do texto ou da legenda enviados ao WhatsApp. Em áudio e figurinha, o nome é enviado
+                como mensagem de texto imediatamente antes da mídia.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
