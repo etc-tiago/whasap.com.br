@@ -29,14 +29,17 @@ function PanelGate() {
     }
     if (isPending) return;
 
-    if (tinhaSessao.current || sessaoExpirada) {
+    // Só limpa cache se já houve sessão nesta aba (expiração/logout).
+    // Cold start com 401: QueryCache já trata uma vez — não atrasa o redirect.
+    if (tinhaSessao.current) {
       tinhaSessao.current = false;
       void limparEstadoClienteSessao(queryClient);
     }
 
     void navigate({ to: "/~", replace: true });
-  }, [autenticado, isPending, sessaoExpirada, navigate, queryClient]);
+  }, [autenticado, isPending, navigate, queryClient]);
 
+  // 401: isPending=false na primeira falha → redirect sem esperar limpeza.
   if (isPending || !autenticado) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
