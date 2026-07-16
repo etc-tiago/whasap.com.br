@@ -15,6 +15,7 @@
     "cf-typegen": "vp run -r --no-cache cf-typegen",
     "db:generate": "bun run --filter @whasap/db db:generate",
     "db:migrate": "bun run --filter @whasap/db db:migrate",
+    "db:sync-ultima-mensagem": "bun run --filter @whasap/db db:sync-ultima-mensagem",
     "r2:sync": "bun run --filter @whasap/r2-sync sync",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
