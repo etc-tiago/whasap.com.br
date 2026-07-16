@@ -12,8 +12,9 @@ import {
   SelectValue,
 } from "@whasap/ui/components/select";
 import { Textarea } from "@whasap/ui/components/textarea";
-import { MessageSquarePlus } from "lucide-react";
+import { MessageSquarePlus, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { WaIconButton } from "@/components/inbox/wa-icon-button";
 import { IconeConexaoLucide } from "@/lib/icones-conexao";
@@ -138,6 +139,28 @@ export function WaNovaConversaPopover({
         setOpen(false);
         resetForm();
         onConversaIniciada(data.conversaId);
+      },
+    }),
+  );
+
+  const sincronizarModelos = useMutation(
+    orpc.caixaEntrada.templates.sincronizar.mutationOptions({
+      onSuccess: async (data) => {
+        await queryClient.invalidateQueries({
+          queryKey: orpc.caixaEntrada.templates.lista.key({
+            input: { instanciaId },
+          }),
+        });
+        setTemplateId("");
+        setVariaveis({});
+        toast.success(
+          data.sincronizados === 1
+            ? "1 modelo sincronizado"
+            : `${data.sincronizados} modelos sincronizados`,
+        );
+      },
+      onError: (error) => {
+        toast.error(getOrpcErrorMessage(error, "Não foi possível sincronizar os modelos."));
       },
     }),
   );
@@ -277,18 +300,38 @@ export function WaNovaConversaPopover({
           {isMetaCloud ? (
             <>
               <div className="space-y-1.5">
-                <Label>Modelo</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Modelo</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
+                    disabled={!instanciaId || sincronizarModelos.isPending || iniciar.isPending}
+                    onClick={() => {
+                      if (!instanciaId) return;
+                      sincronizarModelos.mutate({ instanciaId });
+                    }}
+                  >
+                    <RefreshCw
+                      className={
+                        sincronizarModelos.isPending ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"
+                      }
+                    />
+                    {sincronizarModelos.isPending ? "Sincronizando…" : "Sincronizar"}
+                  </Button>
+                </div>
                 {templates.isLoading ? (
                   <p className="text-xs text-muted-foreground">Carregando modelos...</p>
                 ) : templatesAprovados.length === 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    Nenhum modelo aprovado. Sincronize os modelos na integração Cloud API.
+                    Nenhum modelo aprovado. Use Sincronizar para buscar na Meta.
                   </p>
                 ) : (
                   <Select
                     value={templateId}
                     onValueChange={setTemplateId}
-                    disabled={iniciar.isPending}
+                    disabled={iniciar.isPending || sincronizarModelos.isPending}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione um modelo" />
@@ -319,7 +362,7 @@ export function WaNovaConversaPopover({
                     onChange={(e) =>
                       setVariaveis((atual) => ({ ...atual, [indice]: e.target.value }))
                     }
-                    disabled={iniciar.isPending}
+                    disabled={iniciar.isPending || sincronizarModelos.isPending}
                   />
                 </div>
               ))}
@@ -341,7 +384,12 @@ export function WaNovaConversaPopover({
           <Button
             type="submit"
             className="w-full"
-            disabled={!podeEnviar() || iniciar.isPending || (!isEvo && !isMetaCloud)}
+            disabled={
+              !podeEnviar() ||
+              iniciar.isPending ||
+              sincronizarModelos.isPending ||
+              (!isEvo && !isMetaCloud)
+            }
           >
             {iniciar.isPending ? "Iniciando..." : "Iniciar conversa"}
           </Button>
