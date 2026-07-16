@@ -97,6 +97,17 @@ export const instanciaContract = {
     )
     .output(z.object({ ok: z.boolean(), templatesCount: z.number().int() })),
 
+  /** Callback URL, verify token (UUID da conexão) e campos para o console Meta. */
+  webhookCloud: oc
+    .input(z.object({ instanciaId: z.string().uuid() }))
+    .output(
+      z.object({
+        callbackUrl: z.string().url(),
+        verifyToken: z.string().uuid(),
+        campos: z.array(z.string()),
+      }),
+    ),
+
   obter: oc.input(z.object({ instanciaId: z.string().uuid() })).output(instanciaSchema),
 
   sincronizarHistorico: oc

@@ -9,7 +9,6 @@ type WaNomeContatoEditorProps = {
   contatoId: string;
   contatoNome: string | null;
   contatoTelefone: string;
-  instanciaId: string;
   disabled?: boolean;
 };
 
@@ -17,7 +16,6 @@ export function WaNomeContatoEditor({
   contatoId,
   contatoNome,
   contatoTelefone,
-  instanciaId,
   disabled,
 }: WaNomeContatoEditorProps) {
   const queryClient = useQueryClient();
@@ -25,7 +23,9 @@ export function WaNomeContatoEditor({
   const [editando, setEditando] = useState(false);
   const [valor, setValor] = useState(contatoNome ?? "");
 
-  const nomeExibido = contatoNome ?? contatoTelefone;
+  const nomeTrim = contatoNome?.trim() || null;
+  const nomeExibido = nomeTrim ?? contatoTelefone;
+  const mostrarTelefone = Boolean(nomeTrim);
 
   useEffect(() => {
     if (!editando) {
@@ -44,7 +44,7 @@ export function WaNomeContatoEditor({
     orpc.caixaEntrada.contatos.atualizarNome.mutationOptions({
       onSuccess: () => {
         queryClient.invalidateQueries({
-          queryKey: orpc.caixaEntrada.conversas.lista.key({ input: { instanciaId } }),
+          queryKey: orpc.caixaEntrada.conversas.lista.key(),
         });
         setEditando(false);
       },
@@ -110,12 +110,17 @@ export function WaNomeContatoEditor({
   }
 
   return (
-    <p
-      onDoubleClick={iniciarEdicao}
-      title={disabled ? undefined : "Duplo clique para editar o nome"}
-      className={cn("truncate text-[15px] font-medium text-wa-text", !disabled && "cursor-text")}
-    >
-      {nomeExibido}
-    </p>
+    <div className="min-w-0">
+      <p
+        onDoubleClick={iniciarEdicao}
+        title={disabled ? undefined : "Duplo clique para editar o nome"}
+        className={cn("truncate text-[15px] font-medium text-wa-text", !disabled && "cursor-text")}
+      >
+        {nomeExibido}
+      </p>
+      {mostrarTelefone ? (
+        <p className="truncate text-xs text-wa-text-muted">{contatoTelefone}</p>
+      ) : null}
+    </div>
   );
 }

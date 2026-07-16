@@ -46,6 +46,7 @@ import {
   obterQrComSessao,
   urlWebhookEvolution,
 } from "../lib/evolution-webhook";
+import { obterConfigWebhookCloud } from "../lib/meta-webhook";
 import {
   mensagemErroEvolution,
   montarDebugEvolution,
@@ -732,6 +733,17 @@ export const instanciaHandlers = {
     await marcarConectada(ctx, row.id, row.organizacaoId);
 
     return { ok: true, templatesCount };
+  },
+
+  /** Valores do webhook Cloud API: verify token = UUID da conexão. */
+  webhookCloud: async (ctx: WebContext, input: { instanciaId: string }) => {
+    exigirAutenticacao(ctx);
+    const row = await buscarInstanciaDaOrganizacao(ctx, input.instanciaId);
+    if (!isMetaCloudProvider(row.provedor)) {
+      preconditionFailed("Webhook Cloud API disponível apenas para conexões Meta");
+    }
+    await exigirAdminPorIdInterno(ctx, row.organizacaoId);
+    return obterConfigWebhookCloud(ctx.env, row.uuid);
   },
 
   obter: async (ctx: WebContext, input: { instanciaId: string }) => {

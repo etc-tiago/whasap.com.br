@@ -30,7 +30,8 @@ export function useInboxConversas(organizacaoHash: string | undefined) {
   const live = useLiveQuery(
     (q) => {
       if (!collection) return undefined;
-      return q.from({ c: collection });
+      // Mais recente primeiro — espelha `enviadoEm` da última mensagem (`ultimaMensagemEm`).
+      return q.from({ c: collection }).orderBy(({ c }) => c.ultimaMensagemEm, "desc");
     },
     [collection],
   );

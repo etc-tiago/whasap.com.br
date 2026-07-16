@@ -56,7 +56,8 @@ export function WaChatHeader({
   onToggleCampanha,
 }: WaChatHeaderProps) {
   const queryClient = useQueryClient();
-  const nome = conversa.contatoNome ?? conversa.contatoTelefone;
+  const nomeTrim = conversa.contatoNome?.trim() || null;
+  const nome = nomeTrim ?? conversa.contatoTelefone;
   const cor = corAvatarContato(conversa.contatoId);
   const isEvo = isEvoProvider(provedor ?? "");
 
@@ -105,7 +106,6 @@ export function WaChatHeader({
               contatoId={conversa.contatoId}
               contatoNome={conversa.contatoNome}
               contatoTelefone={conversa.contatoTelefone}
-              instanciaId={instanciaId}
               disabled={!podeEtiquetar}
             />
             {conversa.metaCloudJanelaExpiraEm ? (

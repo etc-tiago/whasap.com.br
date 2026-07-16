@@ -37,11 +37,6 @@
     "CDN_URL": "https://cdn.whasap.com.br",
     "WORKER_NAME": "whasap-webhook"
   },
-  "secrets": {
-    "required": [
-      "WHATSAPP_CLOUD_WEBHOOK_SECRET"
-    ]
-  },
   "secrets_store_secrets": [
     {
       "binding": "EVOLUTION_SECRETS_STORE",

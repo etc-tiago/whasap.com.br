@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { isEvoProvider } from "@whasap/config";
+import { isEvoProvider, isMetaCloudProvider } from "@whasap/config";
 import { Badge } from "@whasap/ui/components/badge";
 import { Button } from "@whasap/ui/components/button";
 
+import { WebhookCloudApiConfig } from "@/components/integracao/webhook-cloud-api-config";
 import { IconeConexaoLucide } from "@/lib/icones-conexao";
 import { historicoSyncEmAndamento, rotuloHistoricoSync } from "@/lib/historico-sync";
 import { instanciaOperacional, rotulosStatusInstancia } from "@/lib/instancia-status";
@@ -49,6 +50,7 @@ export function SecaoAjustesConexao() {
   const lista = instances.data ?? [];
   const isAdmin = org.data?.meuPapel === "admin";
   const conectadas = lista.filter((i) => instanciaOperacional(i.status));
+  const cloudApis = lista.filter((i) => isMetaCloudProvider(i.provider));
 
   return (
     <div className="space-y-6 p-6">
@@ -101,6 +103,18 @@ export function SecaoAjustesConexao() {
           ))}
         </ul>
       )}
+
+      {isAdmin && cloudApis.length > 0 ? (
+        <div className="space-y-4">
+          {cloudApis.map((inst) => (
+            <WebhookCloudApiConfig
+              key={inst.id}
+              instanciaId={inst.id}
+              titulo={`Webhook · ${inst.nome}`}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

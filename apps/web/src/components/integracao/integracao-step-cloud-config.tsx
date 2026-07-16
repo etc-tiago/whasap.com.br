@@ -8,6 +8,7 @@ import { rotuloSeuWhatsApp, type InstanceProvider } from "@whasap/config";
 import type { CloudCredenciais } from "@/lib/integracao/wizard-state";
 
 import { TrocarTipoButton } from "./trocar-tipo-button";
+import { WebhookCloudApiConfig } from "./webhook-cloud-api-config";
 
 type Props = {
   instanciaId: string;
@@ -47,7 +48,11 @@ export function IntegracaoStepCloudConfig({
         <p className="text-muted-foreground">
           <strong>{instanciaNome}</strong> — {rotuloSeuWhatsApp(provider as InstanceProvider)}
         </p>
+
+        <WebhookCloudApiConfig instanciaId={instanciaId} />
+
         <div className="space-y-3">
+          <p className="text-xs font-medium text-muted-foreground">Credenciais da conta</p>
           <div className="space-y-2">
             <Label>Phone Number ID</Label>
             <Input value={phone} onChange={(e) => onPhoneChange(e.target.value)} />

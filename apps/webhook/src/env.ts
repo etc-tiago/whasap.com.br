@@ -6,7 +6,8 @@ export type Env = EvolutionSecretsEnv & {
   CDN_R2: R2Bucket;
   CDN_URL: string;
   WORKER_NAME?: string;
-  WHATSAPP_CLOUD_WEBHOOK_SECRET: string;
+  /** Fallback de HMAC do CDN se `CDN_HMAC_SECRET` ausente (não é mais o verify token Meta). */
+  WHATSAPP_CLOUD_WEBHOOK_SECRET?: string;
   CDN_HMAC_SECRET?: string;
   HISTORY_SYNC_QUEUE: Queue<{
     instanciaUuid: string;

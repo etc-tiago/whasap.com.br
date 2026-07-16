@@ -61,6 +61,8 @@ export const mvpDefaults = {
     customerOwnsNumber: true,
     customerPaysMeta: true,
     webhookPath: "/cloud",
+    /** Campos a assinar no console Meta (Webhook → Webhook fields). */
+    webhookSubscribeFields: ["messages", "message_template_status_update"] as const,
   },
   evolution: {
     engine: "go" as const,

@@ -1,6 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ICONE_CONEXAO_PADRAO, rotuloWhatsApp, type IconeConexao } from "@whasap/config";
+import {
+  ICONE_CONEXAO_PADRAO,
+  isMetaCloudProvider,
+  rotuloWhatsApp,
+  type IconeConexao,
+} from "@whasap/config";
 import { Badge } from "@whasap/ui/components/badge";
 import { Button } from "@whasap/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/card";
@@ -14,6 +19,7 @@ import {
 import { useState } from "react";
 
 import { ConexaoIdentidadeFields } from "@/components/conexao-identidade-fields";
+import { WebhookCloudApiConfig } from "@/components/integracao/webhook-cloud-api-config";
 import { DesconectarInstanciaButton } from "@/components/instancia/desconectar-instancia-button";
 import { IconeConexaoLucide } from "@/lib/icones-conexao";
 import {
@@ -146,32 +152,37 @@ function InstancesPage() {
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              {isAdmin ? (
-                <Button size="sm" variant="ghost" onClick={() => abrirEdicao(inst)}>
-                  Editar nome/ícone
-                </Button>
-              ) : null}
-              {instanciaPrecisaConexao(inst.status) && (
-                <Button asChild size="sm" variant="outline">
-                  <Link
-                    to="/$organizacaoHash/integracao"
-                    params={{ organizacaoHash }}
-                    search={{ instance: inst.id, step: "", modo: "" }}
-                  >
-                    {inst.sessaoRemotaLiberadaEm ? "Configurar novamente" : "Reconectar"}
-                  </Link>
-                </Button>
-              )}
-              {instanciaOperacional(inst.status) && (
-                <Button asChild size="sm" variant="default">
-                  <Link to="/$organizacaoHash/inbox" params={{ organizacaoHash }}>
-                    Abrir conversas
-                  </Link>
-                </Button>
-              )}
-              {isAdmin ? (
-                <DesconectarInstanciaButton inst={inst} organizacaoHash={organizacaoHash} />
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {isAdmin ? (
+                  <Button size="sm" variant="ghost" onClick={() => abrirEdicao(inst)}>
+                    Editar nome/ícone
+                  </Button>
+                ) : null}
+                {instanciaPrecisaConexao(inst.status) && (
+                  <Button asChild size="sm" variant="outline">
+                    <Link
+                      to="/$organizacaoHash/integracao"
+                      params={{ organizacaoHash }}
+                      search={{ instance: inst.id, step: "", modo: "" }}
+                    >
+                      {inst.sessaoRemotaLiberadaEm ? "Configurar novamente" : "Reconectar"}
+                    </Link>
+                  </Button>
+                )}
+                {instanciaOperacional(inst.status) && (
+                  <Button asChild size="sm" variant="default">
+                    <Link to="/$organizacaoHash/inbox" params={{ organizacaoHash }}>
+                      Abrir conversas
+                    </Link>
+                  </Button>
+                )}
+                {isAdmin ? (
+                  <DesconectarInstanciaButton inst={inst} organizacaoHash={organizacaoHash} />
+                ) : null}
+              </div>
+              {isAdmin && isMetaCloudProvider(inst.provider) ? (
+                <WebhookCloudApiConfig instanciaId={inst.id} />
               ) : null}
             </CardContent>
           </Card>

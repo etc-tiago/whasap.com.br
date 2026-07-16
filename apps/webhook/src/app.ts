@@ -4,6 +4,7 @@ import { Hono } from "hono";
 
 import type { Env } from "./env";
 import { processarWebhookProvedor } from "./handlers/provedor-webhook";
+import { verificarSubscribeCloud } from "./verificar-subscribe-cloud";
 
 export type WebhookHonoEnv = {
   Bindings: Env;
@@ -29,11 +30,11 @@ export function criarWebhookApp(log: RequestLogger, workerCtx: WorkerExecutionCo
     throw err;
   });
 
-  app.get("/cloud", (c) => {
+  app.get("/cloud", async (c) => {
     const mode = c.req.query("hub.mode");
     const token = c.req.query("hub.verify_token");
     const challenge = c.req.query("hub.challenge");
-    if (mode === "subscribe" && token === c.env.WHATSAPP_CLOUD_WEBHOOK_SECRET && challenge) {
+    if (mode === "subscribe" && challenge && (await verificarSubscribeCloud(c.env, token))) {
       return c.text(challenge);
     }
     return c.text("Forbidden", 403);

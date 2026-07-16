@@ -43,7 +43,7 @@ Não usamos `wrangler deploy --env production` — isso criaria workers com sufi
 | `EVOLUTION_SECRETS_STORE` | secret | Secrets Store (JSON `{ baseUrl, apiKey }`) | `.dev.vars` |
 | `WEB_SESSION_JWT_SECRET` | secret | `wrangler secret put` | `.dev.vars` |
 | `OFFICE_SESSION_JWT_SECRET` | secret | `wrangler secret put` | `.dev.vars` |
-| `WHATSAPP_CLOUD_WEBHOOK_SECRET` | secret | `wrangler secret put` | `.dev.vars` |
+| `CDN_HMAC_SECRET` | secret (opcional) | `wrangler secret put` | `.dev.vars` |
 
 ## Por app
 

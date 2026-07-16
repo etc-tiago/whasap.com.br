@@ -101,7 +101,7 @@ export function WaAjustesModal() {
         className={cn(
           "flex h-[min(40rem,90vh)] max-h-[90vh] w-full max-w-5xl flex-col gap-0 overflow-hidden p-0 sm:rounded-lg",
           "left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%]",
-          "max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:w-full max-sm:max-w-none max-sm:rounded-none",
+          "max-sm:h-dvh max-sm:max-h-dvh max-sm:w-full max-sm:max-w-none max-sm:rounded-none",
         )}
       >
         <DialogHeader className="shrink-0 space-y-0 border-b border-border px-6 py-5 pr-14 text-left">

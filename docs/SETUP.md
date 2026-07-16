@@ -86,8 +86,10 @@ No onboarding, aba **Manual**:
 ### Webhook Meta
 
 1. URL: `https://<webhook-worker>/cloud`
-2. Verify token: mesmo valor de `WHATSAPP_CLOUD_WEBHOOK_SECRET` no worker webhook (ver [SECRETS-WEBHOOK.md](./SECRETS-WEBHOOK.md))
+2. Verify token: **UUID da conexão** Whasap (`instancia.uuid`) — copiar no painel (integração Cloud API)
 3. Campos: `messages`, `message_template_status_update`
+
+Ver [SECRETS-WEBHOOK.md](./SECRETS-WEBHOOK.md).
 
 ### Credenciais no painel
 

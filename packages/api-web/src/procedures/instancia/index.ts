@@ -10,6 +10,7 @@ import obterQr from "./obter-qr";
 import provisionar from "./provisionar";
 import sincronizarHistorico from "./sincronizar-historico";
 import statusConexao from "./status-conexao";
+import webhookCloud from "./webhook-cloud";
 
 export default {
   lista,
@@ -22,6 +23,7 @@ export default {
   obterQr,
   statusConexao,
   configurarCloud,
+  webhookCloud,
   obter,
   sincronizarHistorico,
 };

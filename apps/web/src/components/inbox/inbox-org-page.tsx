@@ -232,16 +232,23 @@ export function InboxOrgPage({
       lista = lista.filter((c: ConversaItem) => c.naoLidas > 0);
     }
     const termo = busca.trim().toLowerCase();
-    if (!termo) return lista;
-    return lista.filter((c: ConversaItem) => {
-      const nome = (c.contatoNome ?? c.contatoTelefone).toLowerCase();
-      const preview = formatarPreviewMensagem(
-        c.ultimaMensagemPreview,
-        c.ultimaMensagemTipo,
-      ).toLowerCase();
-      const instanciaNome = (c.instanciaNome ?? "").toLowerCase();
-      return nome.includes(termo) || preview.includes(termo) || instanciaNome.includes(termo);
-    });
+    if (termo) {
+      lista = lista.filter((c: ConversaItem) => {
+        const nome = (c.contatoNome?.trim() || c.contatoTelefone).toLowerCase();
+        const preview = formatarPreviewMensagem(
+          c.ultimaMensagemPreview,
+          c.ultimaMensagemTipo,
+        ).toLowerCase();
+        const instanciaNome = (c.instanciaNome ?? "").toLowerCase();
+        return nome.includes(termo) || preview.includes(termo) || instanciaNome.includes(termo);
+      });
+    }
+    // Garante ordem mesmo se o live query/SQLite não preservar nulls de forma estável.
+    return lista.toSorted(
+      (a, b) =>
+        (b.ultimaMensagemEm ? Date.parse(b.ultimaMensagemEm) : 0) -
+        (a.ultimaMensagemEm ? Date.parse(a.ultimaMensagemEm) : 0),
+    );
   }, [conversations.data, busca, filtroAtivo]);
 
   const telefoneIniciarBusca = useMemo(() => {
@@ -372,7 +379,7 @@ export function InboxOrgPage({
       <WaChatRow
         key={c.id}
         id={c.contatoId}
-        nome={c.contatoNome ?? c.contatoTelefone}
+        nome={c.contatoNome?.trim() || c.contatoTelefone}
         preview={formatarPreviewMensagem(c.ultimaMensagemPreview, c.ultimaMensagemTipo)}
         time={formatarHorarioConversa(c.ultimaMensagemEm)}
         ativo={selectedId === c.id}

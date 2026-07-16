@@ -250,13 +250,9 @@ Requisitos detalhados (formato, entropia, onde cadastrar): **[SECRETS-WEBHOOK.md
 
 | Secret | Descrição | Quem valida |
 |--------|-----------|-------------|
-| `WHATSAPP_CLOUD_WEBHOOK_SECRET` | Token de verificação Meta (`hub.verify_token`) | `GET /cloud` |
+| — | Verify token Meta = **UUID da conexão** (`instancia.uuid`) | `GET /cloud` (lookup no Postgres) |
 
-```bash
-cd apps/webhook && wrangler secret put WHATSAPP_CLOUD_WEBHOOK_SECRET
-```
-
-Use o **mesmo** valor de `WHATSAPP_CLOUD_WEBHOOK_SECRET` no app Meta (Webhook → Verify token).
+Não há secret global de verify token. No console Meta, cole o UUID exibido no painel (integração Cloud API).
 
 `EVOLUTION_SECRETS_STORE` no Secrets Store (mesmo valor do `web`). Ver [SECRETS-WEBHOOK.md](./SECRETS-WEBHOOK.md).
 
@@ -318,7 +314,7 @@ Configure **depois** que `webhook` estiver no ar.
 
 | Serviço | URL | Credencial no Whasap |
 |---------|-----|----------------------|
-| **Meta** webhook | `https://webhook.whasap.com.br/cloud` | `WHATSAPP_CLOUD_WEBHOOK_SECRET` (verify token) |
+| **Meta** webhook | `https://webhook.whasap.com.br/cloud` | UUID da conexão (`instancia.uuid`) |
 | **Evolution** webhook | `https://webhook.whasap.com.br/evo` | — (Evolution envia para URL configurada no provisionamento) |
 
 Meta: campos `messages`, `message_template_status_update`.
@@ -371,7 +367,7 @@ Rodar `bun run validate:env` antes do deploy.
 
 ### Workers — secrets
 
-- [ ] `webhook`: `WHATSAPP_CLOUD_WEBHOOK_SECRET`
+- [ ] No Meta: Verify token = UUID da conexão Cloud API (painel)
 
 ### Build (`.env.production` commitados)
 
@@ -393,7 +389,7 @@ Rodar `bun run validate:env` antes do deploy.
 |-------|-----------------|
 | URLs públicas dos apps | `vars` no `wrangler.jsonc` de cada app |
 | Sessão usuário / office | Token opaco em cookie + tabela `sessao` / `office_sessao` no Postgres |
-| Verify token Meta | `wrangler secret` → `WHATSAPP_CLOUD_WEBHOOK_SECRET` no webhook |
+| Verify token Meta | UUID da conexão Whasap (`instancia.uuid`) — painel Cloud API |
 | Connection string DB | Hyperdrive (nunca em var plain) |
 | Credenciais WhatsApp por instância | Meta: `instancia_meta_cloud`; Evolution: `instancia_evo` |
 | Servidor Evolution | Secrets Store → binding `EVOLUTION_SECRETS_STORE` (JSON `{ baseUrl, apiKey }`) nos workers `web`, `webhook` e `evolution-cleanup` |
