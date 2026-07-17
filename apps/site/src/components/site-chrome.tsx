@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@whasap/ui/components/button";
-import { ArrowRight, MessageCircle } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
+import { LogoWhasap } from "@/components/logo-whasap";
 import { PANEL_URL } from "@/lib/panel-url";
 
 const navLinks = [
@@ -20,9 +21,7 @@ export function SiteHeader({ highlight }: { highlight?: NavHighlight }) {
     <header className="border-b border-border/60 bg-background/80 backdrop-blur-sm">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Link to="/" className="flex items-center gap-2 text-lg font-semibold text-foreground">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-wa-green text-white">
-            <MessageCircle className="h-5 w-5 fill-white" />
-          </span>
+          <LogoWhasap variante="verde" className="h-9" decorative />
           Whasap
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground lg:flex">
@@ -62,7 +61,10 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-border/60 py-8">
       <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-        <p>© {new Date().getFullYear()} Whasap. Todos os direitos reservados.</p>
+        <p className="flex items-center gap-2">
+          <LogoWhasap variante="verde" className="h-5" decorative />
+          <span>© {new Date().getFullYear()} Whasap. Todos os direitos reservados.</span>
+        </p>
         <div className="flex flex-wrap gap-4">
           <Link to="/contadores" className="hover:text-foreground">
             Contadores
