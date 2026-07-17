@@ -11,8 +11,8 @@ export const JANELAS_POR_CONTATO_MES = 4;
 /** Estimativa de preço por janela/conversa em plataformas por conversa. */
 export const PRECO_POR_JANELA_CENTS = 80;
 
-export const ROTULO_PLATAFORMA_POR_USUARIO = "Plataforma por usuário";
-export const ROTULO_PLATAFORMA_POR_CONVERSA = "Plataforma por conversa";
+export const ROTULO_PLATAFORMA_POR_USUARIO = "Concorrente por usuário";
+export const ROTULO_PLATAFORMA_POR_CONVERSA = "Concorrente por conversa";
 
 export interface ComparacaoMercado {
   orcamento: OrcamentoCalculado;

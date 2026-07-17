@@ -1,7 +1,6 @@
 "use client";
 
 import { mvpDefaults, type PlanoBillingId } from "@whasap/config";
-import { Badge } from "@whasap/ui/components/badge";
 import { Button } from "@whasap/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@whasap/ui/components/card";
 import { Input } from "@whasap/ui/components/input";
@@ -24,7 +23,6 @@ import {
 import { Calendar, MessageCircle, Minus, Plus, Video } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { montarUrlAgendamento, montarUrlWhatsapp, VENDAS_WHATSAPP } from "@/lib/contato-vendas";
 import {
   calcularComparacaoMercado,
   PRECO_POR_ATENDENTE_CENTS,
@@ -32,6 +30,7 @@ import {
   ROTULO_PLATAFORMA_POR_USUARIO,
   type ComparacaoMercado,
 } from "@/lib/comparacao-mercado";
+import { montarUrlAgendamento, montarUrlWhatsapp, VENDAS_WHATSAPP } from "@/lib/contato-vendas";
 import {
   calcularOrcamento,
   FAIXAS_CONTATOS,
@@ -538,9 +537,6 @@ export function CalculadoraInvestimento({
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Label htmlFor="atendentes">Quantos atendentes na equipe?</Label>
-              <Badge variant="secondary" className="text-xs">
-                sem custo extra
-              </Badge>
             </div>
             <Stepper
               id="atendentes"
