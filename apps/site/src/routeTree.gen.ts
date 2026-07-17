@@ -15,6 +15,8 @@ import { Route as PrecosRouteImport } from './routes/precos'
 import { Route as LegalRouteImport } from './routes/legal'
 import { Route as IndiqueRouteImport } from './routes/indique'
 import { Route as EnvioEmMassaRouteImport } from './routes/envio-em-massa'
+import { Route as ContadoresRouteImport } from './routes/contadores'
+import { Route as CalculadoraRouteImport } from './routes/calculadora'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as Webinars02072026RouteImport } from './routes/webinars/02-07-2026'
 import { Route as ApiOrcamentoRouteImport } from './routes/api/orcamento'
@@ -49,6 +51,16 @@ const EnvioEmMassaRoute = EnvioEmMassaRouteImport.update({
   path: '/envio-em-massa',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContadoresRoute = ContadoresRouteImport.update({
+  id: '/contadores',
+  path: '/contadores',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalculadoraRoute = CalculadoraRouteImport.update({
+  id: '/calculadora',
+  path: '/calculadora',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -67,6 +79,8 @@ const ApiOrcamentoRoute = ApiOrcamentoRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/calculadora': typeof CalculadoraRoute
+  '/contadores': typeof ContadoresRoute
   '/envio-em-massa': typeof EnvioEmMassaRoute
   '/indique': typeof IndiqueRoute
   '/legal': typeof LegalRoute
@@ -78,6 +92,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/calculadora': typeof CalculadoraRoute
+  '/contadores': typeof ContadoresRoute
   '/envio-em-massa': typeof EnvioEmMassaRoute
   '/indique': typeof IndiqueRoute
   '/legal': typeof LegalRoute
@@ -90,6 +106,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/calculadora': typeof CalculadoraRoute
+  '/contadores': typeof ContadoresRoute
   '/envio-em-massa': typeof EnvioEmMassaRoute
   '/indique': typeof IndiqueRoute
   '/legal': typeof LegalRoute
@@ -103,6 +121,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/calculadora'
+    | '/contadores'
     | '/envio-em-massa'
     | '/indique'
     | '/legal'
@@ -114,6 +134,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/calculadora'
+    | '/contadores'
     | '/envio-em-massa'
     | '/indique'
     | '/legal'
@@ -125,6 +147,8 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/calculadora'
+    | '/contadores'
     | '/envio-em-massa'
     | '/indique'
     | '/legal'
@@ -137,6 +161,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CalculadoraRoute: typeof CalculadoraRoute
+  ContadoresRoute: typeof ContadoresRoute
   EnvioEmMassaRoute: typeof EnvioEmMassaRoute
   IndiqueRoute: typeof IndiqueRoute
   LegalRoute: typeof LegalRoute
@@ -191,6 +217,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EnvioEmMassaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contadores': {
+      id: '/contadores'
+      path: '/contadores'
+      fullPath: '/contadores'
+      preLoaderRoute: typeof ContadoresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/calculadora': {
+      id: '/calculadora'
+      path: '/calculadora'
+      fullPath: '/calculadora'
+      preLoaderRoute: typeof CalculadoraRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -217,6 +257,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CalculadoraRoute: CalculadoraRoute,
+  ContadoresRoute: ContadoresRoute,
   EnvioEmMassaRoute: EnvioEmMassaRoute,
   IndiqueRoute: IndiqueRoute,
   LegalRoute: LegalRoute,

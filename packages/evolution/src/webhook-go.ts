@@ -693,8 +693,7 @@ export function extrairContextInfoDeMessageObj(
       ? mentionedRaw.map((j) => String(j).trim()).filter((j) => j.length > 0)
       : undefined;
 
-    const quotedStanzaId =
-      textoNaoVazio(ci.stanzaID) ?? textoNaoVazio(ci.stanzaId) ?? undefined;
+    const quotedStanzaId = textoNaoVazio(ci.stanzaID) ?? textoNaoVazio(ci.stanzaId) ?? undefined;
     const quotedParticipant = textoNaoVazio(ci.participant) ?? undefined;
     const quotedType =
       typeof ci.quotedType === "number"
@@ -777,8 +776,7 @@ export function parseGoMessageEvent(data: Record<string, unknown>): GoMensagemNo
     (typeof info.RecipientAlt === "string" && info.RecipientAlt ? info.RecipientAlt : null) ??
     undefined;
   const contextInfo = extrairContextInfoDeMessageObj(messageObj) ?? undefined;
-  const groupData =
-    parseGoGroupData(data.groupData ?? data.GroupData) ?? undefined;
+  const groupData = parseGoGroupData(data.groupData ?? data.GroupData) ?? undefined;
 
   let type = parsed.type;
   let body = parsed.body;

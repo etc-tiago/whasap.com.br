@@ -339,9 +339,10 @@ async function processarReceiptGo(
 
   if (!receiptIndicaLeitura(receipt)) return;
 
-  const status = receipt.type.includes("played") || (receipt.state ?? "").toLowerCase().includes("played")
-    ? "played"
-    : "read";
+  const status =
+    receipt.type.includes("played") || (receipt.state ?? "").toLowerCase().includes("played")
+      ? "played"
+      : "read";
 
   await Promise.all(
     receipt.messageIds.map(async (messageId) => {
@@ -580,14 +581,8 @@ async function upsertContatoInstanciaLid(
 
   const existing = await db.query.contatoInstancia.findFirst({
     where: or(
-      and(
-        eq(contatoInstancia.instanciaId, instance.id),
-        eq(contatoInstancia.idExterno, lidJid),
-      ),
-      and(
-        eq(contatoInstancia.contatoId, contatoId),
-        eq(contatoInstancia.instanciaId, instance.id),
-      ),
+      and(eq(contatoInstancia.instanciaId, instance.id), eq(contatoInstancia.idExterno, lidJid)),
+      and(eq(contatoInstancia.contatoId, contatoId), eq(contatoInstancia.instanciaId, instance.id)),
     ),
     columns: { id: true, contatoId: true, idExterno: true },
   });
@@ -640,18 +635,20 @@ async function sincronizarGroupDataGo(
     }
   }
 
-  for (const part of groupData.participants) {
-    if (!part.pnJid) continue;
-    const phone = jidParaTelefone(part.pnJid);
-    const contact = await buscarContatoPorIdExterno(
-      db,
-      instance.organizacaoId,
-      part.pnJid,
-      phone,
-    );
-    if (!contact) continue;
-    await upsertContatoInstanciaLid(db, instance, contact.id, part.lidJid);
-  }
+  await Promise.all(
+    groupData.participants.map(async (part) => {
+      if (!part.pnJid) return;
+      const phone = jidParaTelefone(part.pnJid);
+      const contact = await buscarContatoPorIdExterno(
+        db,
+        instance.organizacaoId,
+        part.pnJid,
+        phone,
+      );
+      if (!contact) return;
+      await upsertContatoInstanciaLid(db, instance, contact.id, part.lidJid);
+    }),
+  );
 }
 
 async function processarContactGo(

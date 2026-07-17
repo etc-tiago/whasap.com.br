@@ -31,14 +31,16 @@ import {
 
 import { CalculadoraInvestimento } from "@/components/calculadora-investimento";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { formatarPrecoBrl } from "@/lib/orcamento";
 import { PANEL_URL } from "@/lib/panel-url";
 import { salvarRefIndicacao } from "@/lib/ref-indicacao";
 import { seo } from "@/lib/seo";
 
 const { billing } = mvpDefaults;
+const starter = billing.plans[0];
 
 const description =
-  "Whasap é WhatsApp para equipes com cobrança por contato único. Ideal para contabilidades e operações com 4+ atendentes. Teste 7 dias com uso em paralelo — sem desconectar sua plataforma atual.";
+  "Atendentes ilimitados, cobrança por contato único e teste em paralelo sem desconectar sua plataforma. Ideal para contabilidades com 4+ atendentes.";
 
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>): { ref?: string } => {
@@ -49,7 +51,7 @@ export const Route = createFileRoute("/")({
   },
   head: () => ({
     meta: seo({
-      title: "Whasap — WhatsApp sem limites para equipes",
+      title: "Whasap — atendentes ilimitados e contato único",
       description,
       path: "/",
     }),
@@ -62,8 +64,9 @@ const segmentos = [
   {
     title: "Contabilidades",
     description:
-      "Múltiplos clientes, documentos e prazos no mesmo inbox — sem perder mensagens entre números.",
+      "Múltiplos clientes, documentos e prazos no mesmo inbox — sem perder mensagens entre números. Nicho de entrada do Whasap.",
     icon: Building2,
+    nicho: true,
   },
   {
     title: "Farmácias",
@@ -181,20 +184,20 @@ const steps = [
 const diferenciais = [
   {
     title: "Uso em paralelo",
-    description: `Teste ${billing.billingAfterUsageDays} dias sem risco: conecte o Whasap junto da plataforma atual — sem desconectar o que já funciona.`,
+    description: `Risco zero: teste ${billing.billingAfterUsageDays} dias conectando o Whasap junto da plataforma atual — sem desconectar o que já funciona.`,
     icon: RefreshCw,
+  },
+  {
+    title: "Atendentes ilimitados",
+    description:
+      "6, 10 ou 15 atendentes sem custo por usuário. Na concorrência isso costuma ser R$50–90 por pessoa — centenas a mais na fatura.",
+    icon: Users,
   },
   {
     title: "Cobrança por contato único",
     description:
-      "Cliente que conversa várias vezes no mês conta apenas 1×. Diferente de modelos por mensagem ou janela (como Reportei, Como e Data Crazy).",
+      "Cliente que conversa várias vezes no mês conta apenas 1×. Diferente de modelos por mensagem, conversa ou janela de 24h.",
     icon: BadgeCheck,
-  },
-  {
-    title: "Feito para equipes de contadores",
-    description:
-      "Nicho inicial: escritórios de contabilidade com alto volume de atendimento e vários atendentes — sem custo por usuário.",
-    icon: Calculator,
   },
 ];
 
@@ -211,9 +214,10 @@ const benefits = [
     icon: Cloud,
   },
   {
-    title: "Atendentes ilimitados",
-    description: "Organize quantos atendentes precisar — sem custo por usuário.",
-    icon: Users,
+    title: "Feito para contadores",
+    description:
+      "Nicho de entrada: escritórios com alto volume de atendimento e vários atendentes — sem custo por usuário.",
+    icon: Calculator,
   },
 ];
 
@@ -235,14 +239,39 @@ function LandingPage() {
             <div className="grid items-start gap-12 lg:grid-cols-2 lg:gap-16">
               <div>
                 <p className="mb-4 inline-flex items-center rounded-full border border-wa-green/20 bg-wa-green/10 px-3 py-1 text-sm font-medium text-wa-green-dark">
-                  WhatsApp sem limites para equipes
+                  Atendentes ilimitados · contato único · teste em paralelo
                 </p>
                 <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl">
-                  Atenda mais clientes com toda a equipe no mesmo lugar
+                  WhatsApp para equipes que não querem pagar por usuário
                 </h1>
                 <p className="mt-6 text-lg leading-relaxed text-muted-foreground md:text-xl">
-                  {description}
+                  {description} A partir de {formatarPrecoBrl(starter.priceCents)}/mês.
                 </p>
+
+                <ul className="mt-8 space-y-3 text-sm text-foreground md:text-base">
+                  <li className="flex gap-3">
+                    <RefreshCw className="mt-0.5 h-5 w-5 shrink-0 text-wa-green-dark" />
+                    <span>
+                      <strong className="font-semibold">Em paralelo</strong> — risco zero. Teste{" "}
+                      {billing.billingAfterUsageDays} dias sem desconectar a plataforma atual.
+                    </span>
+                  </li>
+                  <li className="flex gap-3">
+                    <Users className="mt-0.5 h-5 w-5 shrink-0 text-wa-green-dark" />
+                    <span>
+                      <strong className="font-semibold">Atendentes ilimitados</strong> — equipe de
+                      6–15 pessoas sem R$50–90 por usuário.
+                    </span>
+                  </li>
+                  <li className="flex gap-3">
+                    <BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-wa-green-dark" />
+                    <span>
+                      <strong className="font-semibold">Contato único</strong> — cliente que fala
+                      20× no mês conta 1×.
+                    </span>
+                  </li>
+                </ul>
+
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Button
                     asChild
@@ -255,7 +284,7 @@ function LandingPage() {
                     </a>
                   </Button>
                   <Button asChild size="lg" variant="outline">
-                    <Link to="/precos">Ver preços</Link>
+                    <Link to="/contadores">Sou contabilidade</Link>
                   </Button>
                 </div>
               </div>
@@ -286,6 +315,14 @@ function LandingPage() {
                 </article>
               ))}
             </div>
+            <div className="mt-8">
+              <Button asChild variant="outline">
+                <Link to="/calculadora">
+                  Ver calculadora de economia
+                  <ArrowRight />
+                </Link>
+              </Button>
+            </div>
           </div>
         </section>
 
@@ -296,34 +333,47 @@ function LandingPage() {
                 Para quem é o Whasap
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Pensado para operações com vários atendentes — de contabilidades a restaurantes,
-                clínicas, e-commerce e muito mais. Escale o atendimento sem escalar a fatura por
-                usuário.
+                Começamos por contabilidades com 4+ atendentes. Também atende farmácias, e-commerce,
+                clínicas e qualquer operação que escala o time — sem escalar a fatura por usuário.
               </p>
             </div>
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {segmentos.map((segmento) => (
-                <article
-                  key={segmento.title}
-                  className={
-                    segmento.destaque
-                      ? "rounded-2xl border border-wa-green/30 bg-wa-green/5 p-6 shadow-sm sm:col-span-2 lg:col-span-4"
-                      : "rounded-2xl border border-border bg-card p-6 shadow-sm"
-                  }
-                >
-                  <div
+              {segmentos.map((segmento) => {
+                const destaque = "destaque" in segmento && Boolean(segmento.destaque);
+                const nicho = "nicho" in segmento && Boolean(segmento.nicho);
+                return (
+                  <article
+                    key={segmento.title}
                     className={
-                      segmento.destaque
-                        ? "mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-wa-green/20 text-wa-green-dark"
-                        : "mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-wa-green/15 text-wa-green-dark"
+                      destaque
+                        ? "rounded-2xl border border-wa-green/30 bg-wa-green/5 p-6 shadow-sm sm:col-span-2 lg:col-span-4"
+                        : nicho
+                          ? "rounded-2xl border border-wa-green/30 bg-wa-green/5 p-6 shadow-sm"
+                          : "rounded-2xl border border-border bg-card p-6 shadow-sm"
                     }
                   >
-                    <segmento.icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-lg font-semibold">{segmento.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{segmento.description}</p>
-                </article>
-              ))}
+                    <div
+                      className={
+                        destaque || nicho
+                          ? "mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-wa-green/20 text-wa-green-dark"
+                          : "mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-wa-green/15 text-wa-green-dark"
+                      }
+                    >
+                      <segmento.icon className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold">{segmento.title}</h3>
+                    <p className="mt-2 text-sm text-muted-foreground">{segmento.description}</p>
+                    {nicho ? (
+                      <Link
+                        to="/contadores"
+                        className="mt-3 inline-flex text-sm font-medium text-wa-green-dark underline-offset-4 hover:underline"
+                      >
+                        Ver oferta para contadores
+                      </Link>
+                    ) : null}
+                  </article>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -406,7 +456,7 @@ function LandingPage() {
                 Assista à gravação do webinar
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Conheça o Whasap em detalhes: WhatsApp para equipes, cobrança por contato único e
+                Conheça o Whasap em detalhes: atendentes ilimitados, cobrança por contato único e
                 como testar em paralelo sem desconectar sua operação atual.
               </p>
             </div>
@@ -433,6 +483,13 @@ function LandingPage() {
                   className="font-medium text-wa-green-dark underline-offset-4 hover:underline"
                 >
                   Ver tabela completa
+                </Link>
+                {" · "}
+                <Link
+                  to="/contadores"
+                  className="font-medium text-wa-green-dark underline-offset-4 hover:underline"
+                >
+                  Oferta para contadores
                 </Link>
                 .
               </p>

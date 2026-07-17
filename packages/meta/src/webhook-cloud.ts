@@ -305,8 +305,7 @@ export function parseMetaStatus(status: MetaStatusRaw): MetaStatusNormalizado | 
     externalId,
     status: deliveryStatus,
     recipientId: typeof status.recipient_id === "string" ? status.recipient_id : null,
-    recipientUserId:
-      typeof status.recipient_user_id === "string" ? status.recipient_user_id : null,
+    recipientUserId: typeof status.recipient_user_id === "string" ? status.recipient_user_id : null,
     pricing: parseMetaPricing(status.pricing),
   };
 }

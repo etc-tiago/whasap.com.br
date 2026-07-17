@@ -24,22 +24,40 @@ export interface OrcamentoCalculado extends InvestimentoMensalCalculado {
   billingAfterUsageDays: number;
 }
 
-/** Calcula investimento mensal estimado com base nas conexões e faixa de contatos únicos. */
-export function calcularOrcamento(params: {
+export type CalcularOrcamentoParams = {
   numerosWhatsapp: number;
   atendentes: number;
-  faixaId: FaixaContatosId;
-}): OrcamentoCalculado {
-  const faixa = FAIXAS_CONTATOS.find((f) => f.id === params.faixaId) ?? FAIXAS_CONTATOS[0];
+} & (
+  | { faixaId: FaixaContatosId; contatosUnicos?: never }
+  | { contatosUnicos: number; faixaId?: never }
+);
+
+/** Calcula investimento mensal estimado com base nas conexões e contatos únicos (faixa ou número). */
+export function calcularOrcamento(params: CalcularOrcamentoParams): OrcamentoCalculado {
+  let contatosUnicos: number;
+  let faixaContatos: string;
+  let aPartirDe: boolean;
+
+  if ("contatosUnicos" in params && typeof params.contatosUnicos === "number") {
+    contatosUnicos = Math.max(0, Math.floor(params.contatosUnicos));
+    faixaContatos = `${contatosUnicos.toLocaleString("pt-BR")} contatos únicos/mês`;
+    aPartirDe = false;
+  } else {
+    const faixa = FAIXAS_CONTATOS.find((f) => f.id === params.faixaId) ?? FAIXAS_CONTATOS[0];
+    contatosUnicos = faixa.estimativa;
+    faixaContatos = faixa.label;
+    aPartirDe = faixa.aPartirDe;
+  }
+
   const investimento = calcularInvestimentoMensal({
-    contatosUnicos: faixa.estimativa,
+    contatosUnicos,
     conexoes: params.numerosWhatsapp,
   });
 
   return {
     ...investimento,
-    faixaContatos: faixa.label,
-    aPartirDe: faixa.aPartirDe,
+    faixaContatos,
+    aPartirDe,
     atendentes: params.atendentes,
     billingAfterUsageDays: mvpDefaults.billing.billingAfterUsageDays,
   };
