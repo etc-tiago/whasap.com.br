@@ -1,7 +1,8 @@
 {
-  "receivedAt": "2026-07-13T14:45:29.238Z",
+  "receivedAt": "2026-07-17T18:51:07.559Z",
   "meta": {
-    "source": "evo"
+    "source": "evo",
+    "path": "webhook/evo/whasap-da8971bc/2026-07-17/Receipt-185107559-0f00b43a.json"
   },
-  "raw": "{\"data\":{\"Chat\":\"120363426772714713@g.us\",\"Sender\":\"260460356096016@lid\",\"IsFromMe\":false,\"IsGroup\":true,\"AddressingMode\":\"\",\"SenderAlt\":\"\",\"RecipientAlt\":\"\",\"BroadcastListOwner\":\"\",\"BroadcastRecipients\":null,\"MessageIDs\":[\"2A5874F051FC7C43A599\"],\"Timestamp\":\"2026-07-13T11:45:26-03:00\",\"Type\":\"\",\"MessageSender\":\"\"},\"event\":\"Receipt\",\"instanceId\":\"139f886b-622a-45f9-a4f8-c2e963e882d2\",\"instanceName\":\"whasap-139f886b\",\"instanceToken\":\"d9cdedd645bb4fafbba7df2a0166a682\",\"state\":\"Delivered\"}"
+  "raw": "{\"data\":{\"Chat\":\"125069883920605@lid\",\"Sender\":\"125069883920605:45@lid\",\"IsFromMe\":false,\"IsGroup\":false,\"AddressingMode\":\"\",\"SenderAlt\":\"\",\"RecipientAlt\":\"\",\"BroadcastListOwner\":\"\",\"BroadcastRecipients\":null,\"MessageIDs\":[\"2A74872E34F76839B977\"],\"Timestamp\":\"2026-07-17T15:51:07-03:00\",\"Type\":\"\",\"MessageSender\":\"\"},\"event\":\"Receipt\",\"instanceId\":\"da8971bc-4a33-4917-a8b2-5d6246de6368\",\"instanceName\":\"whasap-da8971bc\",\"instanceToken\":\"70717a978f84482288d0cfca0e92bf58\",\"state\":\"Delivered\"}"
 }

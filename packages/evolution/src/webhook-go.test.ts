@@ -90,6 +90,16 @@ describe("parseGoMessageEvent", () => {
     expect(mentionParsed?.contextInfo?.mentionedJids?.[0]).toContain("@lid");
   });
 
+  it("extrai quote (stanzaID + participant) de message-quote", () => {
+    const fixture = buscarFixtureWebhookGo("message-quote.json")!;
+    const parsed = parseGoMessageEvent(fixture.payload.data as Record<string, unknown>);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.type).toBe("text");
+    expect(parsed!.contextInfo?.quotedStanzaId).toBe("2A8FA5EA47C814F5CCE1");
+    expect(parsed!.contextInfo?.quotedParticipant).toContain("@lid");
+    expect(parsed!.body).toContain("estranho");
+  });
+
   it("parseia message-edit-encrypted como edit_encrypted", () => {
     const fixture = buscarFixtureWebhookGo("message-edit-encrypted.json")!;
     const parsed = parseGoMessageEvent(fixture.payload.data as Record<string, unknown>);

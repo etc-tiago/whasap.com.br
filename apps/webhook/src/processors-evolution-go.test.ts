@@ -156,6 +156,13 @@ describe("processors evolution GO (fixtures)", () => {
     expect(parsed!.contextInfo!.mentionedJids![0]).toContain("@lid");
   });
 
+  test("Message com quote extrai stanzaID", () => {
+    const fixture = buscarFixtureWebhookGo("message-quote.json")!;
+    const parsed = parseGoMessageEvent(fixture.payload.data as Record<string, unknown>);
+    expect(parsed?.contextInfo?.quotedStanzaId).toBeTruthy();
+    expect(parsed?.contextInfo?.quotedParticipant).toContain("@lid");
+  });
+
   test("tipos especiais parseiam (sticker/reaction/poll/interactive)", () => {
     const cases = [
       ["message-sticker.json", "sticker"],

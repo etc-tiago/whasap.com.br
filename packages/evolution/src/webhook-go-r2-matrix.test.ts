@@ -18,6 +18,7 @@ import {
   parseGoPushName,
   parseGoQrTimeout,
   parseGoReceipt,
+  receiptIndicaEntrega,
   receiptIndicaLeitura,
   resolverIdExternoCanonicoGo,
   telefoneExibicaoDeInfo,
@@ -45,6 +46,8 @@ describe.skipIf(!ok)("matriz R2 evo (corpus local)", () => {
 
     const tiposSemCorpo = new Set(["edit", "edit_encrypted", "revoke"]);
     let okParse = 0;
+    let comQuote = 0;
+    let comMention = 0;
     const tipos = new Set<string>();
     for (const fixture of messages) {
       const parsed = parseGoMessageEvent(fixture.data);
@@ -69,12 +72,35 @@ describe.skipIf(!ok)("matriz R2 evo (corpus local)", () => {
         expect(parsed.body.length, fixture.arquivo).toBeGreaterThan(0);
       }
 
+      if (parsed.contextInfo?.quotedStanzaId) comQuote += 1;
+      if (parsed.contextInfo?.mentionedJids?.length) comMention += 1;
+
       const info = fixture.data.Info as Record<string, unknown>;
       expect(resolverIdExternoCanonicoGo(info), fixture.arquivo).toBeTruthy();
     }
 
     expect(okParse / messages.length).toBeGreaterThan(0.85);
     expect(tipos.size).toBeGreaterThan(0);
+    // Corpus 17/07 traz replies com stanzaID — quando presentes, devem vir no contextInfo.
+    if (comQuote + comMention > 0) {
+      expect(comQuote + comMention).toBeGreaterThan(0);
+    }
+  });
+
+  it("2b) Messages com quote/mention extraiem contextInfo", () => {
+    const messages = fixtures.filter((f) => f.event === "Message");
+    const comContext = messages
+      .map((f) => parseGoMessageEvent(f.data))
+      .filter((p): p is NonNullable<typeof p> => Boolean(p?.contextInfo));
+    if (comContext.length === 0) return;
+
+    for (const parsed of comContext) {
+      const ci = parsed.contextInfo!;
+      expect(
+        Boolean(ci.quotedStanzaId) || Boolean(ci.mentionedJids?.length) || Boolean(ci.isForwarded),
+      ).toBe(true);
+    }
+    expect(comContext.length).toBeGreaterThan(0);
   });
 
   it("3) Receipts parseiam (Delivered Type vazio + Read)", () => {
@@ -89,17 +115,19 @@ describe.skipIf(!ok)("matriz R2 evo (corpus local)", () => {
       if (!parsed) continue;
       parseados += 1;
       expect(parsed.messageIds.length).toBeGreaterThan(0);
-      if ((parsed.state ?? "").toLowerCase() === "delivered" && !parsed.type) {
+      if (receiptIndicaEntrega(parsed)) {
         delivered += 1;
         expect(receiptIndicaLeitura(parsed)).toBe(false);
       }
-      if (parsed.type.includes("read") || (parsed.state ?? "").toLowerCase().includes("read")) {
+      if (receiptIndicaLeitura(parsed)) {
         read += 1;
-        expect(receiptIndicaLeitura(parsed)).toBe(true);
+        expect(receiptIndicaEntrega(parsed)).toBe(false);
       }
     }
     expect(parseados / receipts.length).toBeGreaterThan(0.9);
     expect(delivered + read).toBeGreaterThan(0);
+    // Corpus atual (17/07) tem Delivered com Type vazio.
+    expect(delivered).toBeGreaterThan(0);
   });
 
   it("3b) SendMessage parseia com parseGoMessageEvent (texto + mídia)", () => {

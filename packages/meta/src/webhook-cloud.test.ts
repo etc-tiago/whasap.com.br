@@ -70,6 +70,16 @@ describe("parseMetaMessage", () => {
     expect(parsed?.type).toBe("unsupported");
     expect(parsed?.metadados.errors).toBeTruthy();
   });
+
+  it("parseia unsupported do corpus com from_user_id e contact.user_id", () => {
+    const fixture = buscarFixtureWebhookMeta("message-unsupported-userid.json")!;
+    const change = parseMetaWebhook(fixture.payload)[0]!;
+    expect(change.contacts[0]?.userId).toMatch(/^BR\./);
+    const parsed = parseMetaMessage(change.messages[0]!);
+    expect(parsed?.type).toBe("unsupported");
+    expect(parsed?.metadados.fromUserId).toMatch(/^BR\./);
+    expect(parsed?.metadados.errors).toBeTruthy();
+  });
 });
 
 describe("parseMetaStatus", () => {

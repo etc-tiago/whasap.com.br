@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 
 import { carregarWebhooksR2, corpusWebhookR2Disponivel } from "./fixtures/carregar-webhooks-r2";
-import { parseGoReceipt, receiptIndicaLeitura } from "./webhook-go";
+import { parseGoReceipt, receiptIndicaEntrega, receiptIndicaLeitura } from "./webhook-go";
 
 describe("parseGoReceipt (sintetico)", () => {
   it("1) payload minimo valido", () => {
@@ -57,7 +57,7 @@ describe("parseGoReceipt (sintetico)", () => {
     expect(r!.state).toBe("DELIVERED");
   });
 
-  it("4b) Type vazio + state Delivered = nao leitura", () => {
+  it("4b) Type vazio + state Delivered = entrega (nao leitura)", () => {
     const r = parseGoReceipt(
       {
         Chat: "5511@s.whatsapp.net",
@@ -71,6 +71,7 @@ describe("parseGoReceipt (sintetico)", () => {
     expect(r!.type).toBe("");
     expect(r!.state).toBe("Delivered");
     expect(receiptIndicaLeitura(r!)).toBe(false);
+    expect(receiptIndicaEntrega(r!)).toBe(true);
   });
 
   it("5) multiplos MessageIDs", () => {
@@ -120,7 +121,7 @@ describe("receiptIndicaLeitura", () => {
     ).toBe(true);
   });
 
-  it("9) delivered sozinho nao e leitura", () => {
+  it("9) delivered sozinho nao e leitura e e entrega", () => {
     expect(
       receiptIndicaLeitura({
         chatJid: "x",
@@ -130,6 +131,15 @@ describe("receiptIndicaLeitura", () => {
         state: "DELIVERED",
       }),
     ).toBe(false);
+    expect(
+      receiptIndicaEntrega({
+        chatJid: "x",
+        messageIds: ["1"],
+        type: "delivered",
+        fromMe: false,
+        state: "DELIVERED",
+      }),
+    ).toBe(true);
   });
 
   it("10) sent nao e leitura", () => {
@@ -162,6 +172,15 @@ describe.skipIf(!corpusOk)("Receipt corpus R2", () => {
     const algum = receipts.some((f) => {
       const p = parseGoReceipt(f.data, f.payload.state as string | undefined);
       return p && receiptIndicaLeitura(p);
+    });
+    expect(algum).toBe(true);
+  });
+
+  it("12b) pelo menos um receipt Delivered indica entrega no corpus", () => {
+    const receipts = carregarWebhooksR2({ evento: "Receipt" });
+    const algum = receipts.some((f) => {
+      const p = parseGoReceipt(f.data, f.payload.state as string | undefined);
+      return p && receiptIndicaEntrega(p);
     });
     expect(algum).toBe(true);
   });
