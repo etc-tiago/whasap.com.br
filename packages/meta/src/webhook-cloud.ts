@@ -5,7 +5,7 @@ export type MetaStatusRaw = Record<string, unknown>;
 export type MetaWebhookChange = {
   phoneNumberId: string;
   displayPhoneNumber: string | null;
-  contacts: Array<{ waId: string; name: string | null }>;
+  contacts: Array<{ waId: string; name: string | null; userId: string | null }>;
   messages: MetaMessageRaw[];
   statuses: MetaStatusRaw[];
 };
@@ -19,9 +19,19 @@ export type MetaMensagemNormalizada = {
   metadados: Record<string, unknown>;
 };
 
+export type MetaPricingNormalizado = {
+  billable: boolean | null;
+  pricingModel: string | null;
+  category: string | null;
+  type: string | null;
+};
+
 export type MetaStatusNormalizado = {
   externalId: string;
   status: string;
+  recipientId: string | null;
+  recipientUserId: string | null;
+  pricing: MetaPricingNormalizado | null;
 };
 
 type MetaMediaPart = {
@@ -75,6 +85,7 @@ export function parseMetaWebhook(payload: unknown): MetaWebhookChange[] {
         contacts: ((value.contacts as Array<Record<string, unknown>>) ?? []).map((c) => ({
           waId: String(c.wa_id ?? ""),
           name: (c.profile as { name?: string } | undefined)?.name ?? null,
+          userId: typeof c.user_id === "string" && c.user_id ? c.user_id : null,
         })),
         messages: (value.messages as MetaMessageRaw[]) ?? [],
         statuses: (value.statuses as MetaStatusRaw[]) ?? [],
@@ -104,6 +115,9 @@ export function parseMetaMessage(msg: MetaMessageRaw): MetaMensagemNormalizada |
   const timestamp = timestampFromMeta(msg);
   const rawType = String(msg.type ?? "unsupported");
   const metadados: Record<string, unknown> = { metaType: rawType };
+  if (typeof msg.from_user_id === "string" && msg.from_user_id) {
+    metadados.fromUserId = msg.from_user_id;
+  }
 
   switch (rawType) {
     case "text": {
@@ -268,12 +282,33 @@ export function parseMetaMessage(msg: MetaMessageRaw): MetaMensagemNormalizada |
   }
 }
 
+/** Normaliza pricing de status Meta Cloud (PMP). */
+export function parseMetaPricing(raw: unknown): MetaPricingNormalizado | null {
+  if (!raw || typeof raw !== "object") return null;
+  const p = raw as Record<string, unknown>;
+  const pricingModel = typeof p.pricing_model === "string" ? p.pricing_model : null;
+  const category = typeof p.category === "string" ? p.category : null;
+  const type = typeof p.type === "string" ? p.type : null;
+  const billable = typeof p.billable === "boolean" ? p.billable : null;
+  if (pricingModel === null && category === null && type === null && billable === null) {
+    return null;
+  }
+  return { billable, pricingModel, category, type };
+}
+
 /** Normaliza status de entrega Meta Cloud. */
 export function parseMetaStatus(status: MetaStatusRaw): MetaStatusNormalizado | null {
   const externalId = String(status.id ?? "");
   const deliveryStatus = String(status.status ?? "");
   if (!externalId || !deliveryStatus) return null;
-  return { externalId, status: deliveryStatus };
+  return {
+    externalId,
+    status: deliveryStatus,
+    recipientId: typeof status.recipient_id === "string" ? status.recipient_id : null,
+    recipientUserId:
+      typeof status.recipient_user_id === "string" ? status.recipient_user_id : null,
+    pricing: parseMetaPricing(status.pricing),
+  };
 }
 
 /** Indica se o tipo normalizado tem mídia para download. */

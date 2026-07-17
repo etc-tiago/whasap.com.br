@@ -1,0 +1,8 @@
+{
+  "receivedAt": "2026-07-16T16:34:23.833Z",
+  "meta": {
+    "source": "evo",
+    "path": "webhook/evo/whasap-da8971bc/2026-07-16/Contact-163423833-e2e14b58.json"
+  },
+  "raw": "{\"data\":{\"JID\":\"554691062926@s.whatsapp.net\",\"Timestamp\":\"2026-07-16T13:34:22.197-03:00\",\"Action\":{\"fullName\":\"Suzia Carla De Bem\",\"firstName\":\"Suzia Carla\",\"lidJID\":\"38762230845527@lid\",\"saveOnPrimaryAddressbook\":true},\"FromFullSync\":false},\"event\":\"Contact\",\"instanceId\":\"da8971bc-4a33-4917-a8b2-5d6246de6368\",\"instanceName\":\"whasap-da8971bc\",\"instanceToken\":\"70717a978f84482288d0cfca0e92bf58\"}"
+}

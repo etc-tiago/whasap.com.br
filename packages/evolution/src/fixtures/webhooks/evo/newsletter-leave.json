@@ -1,0 +1,8 @@
+{
+  "receivedAt": "2026-07-16T20:17:41.925Z",
+  "meta": {
+    "source": "evo",
+    "path": "webhook/evo/whasap-da8971bc/2026-07-16/NewsletterLeave-201741925-e422446d.json"
+  },
+  "raw": "{\"data\":{\"id\":\"120363167775174375@newsletter\",\"role\":\"guest\"},\"event\":\"NewsletterLeave\",\"instanceId\":\"da8971bc-4a33-4917-a8b2-5d6246de6368\",\"instanceName\":\"whasap-da8971bc\",\"instanceToken\":\"70717a978f84482288d0cfca0e92bf58\"}"
+}

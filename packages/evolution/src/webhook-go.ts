@@ -31,6 +31,23 @@ export type GoEditEncrypted = {
   encPayload: Uint8Array;
 };
 
+/** Contexto de reply/menção/encaminhamento extraído de `contextInfo`. */
+export type GoMessageContextInfo = {
+  mentionedJids?: string[];
+  quotedStanzaId?: string;
+  quotedParticipant?: string;
+  quotedType?: number | null;
+  isForwarded?: boolean;
+  forwardingScore?: number | null;
+};
+
+/** Metadados de grupo embutidos em Message (`groupData`). */
+export type GoGroupData = {
+  jid: string;
+  name: string | null;
+  participants: Array<{ lidJid: string; pnJid: string | null }>;
+};
+
 export type GoMensagemNormalizada = {
   chatJid: string;
   messageId: string;
@@ -52,6 +69,10 @@ export type GoMensagemNormalizada = {
   senderJid?: string;
   /** Alternativa LID/PN (`Info.SenderAlt` / `RecipientAlt`). */
   senderJidAlt?: string;
+  /** Reply / menções / encaminhamento. */
+  contextInfo?: GoMessageContextInfo;
+  /** Snapshot de grupo quando o webhook inclui `groupData`. */
+  groupData?: GoGroupData;
 };
 
 export type GoHistorySyncConversa = {
@@ -651,6 +672,88 @@ function timestampFromGo(value: unknown): Date | null {
 }
 
 /** Normaliza evento Message ou SendMessage (formato GO). */
+/** JID de canal/newsletter — não vira conversa no painel. */
+export function jidEhNewsletter(jid: string): boolean {
+  return jid.endsWith("@newsletter");
+}
+
+/** Extrai `contextInfo` do primeiro part de mensagem que o tiver. */
+export function extrairContextInfoDeMessageObj(
+  messageObj: Record<string, unknown>,
+): GoMessageContextInfo | null {
+  for (const value of Object.values(messageObj)) {
+    if (!value || typeof value !== "object") continue;
+    const part = value as Record<string, unknown>;
+    const raw = part.contextInfo;
+    if (!raw || typeof raw !== "object") continue;
+    const ci = raw as Record<string, unknown>;
+
+    const mentionedRaw = ci.mentionedJID ?? ci.mentionedJid;
+    const mentionedJids = Array.isArray(mentionedRaw)
+      ? mentionedRaw.map((j) => String(j).trim()).filter((j) => j.length > 0)
+      : undefined;
+
+    const quotedStanzaId =
+      textoNaoVazio(ci.stanzaID) ?? textoNaoVazio(ci.stanzaId) ?? undefined;
+    const quotedParticipant = textoNaoVazio(ci.participant) ?? undefined;
+    const quotedType =
+      typeof ci.quotedType === "number"
+        ? ci.quotedType
+        : typeof ci.quotedType === "string" && ci.quotedType
+          ? Number(ci.quotedType)
+          : null;
+    const isForwarded = Boolean(ci.isForwarded);
+    const forwardingScore =
+      typeof ci.forwardingScore === "number"
+        ? ci.forwardingScore
+        : typeof ci.forwardingScore === "string" && ci.forwardingScore
+          ? Number(ci.forwardingScore)
+          : null;
+
+    const out: GoMessageContextInfo = {};
+    if (mentionedJids?.length) out.mentionedJids = mentionedJids;
+    if (quotedStanzaId) out.quotedStanzaId = quotedStanzaId;
+    if (quotedParticipant) out.quotedParticipant = quotedParticipant;
+    if (quotedType !== null && Number.isFinite(quotedType)) out.quotedType = quotedType;
+    if (isForwarded) out.isForwarded = true;
+    if (forwardingScore !== null && Number.isFinite(forwardingScore)) {
+      out.forwardingScore = forwardingScore;
+    }
+    return Object.keys(out).length > 0 ? out : null;
+  }
+  return null;
+}
+
+/** Normaliza `groupData` embutido em eventos Message. */
+export function parseGoGroupData(raw: unknown): GoGroupData | null {
+  if (!raw || typeof raw !== "object") return null;
+  const data = raw as Record<string, unknown>;
+  const jid = String(data.JID ?? data.jid ?? "").trim();
+  if (!jid.endsWith("@g.us")) return null;
+
+  const participants: GoGroupData["participants"] = [];
+  const rawParts = data.Participants ?? data.participants;
+  if (Array.isArray(rawParts)) {
+    for (const item of rawParts) {
+      if (!item || typeof item !== "object") continue;
+      const row = item as Record<string, unknown>;
+      const lidJid = String(row.LID ?? row.lidJid ?? row.JID ?? "").trim();
+      const pnJid = String(row.PhoneNumber ?? row.phoneNumber ?? "").trim();
+      if (!lidJid.endsWith("@lid")) continue;
+      participants.push({
+        lidJid,
+        pnJid: pnJid.endsWith("@s.whatsapp.net") ? pnJid : null,
+      });
+    }
+  }
+
+  return {
+    jid,
+    name: textoNaoVazio(data.Name) ?? textoNaoVazio(data.name),
+    participants,
+  };
+}
+
 export function parseGoMessageEvent(data: Record<string, unknown>): GoMensagemNormalizada | null {
   const info = data.Info as Record<string, unknown> | undefined;
   const messageObj = data.Message as Record<string, unknown> | undefined;
@@ -659,6 +762,9 @@ export function parseGoMessageEvent(data: Record<string, unknown>): GoMensagemNo
   const chatJid = String(info.Chat ?? info.Sender ?? "");
   const messageId = String(info.ID ?? "");
   if (!chatJid || !messageId) return null;
+  if (jidEhNewsletter(chatJid)) return null;
+  const senderRaw = typeof info.Sender === "string" ? info.Sender : "";
+  if (senderRaw && jidEhNewsletter(senderRaw)) return null;
 
   const parsed = parseGoMessageBody(messageObj);
   if (!parsed) return null;
@@ -670,6 +776,9 @@ export function parseGoMessageEvent(data: Record<string, unknown>): GoMensagemNo
     (typeof info.SenderAlt === "string" && info.SenderAlt ? info.SenderAlt : null) ??
     (typeof info.RecipientAlt === "string" && info.RecipientAlt ? info.RecipientAlt : null) ??
     undefined;
+  const contextInfo = extrairContextInfoDeMessageObj(messageObj) ?? undefined;
+  const groupData =
+    parseGoGroupData(data.groupData ?? data.GroupData) ?? undefined;
 
   let type = parsed.type;
   let body = parsed.body;
@@ -707,6 +816,8 @@ export function parseGoMessageEvent(data: Record<string, unknown>): GoMensagemNo
     ...(messageSecret ? { messageSecret } : {}),
     ...(senderJid ? { senderJid } : {}),
     ...(senderJidAlt ? { senderJidAlt } : {}),
+    ...(contextInfo ? { contextInfo } : {}),
+    ...(groupData ? { groupData } : {}),
   };
 }
 
@@ -1015,4 +1126,12 @@ export function receiptIndicaLeitura(receipt: GoReceiptNormalizado): boolean {
     state.includes("read") ||
     state.includes("played")
   );
+}
+
+/** Receipt indica entrega ao dispositivo (`state=Delivered`, Type vazio no corpus). */
+export function receiptIndicaEntrega(receipt: GoReceiptNormalizado): boolean {
+  if (receiptIndicaLeitura(receipt)) return false;
+  const type = receipt.type.toLowerCase();
+  const state = (receipt.state ?? "").toLowerCase();
+  return type.includes("delivered") || state.includes("delivered");
 }

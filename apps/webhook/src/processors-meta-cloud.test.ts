@@ -61,12 +61,21 @@ describe("processors meta_cloud (fixtures)", () => {
     expect(parsed?.type).toBe("unsupported");
   });
 
-  it("status delivered e read", () => {
+  it("status delivered e read com pricing/user_id", () => {
     const delivered = buscarFixtureWebhookMeta("status-delivered.json")!;
     const read = buscarFixtureWebhookMeta("status-read.json")!;
-    expect(parseMetaStatus(parseMetaWebhook(delivered.payload)[0]!.statuses[0]!)?.status).toBe(
-      "delivered",
-    );
+    const deliveredParsed = parseMetaStatus(parseMetaWebhook(delivered.payload)[0]!.statuses[0]!);
+    expect(deliveredParsed?.status).toBe("delivered");
+    expect(deliveredParsed?.pricing?.pricingModel).toBe("PMP");
+    expect(deliveredParsed?.recipientUserId).toBeTruthy();
     expect(parseMetaStatus(parseMetaWebhook(read.payload)[0]!.statuses[0]!)?.status).toBe("read");
+  });
+
+  it("text inbound carrega from_user_id e contact.user_id", () => {
+    const fixture = buscarFixtureWebhookMeta("message-text-inbound.json")!;
+    const change = parseMetaWebhook(fixture.payload)[0]!;
+    expect(change.contacts[0]?.userId).toBeTruthy();
+    const parsed = parseMetaMessage(change.messages[0]!);
+    expect(parsed?.metadados.fromUserId).toBeTruthy();
   });
 });

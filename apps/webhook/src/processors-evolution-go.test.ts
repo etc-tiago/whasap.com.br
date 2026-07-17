@@ -3,12 +3,15 @@ import { describe, expect, test } from "bun:test";
 import { buscarFixtureWebhookGo } from "../../../packages/evolution/src/fixtures/carregar-fixtures-webhook-go";
 import {
   parseGoButtonClick,
+  parseGoContact,
+  parseGoGroupData,
   parseGoMessageEvent,
   parseGoPairSuccess,
   parseGoPushName,
   parseGoReceipt,
   parseConnectionUpdateWebhook,
   parseGoDisconnectedEvent,
+  receiptIndicaEntrega,
   receiptIndicaLeitura,
   resolverIdExternoCanonicoGo,
   resolverInstanciaWebhookGo,
@@ -97,6 +100,60 @@ describe("processors evolution GO (fixtures)", () => {
     );
     expect(receipt).not.toBeNull();
     expect(receiptIndicaLeitura(receipt!)).toBe(true);
+    expect(receiptIndicaEntrega(receipt!)).toBe(false);
+  });
+
+  test("Receipt Delivered indica entrega (não leitura)", () => {
+    const fixture = buscarFixtureWebhookGo("receipt-delivered.json")!;
+    const receipt = parseGoReceipt(
+      fixture.payload.data as Record<string, unknown>,
+      fixture.payload.state as string,
+    );
+    expect(receipt).not.toBeNull();
+    expect(receipt!.state).toBe("Delivered");
+    expect(receiptIndicaEntrega(receipt!)).toBe(true);
+    expect(receiptIndicaLeitura(receipt!)).toBe(false);
+  });
+
+  test("NewsletterLeave é evento conhecido sem mensagem", () => {
+    const fixture = buscarFixtureWebhookGo("newsletter-leave.json")!;
+    expect(fixture.payload.event).toBe("NewsletterLeave");
+    expect((fixture.payload.data as { id?: string }).id).toContain("@newsletter");
+  });
+
+  test("Message @newsletter é ignorada no parse", () => {
+    const fixture = buscarFixtureWebhookGo("message-newsletter.json")!;
+    const parsed = parseGoMessageEvent(fixture.payload.data as Record<string, unknown>);
+    expect(parsed).toBeNull();
+  });
+
+  test("Contact extrai lidJID", () => {
+    const fixture = buscarFixtureWebhookGo("contact-lid.json")!;
+    const parsed = parseGoContact(fixture.payload.data as Record<string, unknown>);
+    expect(parsed?.jid).toContain("@s.whatsapp.net");
+    expect(parsed?.lidJid).toContain("@lid");
+    expect(parsed?.fullName).toBeTruthy();
+  });
+
+  test("Message com groupData e participants LID/PN", () => {
+    const fixture = buscarFixtureWebhookGo("message-group-data.json")!;
+    const data = fixture.payload.data as Record<string, unknown>;
+    const parsed = parseGoMessageEvent(data);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.groupData?.jid).toContain("@g.us");
+    expect(parsed!.groupData?.name).toBeTruthy();
+    expect(parsed!.groupData!.participants.length).toBeGreaterThan(0);
+    expect(parsed!.groupData!.participants.some((p) => p.pnJid)).toBe(true);
+
+    const gd = parseGoGroupData(data.groupData);
+    expect(gd?.jid).toBe(parsed!.groupData!.jid);
+  });
+
+  test("Message com mention extrai contextInfo", () => {
+    const fixture = buscarFixtureWebhookGo("message-mention.json")!;
+    const parsed = parseGoMessageEvent(fixture.payload.data as Record<string, unknown>);
+    expect(parsed?.contextInfo?.mentionedJids?.length).toBeGreaterThan(0);
+    expect(parsed!.contextInfo!.mentionedJids![0]).toContain("@lid");
   });
 
   test("tipos especiais parseiam (sticker/reaction/poll/interactive)", () => {

@@ -23,6 +23,7 @@ import {
   parseGoPairSuccess,
   parseGoPushName,
   parseGoReceipt,
+  receiptIndicaEntrega,
   receiptIndicaLeitura,
   resolverIdExternoCanonicoGo,
   resolverInstanciaWebhookGo,
@@ -50,7 +51,8 @@ describe("resolverInstanciaWebhookGo", () => {
 describe("parseGoMessageEvent", () => {
   it("parseia todas as fixtures Message sem retornar null", () => {
     const messageFixtures = carregarFixturesWebhookGo().filter(
-      (fixture) => fixture.payload.event === "Message",
+      (fixture) =>
+        fixture.payload.event === "Message" && fixture.arquivo !== "message-newsletter.json",
     );
 
     expect(messageFixtures.length).toBeGreaterThanOrEqual(9);
@@ -70,6 +72,22 @@ describe("parseGoMessageEvent", () => {
       }
       expect(parsed!.body.length).toBeGreaterThan(0);
     }
+  });
+
+  it("ignora Message de canal @newsletter", () => {
+    const fixture = buscarFixtureWebhookGo("message-newsletter.json")!;
+    expect(parseGoMessageEvent(fixture.payload.data as Record<string, unknown>)).toBeNull();
+  });
+
+  it("extrai groupData e contextInfo de fixtures do corpus", () => {
+    const group = buscarFixtureWebhookGo("message-group-data.json")!;
+    const groupParsed = parseGoMessageEvent(group.payload.data as Record<string, unknown>);
+    expect(groupParsed?.groupData?.jid).toContain("@g.us");
+    expect(groupParsed?.groupData?.participants.length).toBeGreaterThan(0);
+
+    const mention = buscarFixtureWebhookGo("message-mention.json")!;
+    const mentionParsed = parseGoMessageEvent(mention.payload.data as Record<string, unknown>);
+    expect(mentionParsed?.contextInfo?.mentionedJids?.[0]).toContain("@lid");
   });
 
   it("parseia message-edit-encrypted como edit_encrypted", () => {
@@ -204,6 +222,19 @@ describe("parseGoReceipt", () => {
     );
     expect(receipt).not.toBeNull();
     expect(receiptIndicaLeitura(receipt!)).toBe(true);
+    expect(receiptIndicaEntrega(receipt!)).toBe(false);
+  });
+
+  it("detecta entrega Delivered", () => {
+    const fixture = buscarFixtureWebhookGo("receipt-delivered.json")!;
+    const receipt = parseGoReceipt(
+      fixture.payload.data as Record<string, unknown>,
+      fixture.payload.state as string,
+    );
+    expect(receipt).not.toBeNull();
+    expect(receipt!.state).toBe("Delivered");
+    expect(receiptIndicaEntrega(receipt!)).toBe(true);
+    expect(receiptIndicaLeitura(receipt!)).toBe(false);
   });
 });
 

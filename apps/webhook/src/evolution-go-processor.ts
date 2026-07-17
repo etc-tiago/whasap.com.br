@@ -13,8 +13,10 @@ import {
   colunasContatoTag,
   colunasSomenteId,
   comCriadoEm,
+  comTimestampsCriacao,
   comTimestampAtualizacao,
   contato,
+  contatoInstancia,
   contatoTag,
   contatoTagAtribuicao,
   conversa,
@@ -47,11 +49,13 @@ import {
   parseGoPushName,
   parseGoQrTimeout,
   parseGoReceipt,
+  receiptIndicaEntrega,
   receiptIndicaLeitura,
   resolverIdExternoCanonicoGo,
   resolverInstanciaWebhookGo,
   telefoneExibicaoDeInfo,
   type EvolutionGoWebhookPayload,
+  type GoGroupData,
 } from "@whasap/evolution";
 import { and, eq, isNull, or } from "drizzle-orm";
 
@@ -155,9 +159,14 @@ async function processarMensagemGo(
       ...(messageSecret ? { messageSecret } : {}),
       ...(parsed.senderJid ? { senderJid: parsed.senderJid } : {}),
       ...(parsed.senderJidAlt ? { senderJidAlt: parsed.senderJidAlt } : {}),
+      ...(parsed.contextInfo ? { contextInfo: parsed.contextInfo } : {}),
     },
     status: direcao === "outbound" ? "sent" : "delivered",
   });
+
+  if (parsed.groupData) {
+    await sincronizarGroupDataGo(db, instance, parsed.groupData);
+  }
 
   if (!result || !mediaInfo) return;
   // Duplicata já com mídia: nada a fazer (e não reincrementa uso — early return da ingestão).
@@ -317,9 +326,22 @@ async function processarReceiptGo(
   payload: EvolutionGoWebhookPayload,
 ) {
   const receipt = parseGoReceipt(payload.data as Record<string, unknown>, payload.state);
-  if (!receipt || !receiptIndicaLeitura(receipt)) return;
+  if (!receipt) return;
 
-  const status = receipt.type.includes("played") ? "played" : "read";
+  if (receiptIndicaEntrega(receipt)) {
+    await Promise.all(
+      receipt.messageIds.map((messageId) =>
+        atualizarStatusMensagemPorIdExterno(db, messageId, "delivered"),
+      ),
+    );
+    return;
+  }
+
+  if (!receiptIndicaLeitura(receipt)) return;
+
+  const status = receipt.type.includes("played") || (receipt.state ?? "").toLowerCase().includes("played")
+    ? "played"
+    : "read";
 
   await Promise.all(
     receipt.messageIds.map(async (messageId) => {
@@ -548,13 +570,97 @@ async function processarLabelEditGo(
   );
 }
 
+async function upsertContatoInstanciaLid(
+  db: Db,
+  instance: InstanciaWebhook,
+  contatoId: number,
+  lidJid: string,
+): Promise<void> {
+  if (!lidJid.endsWith("@lid")) return;
+
+  const existing = await db.query.contatoInstancia.findFirst({
+    where: or(
+      and(
+        eq(contatoInstancia.instanciaId, instance.id),
+        eq(contatoInstancia.idExterno, lidJid),
+      ),
+      and(
+        eq(contatoInstancia.contatoId, contatoId),
+        eq(contatoInstancia.instanciaId, instance.id),
+      ),
+    ),
+    columns: { id: true, contatoId: true, idExterno: true },
+  });
+
+  if (existing) {
+    const set: Record<string, unknown> = {};
+    if (existing.contatoId !== contatoId) set.contatoId = contatoId;
+    if (existing.idExterno !== lidJid) set.idExterno = lidJid;
+    if (Object.keys(set).length === 0) return;
+    await db
+      .update(contatoInstancia)
+      .set(comTimestampAtualizacao(set as never))
+      .where(eq(contatoInstancia.id, existing.id));
+    return;
+  }
+
+  await db
+    .insert(contatoInstancia)
+    .values(
+      comTimestampsCriacao({
+        contatoId,
+        instanciaId: instance.id,
+        idExterno: lidJid,
+      }),
+    )
+    .onConflictDoUpdate({
+      target: [contatoInstancia.instanciaId, contatoInstancia.idExterno],
+      set: comTimestampAtualizacao({ contatoId }),
+    });
+}
+
+async function sincronizarGroupDataGo(
+  db: Db,
+  instance: InstanciaWebhook,
+  groupData: GoGroupData,
+): Promise<void> {
+  if (groupData.name) {
+    const phone = jidParaTelefone(groupData.jid);
+    const contact = await buscarContatoPorIdExterno(
+      db,
+      instance.organizacaoId,
+      groupData.jid,
+      phone,
+    );
+    if (contact) {
+      await db
+        .update(contato)
+        .set(comTimestampAtualizacao({ nome: groupData.name }))
+        .where(eq(contato.id, contact.id));
+    }
+  }
+
+  for (const part of groupData.participants) {
+    if (!part.pnJid) continue;
+    const phone = jidParaTelefone(part.pnJid);
+    const contact = await buscarContatoPorIdExterno(
+      db,
+      instance.organizacaoId,
+      part.pnJid,
+      phone,
+    );
+    if (!contact) continue;
+    await upsertContatoInstanciaLid(db, instance, contact.id, part.lidJid);
+  }
+}
+
 async function processarContactGo(
   db: Db,
   instance: InstanciaWebhook,
   data: Record<string, unknown>,
 ): Promise<void> {
   const parsed = parseGoContact(data);
-  if (!parsed?.fullName) return;
+  if (!parsed) return;
 
   const phone = jidParaTelefone(parsed.jid);
   const idExternoCanonico = parsed.jid.endsWith("@g.us")
@@ -568,16 +674,23 @@ async function processarContactGo(
   );
   if (!contact) return;
 
-  await db
-    .update(contato)
-    .set(comTimestampAtualizacao({ nome: parsed.fullName }))
-    .where(eq(contato.id, contact.id));
+  if (parsed.fullName) {
+    await db
+      .update(contato)
+      .set(comTimestampAtualizacao({ nome: parsed.fullName }))
+      .where(eq(contato.id, contact.id));
+  }
+
+  if (parsed.lidJid) {
+    await upsertContatoInstanciaLid(db, instance, contact.id, parsed.lidJid);
+  }
 }
 
 async function processarPictureGo(data: Record<string, unknown>): Promise<void> {
   const parsed = parseGoPicture(data);
   if (!parsed) return;
-  // Schema sem campo de foto — tipagem/parse apenas.
+  // Schema sem campo de foto — tipagem/parse apenas. Corpus recente traz JID @lid
+  // sem PN; persistir avatar exigiria coluna + resolução LID→PN.
 }
 
 async function processarJoinedGroupGo(
@@ -727,6 +840,11 @@ export async function processEvolutionGoWebhook(
 
   if (event === "Contact") {
     await processarContactGo(db, instance, (payload.data ?? {}) as Record<string, unknown>);
+    return;
+  }
+
+  if (event === "NewsletterLeave") {
+    // Canais WhatsApp — sem conversa no painel.
     return;
   }
 

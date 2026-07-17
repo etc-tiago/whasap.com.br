@@ -1,0 +1,8 @@
+{
+  "receivedAt": "2026-07-16T20:14:57.214Z",
+  "meta": {
+    "source": "evo",
+    "path": "webhook/evo/whasap-da8971bc/2026-07-16/Message-201457214-d5ff4d95.json"
+  },
+  "raw": "{\"data\":{\"Info\":{\"AddressingMode\":\"\",\"BroadcastListOwner\":\"\",\"BroadcastRecipients\":null,\"Category\":\"\",\"Chat\":\"120363167775174375@newsletter\",\"DeviceSentMeta\":null,\"Edit\":\"\",\"ID\":\"3A8B32B545EB4A730D92\",\"IsFromMe\":false,\"IsGroup\":false,\"MediaType\":\"\",\"MsgBotInfo\":{\"EditSenderTimestampMS\":\"0001-01-01T00:00:00Z\",\"EditTargetID\":\"\",\"EditType\":\"\"},\"MsgMetaInfo\":{\"DeprecatedLIDSession\":null,\"TargetChat\":\"\",\"TargetID\":\"\",\"TargetSender\":\"\",\"ThreadMessageID\":\"\",\"ThreadMessageSenderJID\":\"\"},\"Multicast\":false,\"PushName\":\"\",\"RecipientAlt\":\"\",\"Sender\":\"120363167775174375@newsletter\",\"SenderAlt\":\"\",\"ServerID\":3269,\"Timestamp\":\"2026-07-16T17:14:41-03:00\",\"Type\":\"text\",\"VerifiedName\":null},\"IsBotInvoke\":false,\"IsDocumentWithCaption\":false,\"IsEdit\":false,\"IsEphemeral\":false,\"IsLottieSticker\":false,\"IsViewOnce\":false,\"IsViewOnceV2\":false,\"IsViewOnceV2Extension\":false,\"Message\":{\"conversation\":\"preciso fazer uma pesquisa nesse grupo.\"},\"NewsletterMeta\":null,\"RetryCount\":0,\"SourceWebMsg\":null,\"UnavailableRequestID\":\"\"},\"event\":\"Message\",\"instanceId\":\"da8971bc-4a33-4917-a8b2-5d6246de6368\",\"instanceName\":\"whasap-da8971bc\",\"instanceToken\":\"70717a978f84482288d0cfca0e92bf58\"}"
+}

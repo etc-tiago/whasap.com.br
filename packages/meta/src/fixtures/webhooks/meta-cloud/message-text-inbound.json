@@ -14,12 +14,14 @@
             "contacts": [
               {
                 "profile": { "name": "Kerry Fisher" },
-                "wa_id": "16315551234"
+                "wa_id": "16315551234",
+                "user_id": "US.1020334360914919"
               }
             ],
             "messages": [
               {
                 "from": "16315551234",
+                "from_user_id": "US.1020334360914919",
                 "id": "wamid.HBgLMTYzMTU1NTEyMzQVAgARGBI5QTNDQjFDNDY3N0JGMzI4AA==",
                 "timestamp": "1689380498",
                 "type": "text",

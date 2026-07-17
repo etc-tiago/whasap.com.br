@@ -16,7 +16,14 @@
                 "id": "wamid.HBgLMTYzMTU1NTEyMzQVAgASGBI2QTNDQjFDNDY3N0JGMzI4AA==",
                 "status": "delivered",
                 "timestamp": "1689380510",
-                "recipient_id": "16315551234"
+                "recipient_id": "16315551234",
+                "recipient_user_id": "US.1281832397362517",
+                "pricing": {
+                  "billable": false,
+                  "pricing_model": "PMP",
+                  "category": "service",
+                  "type": "free_customer_service"
+                }
               }
             ]
           },
