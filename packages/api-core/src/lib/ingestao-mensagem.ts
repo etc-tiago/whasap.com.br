@@ -2,6 +2,12 @@
  * Persistência de mensagens inbound/outbound: contato org, vínculo por instância, conversa e mensagem.
  */
 import {
+  idExternoWhatsappBr,
+  normalizarTelefoneWhatsappBr,
+  variantesIdExternoWhatsappBr,
+  variantesTelefoneWhatsappBr,
+} from "@whasap/config";
+import {
   colunasContatoCaixaEntrada,
   colunasContatoInstancia,
   comCriadoEm,
@@ -16,7 +22,7 @@ import {
   usoMensal,
   usoMensalContato,
 } from "@whasap/db";
-import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 
 export type IngerirMensagemParams = {
   instanciaId: number;
@@ -95,18 +101,71 @@ export function camposUltimaMensagemConversa(params: {
   return set;
 }
 
+/**
+ * Identidade canônica do contato org: celular BR sempre com 9º dígito.
+ * Preserva LID / grupo sem alterar.
+ */
+function identidadeContatoCanonico(phone: string, idExternoCanonico: string) {
+  const arroba = idExternoCanonico.indexOf("@");
+  const server = arroba > 0 ? idExternoCanonico.slice(arroba + 1).toLowerCase() : "";
+  const ePn = server === "s.whatsapp.net" || server === "c.us" || !server;
+
+  if (!ePn) {
+    return {
+      phone: phone ? normalizarTelefoneWhatsappBr(phone) || phone : phone,
+      idExterno: idExternoCanonico,
+    };
+  }
+
+  const phoneCanon = normalizarTelefoneWhatsappBr(phone || idExternoCanonico);
+  return {
+    phone: phoneCanon,
+    idExterno: idExternoWhatsappBr(phoneCanon || idExternoCanonico),
+  };
+}
+
+function preferirContatoCanonico<T extends { idExterno: string }>(
+  candidatos: T[],
+  idExternoCanon: string,
+): T | undefined {
+  if (candidatos.length === 0) return undefined;
+  return candidatos.find((c) => c.idExterno === idExternoCanon) ?? candidatos[0];
+}
+
 async function buscarOuCriarContatoOrg(
   db: Db,
   params: IngerirMensagemParams,
 ): Promise<{ id: number }> {
-  let contact = await db.query.contato.findFirst({
+  const { phone: phoneCanon, idExterno: idExternoCanon } = identidadeContatoCanonico(
+    params.phone,
+    params.idExternoCanonico,
+  );
+
+  const idsVariantes = variantesIdExternoWhatsappBr(idExternoCanon);
+  const telefonesVariantes = variantesTelefoneWhatsappBr(phoneCanon);
+
+  const porId = await db.query.contato.findMany({
     where: and(
       eq(contato.organizacaoId, params.organizacaoId),
-      eq(contato.idExterno, params.idExternoCanonico),
+      inArray(contato.idExterno, idsVariantes),
       isNull(contato.excluidoEm),
     ),
     columns: colunasContatoCaixaEntrada,
   });
+
+  let contact = preferirContatoCanonico(porId, idExternoCanon);
+
+  if (!contact && telefonesVariantes.length > 0) {
+    const porTelefone = await db.query.contato.findMany({
+      where: and(
+        eq(contato.organizacaoId, params.organizacaoId),
+        inArray(contato.telefone, telefonesVariantes),
+        isNull(contato.excluidoEm),
+      ),
+      columns: colunasContatoCaixaEntrada,
+    });
+    contact = preferirContatoCanonico(porTelefone, idExternoCanon);
+  }
 
   if (!contact) {
     const [created] = await db
@@ -114,8 +173,8 @@ async function buscarOuCriarContatoOrg(
       .values(
         comTimestampsCriacao({
           organizacaoId: params.organizacaoId,
-          idExterno: params.idExternoCanonico,
-          telefone: params.phone,
+          idExterno: idExternoCanon,
+          telefone: phoneCanon,
           nome: params.contactName,
         }),
       )
@@ -133,7 +192,23 @@ async function buscarOuCriarContatoOrg(
 
   const updates: Record<string, unknown> = {};
   if (params.contactName && !contact.nome) updates.nome = params.contactName;
-  if (params.phone && !contact.telefone) updates.telefone = params.phone;
+  if (phoneCanon && contact.telefone !== phoneCanon) updates.telefone = phoneCanon;
+
+  // Migra idExterno legado (sem 9) → canônico quando não há conflito.
+  if (contact.idExterno !== idExternoCanon) {
+    const conflito = await db.query.contato.findFirst({
+      where: and(
+        eq(contato.organizacaoId, params.organizacaoId),
+        eq(contato.idExterno, idExternoCanon),
+        isNull(contato.excluidoEm),
+      ),
+      columns: { id: true },
+    });
+    if (!conflito) {
+      updates.idExterno = idExternoCanon;
+    }
+  }
+
   if (Object.keys(updates).length > 0) {
     await db
       .update(contato)
@@ -409,31 +484,42 @@ async function incrementarUsoMensal(db: Db, instanciaId: number, contatoId: numb
     });
 }
 
-/** Busca contato org por id externo canônico ou telefone. */
+/** Busca contato org por id externo canônico (ou variante BR) / telefone. */
 export async function buscarContatoPorIdExterno(
   db: Db,
   organizacaoId: number,
   idExternoCanonico: string,
   telefone: string,
 ) {
-  const byId = await db.query.contato.findFirst({
+  const { phone: phoneCanon, idExterno: idExternoCanon } = identidadeContatoCanonico(
+    telefone,
+    idExternoCanonico,
+  );
+  const idsVariantes = variantesIdExternoWhatsappBr(idExternoCanon);
+  const telefonesVariantes = variantesTelefoneWhatsappBr(phoneCanon || telefone);
+
+  const porId = await db.query.contato.findMany({
     where: and(
       eq(contato.organizacaoId, organizacaoId),
-      eq(contato.idExterno, idExternoCanonico),
+      inArray(contato.idExterno, idsVariantes),
       isNull(contato.excluidoEm),
     ),
     columns: colunasContatoCaixaEntrada,
   });
+  const byId = preferirContatoCanonico(porId, idExternoCanon);
   if (byId) return byId;
 
-  return db.query.contato.findFirst({
+  if (telefonesVariantes.length === 0) return undefined;
+
+  const porTelefone = await db.query.contato.findMany({
     where: and(
       eq(contato.organizacaoId, organizacaoId),
-      eq(contato.telefone, telefone),
+      inArray(contato.telefone, telefonesVariantes),
       isNull(contato.excluidoEm),
     ),
     columns: colunasContatoCaixaEntrada,
   });
+  return preferirContatoCanonico(porTelefone, idExternoCanon);
 }
 
 /** Atualiza status de entrega de mensagem outbound. */

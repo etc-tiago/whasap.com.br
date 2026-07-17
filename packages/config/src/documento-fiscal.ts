@@ -37,9 +37,78 @@ export function telefoneWhatsappBrValido(valor: string): boolean {
   return d.length === 10 || d.length === 11;
 }
 
-/** Normaliza para E.164 sem `+` (sempre com 55). */
+/**
+ * Garante DDI 55 e, em celular BR, o 9º dígito após o DDD.
+ *
+ * WhatsApp aceita `55418300844` e `554198300844` como o mesmo número; gravamos
+ * sempre a forma com 9 (13 dígitos) para identidade estável em `contato`.
+ * Fixo (assinante 2–5) permanece sem o 9.
+ */
 export function normalizarTelefoneWhatsappBr(valor: string): string {
   const d = somenteDigitos(valor);
-  if (d.startsWith("55")) return d;
-  return `55${d}`;
+  if (!d) return d;
+
+  const com55 =
+    d.startsWith("55") ? d : d.length === 10 || d.length === 11 ? `55${d}` : d;
+
+  if (com55.length !== 12 || !com55.startsWith("55")) return com55;
+
+  const ddd = com55.slice(2, 4);
+  const assinante = com55.slice(4); // 8 dígitos
+  // Celular antigo (sem 9): assinante começa em 6–9.
+  if (/^[6-9]/.test(assinante)) {
+    return `55${ddd}9${assinante}`;
+  }
+  return com55;
+}
+
+/**
+ * Formas equivalentes do mesmo WhatsApp BR (com e sem 9º dígito).
+ * Útil para lookup de contatos legados antes de criar duplicata.
+ */
+export function variantesTelefoneWhatsappBr(valor: string): string[] {
+  const digitos = somenteDigitos(valor);
+  if (!digitos) return [];
+
+  const canon = normalizarTelefoneWhatsappBr(digitos);
+  const set = new Set<string>([canon]);
+
+  // Celular canônico 55+DDD+9+8 → também a forma sem o 9.
+  if (canon.length === 13 && canon.startsWith("55") && canon[4] === "9") {
+    set.add(`55${canon.slice(2, 4)}${canon.slice(5)}`);
+  }
+
+  // Se a entrada ainda não era canônica, inclui o bruto com 55.
+  const com55 =
+    digitos.startsWith("55")
+      ? digitos
+      : digitos.length === 10 || digitos.length === 11
+        ? `55${digitos}`
+        : digitos;
+  if (com55.length === 12 || com55.length === 13) set.add(com55);
+
+  return [...set];
+}
+
+/**
+ * Variantes de JID `@s.whatsapp.net` / `@c.us` para o mesmo PN BR.
+ * LID, grupos e outros servidores: retorna o id original sem alterar.
+ */
+export function variantesIdExternoWhatsappBr(idExterno: string): string[] {
+  const arroba = idExterno.indexOf("@");
+  if (arroba <= 0) return [idExterno];
+
+  const user = idExterno.slice(0, arroba);
+  const server = idExterno.slice(arroba + 1).toLowerCase();
+  if (server !== "s.whatsapp.net" && server !== "c.us") return [idExterno];
+
+  return variantesTelefoneWhatsappBr(user).map((phone) => `${phone}@s.whatsapp.net`);
+}
+
+/** JID canônico `@s.whatsapp.net` a partir de telefone ou user JID. */
+export function idExternoWhatsappBr(telefoneOuUser: string): string {
+  const user = telefoneOuUser.includes("@")
+    ? telefoneOuUser.slice(0, telefoneOuUser.indexOf("@"))
+    : telefoneOuUser;
+  return `${normalizarTelefoneWhatsappBr(user)}@s.whatsapp.net`;
 }

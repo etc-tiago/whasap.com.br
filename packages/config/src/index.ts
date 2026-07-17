@@ -10,9 +10,12 @@ export {
 } from "./cdn";
 export {
   cnpjValido,
+  idExternoWhatsappBr,
   normalizarTelefoneWhatsappBr,
   somenteDigitos,
   telefoneWhatsappBrValido,
+  variantesIdExternoWhatsappBr,
+  variantesTelefoneWhatsappBr,
 } from "./documento-fiscal";
 export {
   ICONE_CONEXAO_PADRAO,

@@ -1,4 +1,5 @@
 import {
+  buscarContatoPorIdExterno,
   camposUltimaMensagemConversa,
   criarClienteMeta,
   forbidden,
@@ -10,6 +11,7 @@ import {
   buildOutboundMediaR2Key,
   cdnMediaUrl,
   ICONE_CONEXAO_PADRAO,
+  idExternoWhatsappBr,
   isEvoProvider,
   isIconeConexao,
   isMetaCloudProvider,
@@ -288,7 +290,7 @@ function verificarPodeEscreverCaixaEntrada(role: MemberRole) {
 }
 
 /**
- * Normaliza telefone BR (DDI 55) e monta o id externo WhatsApp (`{digits}@s.whatsapp.net`).
+ * Normaliza telefone BR (DDI 55 + 9º dígito em celular) e monta o id externo WhatsApp.
  * @throws preconditionFailed se o número não for um WhatsApp BR válido (10/11 ou 12/13 com 55).
  */
 function normalizarTelefoneContato(telefone: string) {
@@ -296,7 +298,7 @@ function normalizarTelefoneContato(telefone: string) {
     preconditionFailed("Telefone inválido");
   }
   const phone = normalizarTelefoneWhatsappBr(telefone);
-  return { phone, idExterno: `${phone}@s.whatsapp.net` };
+  return { phone, idExterno: idExternoWhatsappBr(phone) };
 }
 
 type ContatoListaSaida = {
@@ -753,14 +755,12 @@ export const caixaEntradaHandlers = {
 
       const { phone, idExterno } = normalizarTelefoneContato(input.telefone);
 
-      let contact = await ctx.db.query.contato.findFirst({
-        where: and(
-          eq(contato.organizacaoId, instance.organizacaoId),
-          eq(contato.idExterno, idExterno),
-          isNull(contato.excluidoEm),
-        ),
-        columns: colunasContatoCaixaEntrada,
-      });
+      let contact = await buscarContatoPorIdExterno(
+        ctx.db,
+        instance.organizacaoId,
+        idExterno,
+        phone,
+      );
       if (!contact) {
         [contact] = await ctx.db
           .insert(contato)
@@ -773,6 +773,32 @@ export const caixaEntradaHandlers = {
             }),
           )
           .returning();
+      } else if (contact.idExterno !== idExterno || contact.telefone !== phone) {
+        // Contato legado (sem 9º dígito): promove identidade canônica quando possível.
+        const conflito =
+          contact.idExterno === idExterno
+            ? null
+            : await ctx.db.query.contato.findFirst({
+                where: and(
+                  eq(contato.organizacaoId, instance.organizacaoId),
+                  eq(contato.idExterno, idExterno),
+                  isNull(contato.excluidoEm),
+                ),
+                columns: { id: true },
+              });
+        if (!conflito) {
+          await ctx.db
+            .update(contato)
+            .set(
+              comTimestampAtualizacao({
+                idExterno,
+                telefone: phone,
+                ...(input.nome && !contact.nome ? { nome: input.nome } : {}),
+              }),
+            )
+            .where(eq(contato.id, contact.id));
+          contact = { ...contact, idExterno, telefone: phone };
+        }
       }
 
       const vinculoExistente = await ctx.db.query.contatoInstancia.findFirst({
@@ -1919,23 +1945,19 @@ export const caixaEntradaHandlers = {
 
       const nome = input.nome?.trim() || null;
 
-      let contact = await ctx.db.query.contato.findFirst({
-        where: and(
-          eq(contato.organizacaoId, organizacaoId),
-          eq(contato.idExterno, idExterno),
-          isNull(contato.excluidoEm),
-        ),
-        columns: {
-          id: true,
-          uuid: true,
-          nome: true,
-          telefone: true,
-          criadoEm: true,
-        },
-      });
+      type ContatoParaLista = {
+        id: number;
+        uuid: string;
+        nome: string | null;
+        telefone: string | null;
+        criadoEm: Date;
+      };
 
-      if (!contact) {
-        [contact] = await ctx.db
+      let contact: ContatoParaLista;
+      const existente = await buscarContatoPorIdExterno(ctx.db, organizacaoId, idExterno, phone);
+
+      if (!existente) {
+        const [criado] = await ctx.db
           .insert(contato)
           .values(
             comTimestampsCriacao({
@@ -1952,17 +1974,47 @@ export const caixaEntradaHandlers = {
             telefone: contato.telefone,
             criadoEm: contato.criadoEm,
           });
-      } else if (nome && !contact.nome) {
-        await ctx.db
-          .update(contato)
-          .set(comTimestampAtualizacao({ nome }))
-          .where(eq(contato.id, contact.id));
-        contact = { ...contact, nome };
+        if (!criado) preconditionFailed("Não foi possível criar o contato");
+        contact = criado;
+      } else {
+        const updates: Record<string, unknown> = {};
+        if (nome && !existente.nome) updates.nome = nome;
+        if (existente.telefone !== phone) updates.telefone = phone;
+        if (existente.idExterno !== idExterno) {
+          const conflito = await ctx.db.query.contato.findFirst({
+            where: and(
+              eq(contato.organizacaoId, organizacaoId),
+              eq(contato.idExterno, idExterno),
+              isNull(contato.excluidoEm),
+            ),
+            columns: { id: true },
+          });
+          if (!conflito) updates.idExterno = idExterno;
+        }
+        if (Object.keys(updates).length > 0) {
+          await ctx.db
+            .update(contato)
+            .set(comTimestampAtualizacao(updates as never))
+            .where(eq(contato.id, existente.id));
+        }
+
+        const atualizado = await ctx.db.query.contato.findFirst({
+          where: eq(contato.id, existente.id),
+          columns: {
+            id: true,
+            uuid: true,
+            nome: true,
+            telefone: true,
+            criadoEm: true,
+          },
+        });
+        if (!atualizado) notFound();
+        contact = atualizado;
       }
 
       const vinculoExistente = await ctx.db.query.contatoInstancia.findFirst({
         where: and(
-          eq(contatoInstancia.contatoId, contact!.id),
+          eq(contatoInstancia.contatoId, contact.id),
           eq(contatoInstancia.instanciaId, instance.id),
         ),
         columns: colunasSomenteId,
@@ -1970,14 +2022,14 @@ export const caixaEntradaHandlers = {
       if (!vinculoExistente) {
         await ctx.db.insert(contatoInstancia).values(
           comTimestampsCriacao({
-            contatoId: contact!.id,
+            contatoId: contact.id,
             instanciaId: instance.id,
             idExterno,
           }),
         );
       }
 
-      const [item] = await montarItensContatoLista(ctx, [contact!]);
+      const [item] = await montarItensContatoLista(ctx, [contact]);
       return item!;
     },
 
