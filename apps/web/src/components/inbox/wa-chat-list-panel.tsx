@@ -6,7 +6,7 @@ import {
   PanelSidebarTitle,
 } from "@whasap/ui/components/panel";
 import { cn } from "@whasap/ui/lib/utils";
-import { Archive, Menu, MessageSquarePlus, MoreVertical, Plus, Search } from "lucide-react";
+import { Menu, MessageSquarePlus, MoreVertical, Search } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { WaIconButton } from "@/components/inbox/wa-icon-button";
@@ -169,10 +169,14 @@ export function WaChatListPanel({
                 key={f}
                 type="button"
                 disabled={desabilitado}
-                onClick={() => !desabilitado && onFiltroChange?.(f)}
+                onClick={() => {
+                  if (desabilitado) return;
+                  if (arquivadasAtivas) onArquivadasChange?.(false);
+                  onFiltroChange?.(f);
+                }}
                 className={cn(
                   "shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-                  filtroAtivo === f
+                  filtroAtivo === f && !arquivadasAtivas
                     ? "bg-wa-chip-active text-wa-green-dark"
                     : "bg-wa-chip text-wa-text-muted hover:bg-wa-hover",
                 )}
@@ -181,6 +185,18 @@ export function WaChatListPanel({
               </button>
             );
           })}
+          <button
+            type="button"
+            onClick={() => onArquivadasChange?.(!arquivadasAtivas)}
+            className={cn(
+              "shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors",
+              arquivadasAtivas
+                ? "bg-wa-chip-active text-wa-green-dark"
+                : "bg-wa-chip text-wa-text-muted hover:bg-wa-hover",
+            )}
+          >
+            Arquivadas
+          </button>
           {telefoneIniciarBusca && podeAbrirNovaConversa ? (
             <button
               type="button"
@@ -190,30 +206,7 @@ export function WaChatListPanel({
               Iniciar conversa
             </button>
           ) : null}
-          <button
-            type="button"
-            disabled
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-wa-chip text-wa-text-muted disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </button>
         </div>
-
-        <button
-          type="button"
-          onClick={() => onArquivadasChange?.(!arquivadasAtivas)}
-          className={cn(
-            "flex items-center gap-4 border-b border-wa-divider px-5 py-3 text-left hover:bg-wa-hover",
-            arquivadasAtivas && "bg-wa-hover",
-          )}
-        >
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-wa-chip">
-            <Archive className="h-4 w-4 text-wa-green-dark" />
-          </div>
-          <span className="text-sm font-medium text-wa-text">
-            {arquivadasAtivas ? "Voltar às conversas" : "Arquivadas"}
-          </span>
-        </button>
 
         <div className="wa-scroll min-h-0 flex-1 overflow-y-auto">{children}</div>
       </PanelSidebarContent>
