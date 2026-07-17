@@ -23,9 +23,7 @@ export function WebhookCloudApiConfig({
   titulo = "Webhook no Meta for Developers",
   className,
 }: Props) {
-  const config = useQuery(
-    orpc.instancia.webhookCloud.queryOptions({ input: { instanciaId } }),
-  );
+  const config = useQuery(orpc.instancia.webhookCloud.queryOptions({ input: { instanciaId } }));
   const [copiado, setCopiado] = useState<string | null>(null);
 
   const copiar = async (rotulo: string, valor: string) => {
@@ -72,9 +70,7 @@ export function WebhookCloudApiConfig({
             />
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Webhook fields</Label>
-              <p className="font-mono text-xs text-foreground">
-                {config.data.campos.join(", ")}
-              </p>
+              <p className="font-mono text-xs text-foreground">{config.data.campos.join(", ")}</p>
             </div>
           </div>
         ) : null}

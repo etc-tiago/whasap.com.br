@@ -48,8 +48,7 @@ export function normalizarTelefoneWhatsappBr(valor: string): string {
   const d = somenteDigitos(valor);
   if (!d) return d;
 
-  const com55 =
-    d.startsWith("55") ? d : d.length === 10 || d.length === 11 ? `55${d}` : d;
+  const com55 = d.startsWith("55") ? d : d.length === 10 || d.length === 11 ? `55${d}` : d;
 
   if (com55.length !== 12 || !com55.startsWith("55")) return com55;
 
@@ -79,12 +78,11 @@ export function variantesTelefoneWhatsappBr(valor: string): string[] {
   }
 
   // Se a entrada ainda não era canônica, inclui o bruto com 55.
-  const com55 =
-    digitos.startsWith("55")
-      ? digitos
-      : digitos.length === 10 || digitos.length === 11
-        ? `55${digitos}`
-        : digitos;
+  const com55 = digitos.startsWith("55")
+    ? digitos
+    : digitos.length === 10 || digitos.length === 11
+      ? `55${digitos}`
+      : digitos;
   if (com55.length === 12 || com55.length === 13) set.add(com55);
 
   return [...set];

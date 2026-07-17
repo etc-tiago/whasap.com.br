@@ -684,10 +684,7 @@ export function parseGoMessageEvent(data: Record<string, unknown>): GoMensagemNo
   ) {
     const bot = info.MsgBotInfo as { EditTargetID?: string } | undefined;
     const meta = info.MsgMetaInfo as { TargetID?: string } | undefined;
-    const alvo =
-      textoNaoVazio(bot?.EditTargetID) ??
-      textoNaoVazio(meta?.TargetID) ??
-      editTargetId;
+    const alvo = textoNaoVazio(bot?.EditTargetID) ?? textoNaoVazio(meta?.TargetID) ?? editTargetId;
     if (alvo && body) {
       type = "edit";
       editTargetId = alvo;

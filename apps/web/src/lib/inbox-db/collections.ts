@@ -81,6 +81,7 @@ export function obterColecaoConversas(
       const itens: ConversaItem[] = [];
       let cursor: { antesUltimaMensagemEm?: string; antesId?: string } = {};
       for (;;) {
+        // oxlint-disable-next-line eslint/no-await-in-loop -- paginação cursor-based; cada página depende da anterior
         const page = await orpcClient.caixaEntrada.conversas.lista({
           organizacaoHash,
           arquivadas,
@@ -104,7 +105,7 @@ export function obterColecaoConversas(
   });
 
   const collection = createCollection(
-    envolverPersistencia(options, persistence, 2),
+    envolverPersistencia(options, persistence, 3),
   ) as unknown as Collection<ConversaItem, string>;
 
   maps.conversas.set(cacheKey, collection);
@@ -213,6 +214,28 @@ export function removerMensagemLocal(
   mensagemId: string,
 ): void {
   collection.utils.writeDelete(mensagemId);
+}
+
+/** Remove conversa do cache local (ex.: após arquivar/desarquivar). */
+export function removerConversaLocal(
+  collection: Collection<ConversaItem, string>,
+  conversaId: string,
+): void {
+  collection.utils.writeDelete(conversaId);
+}
+
+/** Invalida listas ativa e arquivada para o refetch reconciliar ambos os lados. */
+export function invalidarListasConversas(queryClient: QueryClient, organizacaoHash: string): void {
+  void queryClient.invalidateQueries({
+    queryKey: orpc.caixaEntrada.conversas.lista.key({
+      input: { organizacaoHash, arquivadas: false },
+    }),
+  });
+  void queryClient.invalidateQueries({
+    queryKey: orpc.caixaEntrada.conversas.lista.key({
+      input: { organizacaoHash, arquivadas: true },
+    }),
+  });
 }
 
 /** Descarta registries de collections (logout). */

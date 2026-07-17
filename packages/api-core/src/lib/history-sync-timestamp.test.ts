@@ -94,9 +94,7 @@ describe.skipIf(!corpusHistorySyncR2Disponivel())(
   "processarHistorySyncChunk - contrato via corpus",
   () => {
     const pastaPrimaria = pastaHistorySyncPrimariaR2();
-    const fixtures = pastaPrimaria
-      ? carregarHistorySyncR2({ instanciaPasta: pastaPrimaria })
-      : [];
+    const fixtures = pastaPrimaria ? carregarHistorySyncR2({ instanciaPasta: pastaPrimaria }) : [];
 
     it("5) fatia RECENT preserva syncType/progress para conclusao", () => {
       const fix = fixtures.find((f) => {

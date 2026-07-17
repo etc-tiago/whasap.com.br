@@ -33,6 +33,11 @@ function concatUtf8(parts: string[]): Uint8Array {
  * Deriva a chave AES-GCM (32 bytes) via HKDF-SHA256.
  * info = origMsgID + origSender + editor + "Message Edit" (concatenação raw).
  */
+export /** Copia para `ArrayBuffer` próprio — lib.dom exige BufferSource sem SharedArrayBuffer. */
+function comoBufferSource(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
+
 export async function derivarChaveMessageEdit(params: {
   messageSecret: Uint8Array;
   origMsgId: string;
@@ -45,15 +50,19 @@ export async function derivarChaveMessageEdit(params: {
     jidSemDevice(params.editorJid),
     ENC_SECRET_MESSAGE_EDIT,
   ]);
-  const baseKey = await crypto.subtle.importKey("raw", params.messageSecret, "HKDF", false, [
-    "deriveBits",
-  ]);
+  const baseKey = await crypto.subtle.importKey(
+    "raw",
+    comoBufferSource(params.messageSecret),
+    "HKDF",
+    false,
+    ["deriveBits"],
+  );
   const bits = await crypto.subtle.deriveBits(
     {
       name: "HKDF",
       hash: "SHA-256",
       salt: new Uint8Array(32),
-      info,
+      info: comoBufferSource(info),
     },
     baseKey,
     256,
@@ -67,10 +76,18 @@ export async function aesGcmDecrypt(
   iv: Uint8Array,
   ciphertext: Uint8Array,
 ): Promise<Uint8Array> {
-  const cryptoKey = await crypto.subtle.importKey("raw", key, { name: "AES-GCM" }, false, [
-    "decrypt",
-  ]);
-  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, cryptoKey, ciphertext);
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    comoBufferSource(key),
+    { name: "AES-GCM" },
+    false,
+    ["decrypt"],
+  );
+  const plain = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: comoBufferSource(iv) },
+    cryptoKey,
+    comoBufferSource(ciphertext),
+  );
   return new Uint8Array(plain);
 }
 
@@ -80,10 +97,18 @@ export async function aesGcmEncrypt(
   iv: Uint8Array,
   plaintext: Uint8Array,
 ): Promise<Uint8Array> {
-  const cryptoKey = await crypto.subtle.importKey("raw", key, { name: "AES-GCM" }, false, [
-    "encrypt",
-  ]);
-  const sealed = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, cryptoKey, plaintext);
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    comoBufferSource(key),
+    { name: "AES-GCM" },
+    false,
+    ["encrypt"],
+  );
+  const sealed = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv: comoBufferSource(iv) },
+    cryptoKey,
+    comoBufferSource(plaintext),
+  );
   return new Uint8Array(sealed);
 }
 
@@ -253,18 +278,14 @@ export type DecryptMessageEditParams = {
  * Descriptografa MESSAGE_EDIT e devolve o texto novo.
  * Tenta cada `origSenderJids` (hack LID/PN do whatsmeow).
  */
-export async function decryptMessageEdit(
-  params: DecryptMessageEditParams,
-): Promise<string | null> {
+export async function decryptMessageEdit(params: DecryptMessageEditParams): Promise<string | null> {
   const secret =
     typeof params.messageSecret === "string"
       ? bytesDeCampoGo(params.messageSecret)
       : params.messageSecret;
   const iv = typeof params.encIv === "string" ? bytesDeCampoGo(params.encIv) : params.encIv;
   const payload =
-    typeof params.encPayload === "string"
-      ? bytesDeCampoGo(params.encPayload)
-      : params.encPayload;
+    typeof params.encPayload === "string" ? bytesDeCampoGo(params.encPayload) : params.encPayload;
   if (!secret || !iv || !payload) return null;
 
   const candidatos = [
@@ -274,12 +295,14 @@ export async function decryptMessageEdit(
 
   for (const origSender of candidatos) {
     try {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- tenta JIDs em ordem; para no primeiro que descriptografa
       const key = await derivarChaveMessageEdit({
         messageSecret: secret,
         origMsgId: params.origMsgId,
         origSenderJid: origSender,
         editorJid: params.editorJid,
       });
+      // oxlint-disable-next-line eslint/no-await-in-loop -- depende da chave derivada acima
       const plain = await aesGcmDecrypt(key, iv, payload);
       const texto = extrairTextoDeMessageProtobuf(plain);
       if (texto) return texto;

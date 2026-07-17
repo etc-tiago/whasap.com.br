@@ -207,17 +207,12 @@ async function processarEdicaoMensagemGo(
     if (!messageSecret) return;
 
     const info = (data.Info ?? {}) as Record<string, unknown>;
-    const editorJid =
-      (typeof info.Sender === "string" && info.Sender) ||
-      parsed.senderJid ||
-      "";
+    const editorJid = (typeof info.Sender === "string" && info.Sender) || parsed.senderJid || "";
     if (!editorJid) return;
 
     const origSenders = [
       typeof original.metadados.senderJid === "string" ? original.metadados.senderJid : null,
-      typeof original.metadados.senderJidAlt === "string"
-        ? original.metadados.senderJidAlt
-        : null,
+      typeof original.metadados.senderJidAlt === "string" ? original.metadados.senderJidAlt : null,
       editorJid,
       typeof info.SenderAlt === "string" ? info.SenderAlt : null,
     ].filter((j): j is string => Boolean(j));

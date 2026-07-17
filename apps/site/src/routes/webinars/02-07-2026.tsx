@@ -60,6 +60,7 @@ function Webinar02072026Page() {
             src="https://www.loom.com/embed/9e9aad1740934fbfb0eb4bdb6d6066bd"
             title="Webinar Whasap — 02/07/2026"
             allowFullScreen
+            sandbox="allow-scripts allow-popups allow-forms"
             className="absolute inset-0 h-full w-full border-0"
           />
         </div>

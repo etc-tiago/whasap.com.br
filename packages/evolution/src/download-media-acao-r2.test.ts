@@ -16,10 +16,22 @@ const corpusOk = corpusAcaoR2Disponivel("message_downloadmedia");
 
 describe.skipIf(!corpusOk)("downloadmedia corpus R2 (acao)", () => {
   const fixtures = corpusOk ? carregarAcaoR2({ acao: "message_downloadmedia" }) : [];
-  /** Subconjunto do corpus: falhas CDN 403 via history-sync (matriz forbidden). */
-  const fixturesForbidden = fixtures.filter(
+  /** Subconjunto: falhas CDN 403 via history-sync (matriz forbidden). */
+  const fixturesHistorySync500 = fixtures.filter(
     (f) => f.envelope.meta.worker === "whasap-history-sync" && f.envelope.response.status === 500,
   );
+  const fixturesForbidden = fixturesHistorySync500.filter((f) => {
+    const body = f.envelope.response.body;
+    const texto =
+      body && typeof body === "object" && "error" in body
+        ? String((body as { error?: unknown }).error ?? "")
+        : "";
+    return /Failed to download/i.test(texto) && /\b403\b/.test(texto);
+  });
+  const fixturesComCaminhoCdn = fixtures.filter((f) => {
+    const body = f.envelope.request.body as { message?: unknown } | undefined;
+    return coletarCaminhosMidiaWa(body?.message).length > 0;
+  });
 
   it("1) corpus message_downloadmedia não vazio", () => {
     expect(fixtures.length).toBeGreaterThanOrEqual(1);
@@ -39,8 +51,8 @@ describe.skipIf(!corpusOk)("downloadmedia corpus R2 (acao)", () => {
   });
 
   it("3) worker history-sync + rpc media.download", () => {
-    expect(fixturesForbidden.length).toBeGreaterThanOrEqual(1);
-    for (const f of fixturesForbidden) {
+    expect(fixturesHistorySync500.length).toBeGreaterThanOrEqual(1);
+    for (const f of fixturesHistorySync500) {
       expect(f.envelope.meta.worker, f.arquivo).toBe("whasap-history-sync");
       expect(f.envelope.meta.rpc, f.arquivo).toBe("webhook.media.download");
     }
@@ -62,7 +74,8 @@ describe.skipIf(!corpusOk)("downloadmedia corpus R2 (acao)", () => {
   });
 
   it("5) request.body.message tem bloco *Message com caminho CDN", () => {
-    for (const f of fixtures) {
+    expect(fixturesComCaminhoCdn.length).toBeGreaterThanOrEqual(1);
+    for (const f of fixturesComCaminhoCdn) {
       const body = f.envelope.request.body as { message?: unknown } | undefined;
       const message = body?.message;
       const caminhos = coletarCaminhosMidiaWa(message);

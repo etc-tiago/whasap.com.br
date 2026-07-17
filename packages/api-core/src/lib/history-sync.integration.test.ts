@@ -68,9 +68,7 @@ describe.skipIf(!podeRodar)("HistorySync ingestao (Postgres + corpus R2)", () =>
 
   const pastaPrimaria = podeRodar ? pastaHistorySyncPrimariaR2() : null;
   const fixtures =
-    podeRodar && pastaPrimaria
-      ? carregarHistorySyncR2({ instanciaPasta: pastaPrimaria })
-      : [];
+    podeRodar && pastaPrimaria ? carregarHistorySyncR2({ instanciaPasta: pastaPrimaria }) : [];
   beforeAll(async () => {
     const { db: database, sql: pool } = criarDb(DATABASE_URL!);
     db = database;

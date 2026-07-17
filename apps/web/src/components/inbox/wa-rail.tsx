@@ -1,12 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getRouteApi, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { isEvoProvider } from "@whasap/config";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@whasap/ui/components/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@whasap/ui/components/sheet";
 import { cn } from "@whasap/ui/lib/utils";
 import {
   ChartArea,

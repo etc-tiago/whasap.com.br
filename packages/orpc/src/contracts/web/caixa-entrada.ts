@@ -208,14 +208,12 @@ export const caixaEntradaContract = {
      * Soft-delete local; tenta revoke no Evolution (outbound com idExterno).
      * Meta Cloud API não tem delete-for-everyone — sempre `escopo: "painel"`.
      */
-    excluir: oc
-      .input(z.object({ mensagemId: z.string().uuid() }))
-      .output(
-        z.object({
-          ok: z.boolean(),
-          escopo: z.enum(["todos", "painel"]),
-        }),
-      ),
+    excluir: oc.input(z.object({ mensagemId: z.string().uuid() })).output(
+      z.object({
+        ok: z.boolean(),
+        escopo: z.enum(["todos", "painel"]),
+      }),
+    ),
   },
 
   midia: {

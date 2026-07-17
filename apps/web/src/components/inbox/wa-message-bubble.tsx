@@ -226,8 +226,7 @@ function BubbleBody({
   const isAudio = mensagem.type === "audio";
   const texto = corpoVisivel(mensagem);
   const nomeNoCorpo =
-    Boolean(texto) &&
-    Boolean(separarPrefixoNomeAtendente(texto!, mensagem.enviadoPorNome));
+    Boolean(texto) && Boolean(separarPrefixoNomeAtendente(texto!, mensagem.enviadoPorNome));
   const menu = (
     <BubbleMenu
       mensagem={mensagem}

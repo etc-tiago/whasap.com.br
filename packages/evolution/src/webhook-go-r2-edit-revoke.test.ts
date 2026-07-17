@@ -14,9 +14,7 @@ function mensagemTemSecretEdit(data: Record<string, unknown>): boolean {
   if (!secret) return false;
   const encType = secret.secretEncType;
   return (
-    encType === 2 ||
-    encType === "MESSAGE_EDIT" ||
-    encType === "SecretEncryptedMessage_MESSAGE_EDIT"
+    encType === 2 || encType === "MESSAGE_EDIT" || encType === "SecretEncryptedMessage_MESSAGE_EDIT"
   );
 }
 

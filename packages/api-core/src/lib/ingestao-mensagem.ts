@@ -70,8 +70,7 @@ export function sqlUltimaMensagemMonotonica(nova: Date) {
 function sqlPreviewSeMaisRecente(nova: Date, valor: string | null, coluna: "corpo" | "tipo") {
   const iso = isoTimestampParaSql(nova);
   const ts = sql`${sql.param(iso)}::timestamp`;
-  const atual =
-    coluna === "corpo" ? conversa.ultimaMensagemCorpo : conversa.ultimaMensagemTipo;
+  const atual = coluna === "corpo" ? conversa.ultimaMensagemCorpo : conversa.ultimaMensagemTipo;
   return sql`CASE
     WHEN ${conversa.ultimaMensagemEm} IS NULL OR ${conversa.ultimaMensagemEm} < ${ts}
     THEN ${valor}
@@ -375,20 +374,18 @@ export async function ingerirMensagem(
     ...params.metadados,
   };
 
-  const insertQuery = db
-    .insert(mensagem)
-    .values(
-      comCriadoEm({
-        conversaId: conversation.id,
-        direcao,
-        tipo: params.type,
-        corpo: params.body,
-        idExterno: params.externalId,
-        status: params.status ?? (direcao === "outbound" ? "sent" : "delivered"),
-        metadados,
-        enviadoEm,
-      }),
-    );
+  const insertQuery = db.insert(mensagem).values(
+    comCriadoEm({
+      conversaId: conversation.id,
+      direcao,
+      tipo: params.type,
+      corpo: params.body,
+      idExterno: params.externalId,
+      status: params.status ?? (direcao === "outbound" ? "sent" : "delivered"),
+      metadados,
+      enviadoEm,
+    }),
+  );
 
   const [message] = params.externalId
     ? await insertQuery
@@ -591,7 +588,7 @@ export async function aplicarEdicaoMensagem(
 
   const editadoEm = params.editadoEm ?? new Date();
   const metadados = {
-    ...(existing.metadados ?? {}),
+    ...existing.metadados,
     editadoEm: editadoEm.toISOString(),
   };
 
@@ -630,10 +627,7 @@ export async function aplicarRevokeMensagem(
   const existing = await buscarMensagemPorIdExterno(db, params.idExternoAlvo);
   if (!existing) return null;
 
-  await db
-    .update(mensagem)
-    .set(marcarExclusaoLogica())
-    .where(eq(mensagem.id, existing.id));
+  await db.update(mensagem).set(marcarExclusaoLogica()).where(eq(mensagem.id, existing.id));
 
   const anterior = await db.query.mensagem.findFirst({
     where: and(eq(mensagem.conversaId, existing.conversaId), isNull(mensagem.excluidoEm)),

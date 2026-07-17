@@ -163,6 +163,7 @@ function criarDbMemoria() {
     query: {
       contato: {
         findFirst: async () => null as Contato | null,
+        findMany: async () => [] as Contato[],
       },
       contatoInstancia: {
         findFirst: async () => null as ContatoInstancia | null,
@@ -218,7 +219,9 @@ describe("ingerirMensagem (db memória)", () => {
     expect(result).not.toBeNull();
     expect(result!.created).toBe(true);
     expect(store.contatos).toHaveLength(1);
-    expect(store.contatos[0]!.idExterno).toBe("554688043494@s.whatsapp.net");
+    // Celular BR canônico: 9º dígito após DDD (554688043494 → 5546988043494).
+    expect(store.contatos[0]!.idExterno).toBe("5546988043494@s.whatsapp.net");
+    expect(store.contatos[0]!.telefone).toBe("5546988043494");
     expect(store.contatoInstancias).toHaveLength(1);
     expect(store.contatoInstancias[0]!.idExterno).toBe("151187160604818@lid");
     expect(store.conversas).toHaveLength(1);
@@ -294,27 +297,27 @@ describe("ingerirMensagem (db memória)", () => {
     const { db } = criarDbMemoria();
 
     let softDeleted = false;
-    (
-      db as {
-        query: {
-          mensagem: {
-            findFirst: () => Promise<{
-              id: number;
-              conversaId: number;
-              corpo: string;
-              tipo: string;
-              enviadoEm: Date;
-              metadados: null;
-            } | null>;
-          };
+    type DbRevokeMock = {
+      query: {
+        mensagem: {
+          findFirst: () => Promise<{
+            id: number;
+            conversaId: number;
+            corpo: string;
+            tipo: string;
+            enviadoEm: Date;
+            metadados: null;
+          } | null>;
         };
-        update: () => {
-          set: (values: Record<string, unknown>) => {
-            where: () => Promise<void>;
-          };
+      };
+      update: () => {
+        set: (values: Record<string, unknown>) => {
+          where: () => Promise<void>;
         };
-      }
-    ).query.mensagem.findFirst = async () => {
+      };
+    };
+    const dbRevoke = db as unknown as DbRevokeMock;
+    dbRevoke.query.mensagem.findFirst = async () => {
       if (softDeleted) {
         return {
           id: 2,
@@ -334,7 +337,7 @@ describe("ingerirMensagem (db memória)", () => {
         metadados: null,
       };
     };
-    (db as { update: typeof db.update }).update = () => ({
+    dbRevoke.update = () => ({
       set: (values: Record<string, unknown>) => ({
         where: async () => {
           if (values.excluidoEm !== undefined) softDeleted = true;

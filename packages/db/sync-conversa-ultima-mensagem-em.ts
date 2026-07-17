@@ -24,11 +24,13 @@ if (!databaseUrl) {
 const { sql } = criarDb(databaseUrl);
 
 try {
-  const divergentes = await sql<{
-    total: number;
-    com_mensagem: number;
-    sem_mensagem: number;
-  }[]>`
+  const divergentes = await sql<
+    {
+      total: number;
+      com_mensagem: number;
+      sem_mensagem: number;
+    }[]
+  >`
     WITH ultimas AS (
       SELECT DISTINCT ON (m.conversa_id)
         m.conversa_id,
@@ -77,13 +79,15 @@ try {
   }
 
   if (dryRun) {
-    const amostra = await sql<{
-      uuid: string;
-      atual_em: Date | null;
-      esperado_em: Date | null;
-      atual_corpo: string | null;
-      esperado_corpo: string | null;
-    }[]>`
+    const amostra = await sql<
+      {
+        uuid: string;
+        atual_em: Date | null;
+        esperado_em: Date | null;
+        atual_corpo: string | null;
+        esperado_corpo: string | null;
+      }[]
+    >`
       WITH ultimas AS (
         SELECT DISTINCT ON (m.conversa_id)
           m.conversa_id,

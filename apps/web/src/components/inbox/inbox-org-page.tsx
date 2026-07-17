@@ -5,7 +5,7 @@
  * server/Postgres continua SSOT via ORPC. Seleção de thread vem da rota
  * (`/chat/$conversaId`); `telefone`+`instancia` abrem nova conversa (ex.: Contatos).
  */
-import { skipToken, useMutation, useQuery } from "@tanstack/react-query";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isEvoProvider, isMetaCloudProvider } from "@whasap/config";
 import { Badge } from "@whasap/ui/components/badge";
 import { Loader2 } from "lucide-react";
@@ -24,7 +24,12 @@ import {
 import { WaMessageArea } from "@/components/inbox/wa-message-area";
 import { WaShell } from "@/components/inbox/wa-shell";
 import { useSession } from "@/lib/auth";
-import { useInboxConversas, useInboxMensagens } from "@/lib/inbox-db";
+import {
+  invalidarListasConversas,
+  removerConversaLocal,
+  useInboxConversas,
+  useInboxMensagens,
+} from "@/lib/inbox-db";
 import { IconeConexaoLucide } from "@/lib/icones-conexao";
 import { janelaCloudAberta, podeEnviarMensagem } from "@/lib/inbox-permissoes";
 import { formatarHorarioConversa, formatarPreviewMensagem } from "@/lib/inbox-utils";
@@ -58,6 +63,7 @@ export function InboxOrgPage({
   onLimparSearchNovaConversa,
 }: InboxOrgPageProps) {
   const organizacaoHash = useOrganizacaoHash();
+  const queryClient = useQueryClient();
   const [busca, setBusca] = useState("");
   const [filtroAtivo, setFiltroAtivo] = useState<FiltroConversa>("Tudo");
   const [arquivadasAtivas, setArquivadasAtivas] = useState(false);
@@ -239,8 +245,11 @@ export function InboxOrgPage({
 
   const arquivar = useMutation(
     orpc.caixaEntrada.conversas.arquivar.mutationOptions({
-      onSuccess: () => {
-        void conversations.refetch?.();
+      onSuccess: (_data, vars) => {
+        if (conversations.collection) {
+          removerConversaLocal(conversations.collection, vars.conversaId);
+        }
+        if (organizacaoHash) invalidarListasConversas(queryClient, organizacaoHash);
         onLimparSelecao();
       },
       onError: (error) => {
@@ -251,8 +260,11 @@ export function InboxOrgPage({
 
   const desarquivar = useMutation(
     orpc.caixaEntrada.conversas.desarquivar.mutationOptions({
-      onSuccess: () => {
-        void conversations.refetch?.();
+      onSuccess: (_data, vars) => {
+        if (conversations.collection) {
+          removerConversaLocal(conversations.collection, vars.conversaId);
+        }
+        if (organizacaoHash) invalidarListasConversas(queryClient, organizacaoHash);
         onLimparSelecao();
       },
       onError: (error) => {
@@ -277,20 +289,24 @@ export function InboxOrgPage({
   );
 
   const conversasFiltradas = useMemo(() => {
-    let lista = conversations.data;
+    let lista = conversations.data.filter((c: ConversaItem) =>
+      arquivadasAtivas ? Boolean(c.arquivadoEm) : !c.arquivadoEm,
+    );
     if (filtroAtivo === "Não lidas") {
       lista = lista.filter((c: ConversaItem) => c.naoLidas > 0);
     }
     const termo = busca.trim().toLowerCase();
     if (termo) {
       lista = lista.filter((c: ConversaItem) => {
-        const nome = (c.contatoNome?.trim() || c.contatoTelefone).toLowerCase();
+        const contatoLabel = (c.contatoNome?.trim() || c.contatoTelefone).toLowerCase();
         const preview = formatarPreviewMensagem(
           c.ultimaMensagemPreview,
           c.ultimaMensagemTipo,
         ).toLowerCase();
         const instanciaNome = (c.instanciaNome ?? "").toLowerCase();
-        return nome.includes(termo) || preview.includes(termo) || instanciaNome.includes(termo);
+        return (
+          contatoLabel.includes(termo) || preview.includes(termo) || instanciaNome.includes(termo)
+        );
       });
     }
     // Garante ordem mesmo se o live query/SQLite não preservar nulls de forma estável.
@@ -299,7 +315,7 @@ export function InboxOrgPage({
         (b.ultimaMensagemEm ? Date.parse(b.ultimaMensagemEm) : 0) -
         (a.ultimaMensagemEm ? Date.parse(a.ultimaMensagemEm) : 0),
     );
-  }, [conversations.data, busca, filtroAtivo]);
+  }, [conversations.data, busca, filtroAtivo, arquivadasAtivas]);
 
   const telefoneIniciarBusca = useMemo(() => {
     if (!eCandidatoTelefoneBr(busca)) return null;

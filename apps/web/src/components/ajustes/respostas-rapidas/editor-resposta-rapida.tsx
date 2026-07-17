@@ -258,8 +258,7 @@ export function EditorRespostaRapida({
                   ))}
                   {!OPCOES_INTERVALO.some((o) => o.valor === intervaloSegundos) ? (
                     <SelectItem value={String(intervaloSegundos)}>
-                      {intervaloSegundos}{" "}
-                      {intervaloSegundos === 1 ? "segundo" : "segundos"}
+                      {intervaloSegundos} {intervaloSegundos === 1 ? "segundo" : "segundos"}
                     </SelectItem>
                   ) : null}
                 </SelectContent>

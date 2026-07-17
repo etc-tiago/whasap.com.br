@@ -1,7 +1,4 @@
-import {
-  normalizarTelefoneWhatsappBr,
-  variantesTelefoneWhatsappBr,
-} from "@whasap/config";
+import { normalizarTelefoneWhatsappBr, variantesTelefoneWhatsappBr } from "@whasap/config";
 
 /** Extrai apenas dígitos de um valor de telefone. */
 export function digitosTelefone(valor: string): string {

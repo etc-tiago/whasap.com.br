@@ -21,7 +21,20 @@ import {
   type IconeConexao,
 } from "@whasap/config";
 import type { MetaTemplate } from "@whasap/meta";
-import { and, asc, count, desc, eq, ilike, inArray, isNotNull, isNull, lt, or, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  or,
+  type SQL,
+} from "drizzle-orm";
 import {
   contato,
   contatoInstancia,
@@ -189,9 +202,7 @@ async function resolverInstanciaEvoDoContato(
       metaCloud: incluirInstanciaOperacao.with.metaCloud,
     },
   });
-  return (
-    rows.find((row) => isEvoProvider(row.provedor) && isInstanceOperational(row)) ?? null
-  );
+  return rows.find((row) => isEvoProvider(row.provedor) && isInstanceOperational(row)) ?? null;
 }
 
 /** Primeira instância Evolution operacional da organização (para sync de label sem contato). */
@@ -1290,10 +1301,7 @@ export const caixaEntradaHandlers = {
         }
       }
 
-      await ctx.db
-        .update(mensagem)
-        .set(marcarExclusaoLogica())
-        .where(eq(mensagem.id, msg.id));
+      await ctx.db.update(mensagem).set(marcarExclusaoLogica()).where(eq(mensagem.id, msg.id));
 
       const anterior = await ctx.db.query.mensagem.findFirst({
         where: and(eq(mensagem.conversaId, msg.conversaId), isNull(mensagem.excluidoEm)),

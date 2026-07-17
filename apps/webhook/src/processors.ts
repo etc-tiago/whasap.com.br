@@ -2,11 +2,7 @@
  * Processadores de webhooks Evolution e Meta Cloud API.
  */
 import { atualizarStatusMensagemPorIdExterno } from "@whasap/api-core";
-import {
-  incluirInstanciaWebhook,
-  instanciaMetaCloud,
-  type Db,
-} from "@whasap/db";
+import { incluirInstanciaWebhook, instanciaMetaCloud, type Db } from "@whasap/db";
 import type { WorkerExecutionContext } from "@whasap/evlog/workers";
 import {
   metaMessageTemMidia,

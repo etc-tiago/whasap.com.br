@@ -321,8 +321,7 @@ describe.skipIf(!corpusOk)("HistorySync corpus R2 (parser)", () => {
     if (!pastaPrimaria) return;
     const recent = parsed
       .filter(
-        (p) =>
-          p.instanciaPasta === pastaPrimaria && p.chunk.syncType === HISTORY_SYNC_TYPE.RECENT,
+        (p) => p.instanciaPasta === pastaPrimaria && p.chunk.syncType === HISTORY_SYNC_TYPE.RECENT,
       )
       .map((p) => ({
         order: p.chunk.chunkOrder ?? 0,

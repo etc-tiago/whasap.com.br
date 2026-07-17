@@ -51,8 +51,11 @@ describe("inbox-db collections", () => {
   it("ids das collections são estáveis e distintos", () => {
     const qc = new QueryClient();
     const conv = obterColecaoConversas(qc, "org-z", null);
+    const convArq = obterColecaoConversas(qc, "org-z", null, 0, true);
     const msg = obterColecaoMensagens(qc, "c-z", null);
-    expect(conv.id).toBe("inbox-conversas-org-z");
+    expect(conv.id).toBe("inbox-conversas-org-z-ativ");
+    expect(convArq.id).toBe("inbox-conversas-org-z-arq");
+    expect(conv).not.toBe(convArq);
     expect(msg.id).toBe("inbox-mensagens-c-z");
   });
 });
